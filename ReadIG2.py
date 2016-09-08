@@ -8,7 +8,7 @@ IG_Methods = wb.get_sheet_by_name('SDTM 1.4 Mapping Specs')
 graph = Graph()
 tx = graph.cypher.begin()
 
-#tx.append("CREATE (ig:IG {model:'SDTM', version:'3.2'}) WITH ig MATCH (m:Model {name:'SDTM',version:'1.4'}) CREATE (ig)-[r:InstantiateModel]->(m)")
+tx.append("CREATE (ig:IG {model:'SDTM', version:'3.2'}) WITH ig MATCH (m:Model {name:'SDTM',version:'1.4'}) CREATE (ig)-[r:InstantiateModel]->(m)")
 
 # Import domain level metadata
 propertynames = ['Name', 'Label', 'Class', 'Structure', 'Purpose', 'Reference', 'Repeating', 'URL']
@@ -22,7 +22,7 @@ for row in range(2,IG_datasets.max_row+1):
             statement=statement+propertynames[col]+': "'+str(IG_datasets.cell(row=row,column=col+1).value)+'" '
             firstproperty = False
     statement=statement+'}) WITH IGD MATCH (ig:IG {model:"SDTM"}) MERGE (ig)-[r:ContainsDomain]->(IGD)'
-    #tx.append(statement)
+    tx.append(statement)
 
     domain = IG_datasets.cell(row=row,column=1).value
     IG_vars = wb.get_sheet_by_name('SDTMIG 3.2 Items '+domain+' V2')
