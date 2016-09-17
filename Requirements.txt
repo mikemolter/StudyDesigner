@@ -1,7 +1,5 @@
-et-xmlfile (1.0.1)
-jdcal (1.2)
-openpyxl (2.3.5)
-pip (8.1.2)
-py2neo (2.0.8)
-setuptools (25.2.0)
-wheel (0.29.0)
+et-xmlfile==1.0.1
+jdcal==1.2
+openpyxl==2.3.5
+pkg-resources==0.0.0
+py2neo==2.0.8
