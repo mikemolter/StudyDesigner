@@ -76,7 +76,7 @@ sudo pip install virtualenvwrapper
 
 
 #try using this to install Mike's requirements as part of provisioning
-# pip install -r /vagrant/StudyDesigner/Requirements.txt
+sudo pip install -r /vagrant/StudyDesigner/vagrant/Requirements.txt
 
 #autoenv will automatically activate the appropriate virtualenv when cd-ing to 
 #project directory
