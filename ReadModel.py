@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import openpyxl
 from py2neo import Graph
 
@@ -7,7 +9,7 @@ model_vars = wb.get_sheet_by_name('SDTM 1.4 Variables')
 model_refs = wb.get_sheet_by_name('SDTM 1.4 itemrefs')
 model_specs = wb.get_sheet_by_name('SDTM 1.4 Mapping Specs')
 
-graph = Graph()
+graph = Graph("http://neo4j:password@10.0.0.10:7474/db/data/")
 tx = graph.cypher.begin()
 
 # Import dataset level metadata
