@@ -68,16 +68,18 @@ sudo cp /vagrant/neo4j.conf /etc/neo4j/neo4j.conf
 sudo neo4j restart
 
 
-# echo "************	Install virtualenv and virtualenvwrapper ***********************"
+echo "************	Install pips for python2&3, virtualenv and virtualenvwrapper ***********************"
 sudo apt-get install -y -qq python-pip
+sudo apt-get install -y -qq python3-pip
 pip install --upgrade pip
-sudo apt-get install -y -qq python-virtualenv
-sudo pip install virtualenvwrapper
+
+# sudo apt-get install -y -qq python-virtualenv
+# sudo pip install virtualenvwrapper
 
 
 #try using this to install Mike's requirements as part of provisioning
 sudo pip install -r /vagrant/requirements.txt
-
+sudo pip3 install -r /vagrant/requirements.txt
 #autoenv will automatically activate the appropriate virtualenv when cd-ing to 
 #project directory
 #nevermind. I don't want to ovveride 'cd' command unless need to, which this does
@@ -88,7 +90,7 @@ sudo pip install -r /vagrant/requirements.txt
 
 # echo "************  Install mod_wsgi  ***********************"
 sudo apt-get install -y -qq libapache2-mod-wsgi
-sudo apt-get install -y -qq python-django
+# sudo apt-get install -y -qq python-django 
 # 
 
 #TODO: get mod_wasgi from https://github.com/GrahamDumpleton/mod_wsgi/archive/4.5.7.tar.gz
