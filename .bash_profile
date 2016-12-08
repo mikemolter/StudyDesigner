@@ -35,7 +35,4 @@ export VIRTUALENVWRAPPER_HOOK_DIR="$WORKON_HOME"
 source /usr/local/bin/virtualenvwrapper.sh
 
 
-# Setting PATH for Python 3.5
-# The orginal version is saved in .bash_profile.pysave
-
 
