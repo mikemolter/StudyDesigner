@@ -24,6 +24,7 @@ alias SD="cd ~/Vagrants/apache/StudyDesigner"
 
 if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
+export PIP_REQUIRE_VIRTUALENV=true
 export WORKON_HOME=$HOME/.virtualenvs
 export PROJECT_HOME=$HOME/projects
 export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python
