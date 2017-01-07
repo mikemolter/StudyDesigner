@@ -2,7 +2,7 @@
 
 #Intended for use on Ubunty 16.04 (Xenial 64bit)
 #get rid of stupid GRUB error:
-#sudo echo "set grub-pc/install_devices /dev/sda" | debconf-communicate
+sudo echo "set grub-pc/install_devices /dev/sda" | debconf-communicate
 #^^didn't need the debconf-communicate after updating bento16.04 to latest version
 #Update 
 
@@ -19,6 +19,8 @@
 # sudo apt-get install -f
 
 # sudo shutdown -r now
+
+export DEBIAN_FRONTEND=noninteractive
 
 sudo apt-get -y -q update 
 sudo apt-get -y -q upgrade

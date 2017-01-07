@@ -13,6 +13,8 @@ Vagrant.configure(2) do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "bento/ubuntu-16.04"
+  config.vm.box_version = "2.3.0"
+  config.vm.box_check_update = false
   config.vm.define "studesigner"
 
   # config.vm.box = "ubuntu/xenial64"
@@ -59,8 +61,12 @@ Vagrant.configure(2) do |config|
   # config.vm.provider "virtualbox" do |vb|
   #   # Display the VirtualBox GUI when booting the machine
   #   vb.gui = true
+
   config.vm.provider 'virtualbox' do |vb|
-  vb.customize ['modifyvm', :id, '--cableconnected1', 'on']
+      vb.customize ['modifyvm', :id, '--cableconnected1', 'on']
+      vb.customize ['modifyvm', :id, '--memory', '4096']
+      vb.customize ['modifyvm', :id, '--name', 'StudEsigner']
+      vb.customize ['modifyvm', :id, '--cpuexecutioncap', '75']
   end
   #   # Customize the amount of memory on the VM:
   #   vb.memory = "1024"
