@@ -25,6 +25,11 @@ export DEBIAN_FRONTEND=noninteractive
 sudo apt-get -y -q update 
 sudo apt-get -y -q upgrade
 
+echo "---------------- LIBXML2 INSTALL______________________________"
+sudo apt-get install -y -qq libxml2 
+echo "---------------- LIBXML2 INSTALL FINISH ______________________________"
+
+
 # Set timezone
 ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 
