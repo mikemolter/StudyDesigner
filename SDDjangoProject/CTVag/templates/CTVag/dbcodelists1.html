@@ -1,0 +1,6 @@
+<p> VERSION: {{MyVersion}} </p>
+<ul>
+{% for CodeList in CodeLists %}
+	<li><a href="/CTVag/{{CodeList.OID}}/ChildrenCL">{{CodeList.OID}} ({{CodeList.Name}})</a></li>
+{% endfor %}
+</ul>

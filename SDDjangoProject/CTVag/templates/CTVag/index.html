@@ -1,0 +1,12 @@
+<p> Welcome to Controlled Terminology Designer!  Let&apos;s get started. </p><br/>
+
+<form action='DBCodelists'>
+<select name="CTVersions">
+<option>Choose a Controlled Terminology Version</option>
+{% for x in Versions %}
+	<option>{{x.version}}</option>
+{% endfor %}
+</select>
+
+<input type='submit'/>
+</form>

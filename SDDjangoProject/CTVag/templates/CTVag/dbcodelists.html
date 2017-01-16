@@ -1,0 +1,49 @@
+<p> VERSION: {{MyVersion}} </p>
+
+<form action="Child" method="post">
+{% csrf_token %}
+<input type="submit" name="XLOutput" value="Generate Excel from selected codelists" style="background-color: gray;"/>
+<input type="submit" name="XMLOutput" value="Generate XML from selected codelists" style="background-color: gray;"/>
+<input type="submit" name="NewCodeList" value="Create a custom codelist" style="background-color: gray;"/>
+<table border="1 solid">
+	<tr>
+		<th>NCI Code</th>
+		<th>Parent Codelist</th>
+		<th>Codelist</th>
+		<th>Description</th>
+		<th>Click to create child codelist</th>
+		<th>Check to generate output</th>
+	</tr>
+
+	{% for x in CodeLists %}
+		<tr>
+			<td>
+			{% if x.child == 0 %}
+				{{ x.AliasName }}
+			{% endif %}
+			</td>
+
+			<td>
+			{% if x.child == 0 %}
+				{{ x.ParentOID }}
+			{% endif %}
+			</td>
+
+			<td>{{ x.OID }}</td>
+			<td>{{ x.Name }}</td>
+
+			<td>
+				<input type="submit" name="s_{{ x.OID }}" value="Make Child CodeList" style="background-color: gray;"/>
+			</td>
+
+			<td>
+				<input type="checkbox" style="display: table; margin: auto; text-align: center" name="c_{{ x.OID }}"
+				{% if x.OID in Selected %}
+					checked="true"
+				{% endif %}
+				/>
+			</td>
+		</tr>
+	{% endfor %}
+</table>
+</form>
