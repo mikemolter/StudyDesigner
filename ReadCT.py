@@ -39,3 +39,10 @@ for row in range(2,100):
         statement=statement+'})'
     tx.append(statement)
 tx.commit()
+
+# Changes to make
+# 1) Add relationships from version to codelist
+# 2) Add child=0 to all parents
+# 3) Add DataType=text to all parents
+# 4) Add YESONLY BasedOn relationship with child=1
+# 5) Use Decode flag to differentiate which codelists use enumerateditems and which don't
