@@ -2,12 +2,13 @@
 <p>Parent Codelist: {{ParentOID}} <br/> {{ParentName}} </p>
 
 <form method="post" action="Back2DBCodeList">
-
+{% csrf_token %}
 <input type="hidden" name="ParentOID" value="{{ParentOID}}"/>
 <input type="hidden" name="ParentName" value="{{ParentName}}"/>
 <input type="hidden" name="NextChild" value="{{NextChild}}"/>
 <input type="hidden" name="Extensible" value="{{ParentExt}}"/>
 <input type="hidden" name="Alias" value="{{ParentAlias}}"/>
+<input type="hidden" name="DataType" value="{{DataType}}"/>
 
 <p> Describe the relationship of this codelist to its parent </p>
 <textarea rows="2" cols="40" maxlength="80" name="newname"></textarea>
@@ -26,6 +27,7 @@
 <div id="therest">
 <input type="button" value="Add a Codelist Extension" id="acebutton" onclick="ext()"/><br/>
 </div>
+
 <input type="submit" name="submit" value="Save" id="save"/> &nbsp;
 <input type="submit" name="submit" value="Cancel"/>
 
@@ -114,6 +116,7 @@ function AddItem() {
 	var addbutton = document.getElementById("addid");
 	var aceelement = document.createElement("input");
 	var ckbox = document.createElement("input");
+	var hideelement = document.createElement("input");
 	var att1 = document.createAttribute("value");
 	var att2 = document.createAttribute("id");
 	var att3 = document.createAttribute("onclick");
@@ -122,15 +125,21 @@ function AddItem() {
 	var name = document.createAttribute("name") ;
 	var chck = document.createAttribute("checked") ;
 	var label = document.createElement('label');
+	var hidename = document.createAttribute("name") ;
+	var hidevalue = document.createAttribute("value") ;
 
 	att1.value = "Add a Codelist Extension" ;
 	att2.value = "acebutton" ;
 	att3.value = "ext()" ;
 	att4.value = "button";
 	type.value = "checkbox" ;
-	name.value = 'c_'+text1 ;
+	name.value = 'ec_'+text1 ;
 	chck.value = "true";
 	divelement3.id="therest" ;
+	hideelement.type="hidden";
+	hidename.value = 'e_'+text1;
+	hidevalue.value = text2 ;
+
 
 	formelement.removeChild(divelement2);
 	aceelement.setAttributeNode(att1);
@@ -146,6 +155,9 @@ function AddItem() {
 	divelement1.appendChild(label);
 	divelement1.appendChild(document.createElement("br"));
 	formelement.insertBefore(divelement3,document.getElementById("save"));
+	hideelement.setAttributeNode(hidename) ;
+	hideelement.setAttributeNode(hidevalue) ;
+	formelement.appendChild(hideelement) ;
 }
 
 </script>
