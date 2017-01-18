@@ -78,7 +78,7 @@ sudo neo4j restart
 echo "************	Install pips for python2&3, virtualenv and virtualenvwrapper ***********************"
 sudo apt-get install -y -qq python-pip
 sudo apt-get install -y -qq python3-pip
-pip install --upgrade pip
+sudo pip install --upgrade pip
 
 # sudo apt-get install -y -qq python-virtualenv
 # sudo pip install virtualenvwrapper
