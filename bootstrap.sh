@@ -26,7 +26,7 @@ sudo apt-get -y -q update
 sudo apt-get -y -q upgrade
 
 echo "---------------- LIBXML2 INSTALL______________________________"
-sudo apt-get install -y -qq libxml2 
+sudo apt-get install -y libxml2 
 echo "---------------- LIBXML2 INSTALL FINISH ______________________________"
 
 
