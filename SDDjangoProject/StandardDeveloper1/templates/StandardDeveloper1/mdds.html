@@ -1,0 +1,41 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+	<p><b>STUDY: {{Study}}<br/>
+		{{mdds.0.IGDName}} Metadata</b></p>
+</div>
+
+<div>
+<form method="post" action='Predecessors' class="w3-container w3-teal" style="height:100%">
+{% csrf_token %}
+	<div class="w3-cell-row">
+		<div class="w3-cell" style="width:45%" >
+			<br/>
+			<input type="text" maxlength="8" size="8" value="{{mdds.0.IGDName}}" name="DSName"/><br><label>Dataset Name</label><br/><br/>
+			<input type="text" maxlength="40" size="40" name="DSLabel" value="{{mdds.0.Label}}"/><br><label>Dataset Label</label><br/><br/>
+			<input type="text" maxlength="75" size="75" name="DSStructure" value="{{mdds.0.Structure}}"/><br><label>Dataset Structure</label><br/><br/>
+			<input type="text" maxlength="75" size="75" name="DSClass" value="{{mdds.0.Class}}"/><br><label>Dataset Class</label><br/><br/>
+			Can subject have more than one row?
+			<select name="DSRepeat">
+				<option {% if mdds.0.Repeating == "Yes" %} selected {% endif %}>Yes</option>
+				<option {% if mdds.0.Repeating == "No" %} selected {% endif %}>No</option>
+			</select><br><br>
+			Reference Data?
+			<select name="DSIsRef">
+				<option {% if mdds.0.Reference == "Yes" %} selected {% endif %}>Yes</option>
+				<option {% if mdds.0.Reference == "No" %} selected {% endif %}>No</option>
+			</select>
+		</div>
+
+		<div class="w3-cell" style="width:10%">
+		</div>
+
+		<div class="w3-cell" style="width:45%">
+			<br/>
+			<input type="text" maxlength="8" size="8" name="DSPredecessor"/><br><label>Name of the main source data set</label><br/><br/>
+			<input type="text" maxlength="75" size="75" name="DSSubset"/><br><label>Describe how to subset this source (if applicable)</label><br/><br/>
+			<input type="submit" value="Choose Predecessor Variables" class="w3-button w3-dark-grey w3-round-medium"/>
+		</div>
+	</div>
+</form>
+</div>

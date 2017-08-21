@@ -1,0 +1,72 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+	<p><b>STUDY: {{Study}}</b></p>
+</div>
+
+<form action='ModifyaDataset' class="w3-container w3-teal" style="height:100%">
+	<input type="hidden" name="Study" value="{{Study}}"/>
+	<div class="w3-cell-row">
+		<div class="w3-cell" style="width:45%">
+			<p class="w3-center">Datasets to add to {{Study}}</p>
+			<table border="1 solid" class="w3-table-all w3-hoverable">
+				<tr>
+					<th>Dataset</th>
+					<th class="w3-center">Add</th>
+				</tr>
+				{% for x in AddDatasets %}
+					<tr>
+						<td>{{x.name}}</td>
+						<td class='w3-center'>
+							<input type="submit" name="add_{{ x.name }}" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
+						</td>
+					</tr>
+				{% endfor %}
+				<tr>
+					<td>General BDS</td>
+					<td class="w3-center">
+						<input type="submit" name="add_BDS" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
+					</td>
+				</tr>
+				<tr>
+					<td>General Occurrence</td>
+					<td class="w3-center">
+						<input type="submit" name="add_Occur" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<div class="w3-cell" style="width:10%">
+			<p></p>
+		</div>
+
+		<div class="w3-cell w3-center" style="width:45%">
+			<p class="w3-center">{{Standard}} Datasets</p>
+			<table border="1 solid" class="w3-table-all w3-hoverable">
+				<tr>
+					<th>Dataset</th>
+					<th class="w3-center">Remove</th>
+					<th class="w3-center">Edit</th>
+				</tr>
+				{% for x in StudyDatasets %}
+					<tr>
+						<td>{{x.Name}}</td>
+						<td class='w3-center'>
+							<input type="submit" name="remove_{{ x.Name }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/>
+						</td>
+						<td class='w3-center'>
+							<input type="submit" name="edit_{{ x.Name }}" value="Edit" class="w3-button w3-dark-grey w3-round-large"/>
+						</td>
+					</tr>
+				{% endfor %}
+			</table>
+			<p/>
+			<input type="submit" value="Export {{Standard}} to Excel" name="Export" class="w3-button w3-dark-grey w3-round-large w3-center"/><br><br>
+			{% if Message %}
+				<p class="w3-yellow"><b>{{Message}}</b></p>
+			{% endif %}
+		</div>
+
+	</div>
+</form>

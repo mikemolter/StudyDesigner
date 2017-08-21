@@ -1,0 +1,31 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+<p> <b>NCI Controlled Terminology<br/>
+	Publication Version: {{MyVersion}} </b></p>
+</div>
+
+<form action="Child" method="post">
+{% csrf_token %}
+<table border="1 solid" class="w3-table-all w3-hoverable">
+	<tr class="w3-teal">
+		<th>Codelist code</th>
+		<th>Codelist</th>
+		<th>Description</th>
+		<th>Click to create a child</th>
+	</tr>
+
+	{% for x in CodeLists %}
+		<tr>
+			<td>{{ x.AliasName }}</td>
+			<td>{{ x.OID }}</td>
+			<td>{{ x.Name }}</td>
+
+			<td>
+				<input type="submit" name="s_{{ x.OID }}" value="Select" style="background-color: gray;"/>
+			</td>
+
+		</tr>
+	{% endfor %}
+</table>
+</form>

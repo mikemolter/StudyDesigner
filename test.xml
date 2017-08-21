@@ -1,0 +1,24 @@
+<ODM>
+  <CodeList DataType="text" Name="Description of 82" OID="Sponsor82">
+    <CodeListItem CodedValue="term821">
+      <Decode>
+        <TranslatedText xml:lang="en"/>
+      </Decode>
+    </CodeListItem>
+    <CodeListItem CodedValue="term822">
+      <Decode>
+        <TranslatedText xml:lang="en"/>
+      </Decode>
+    </CodeListItem>
+    <CodeListItem CodedValue="term821">
+      <Decode>
+        <TranslatedText xml:lang="en">desc821</TranslatedText>
+      </Decode>
+    </CodeListItem>
+    <CodeListItem CodedValue="term822">
+      <Decode>
+        <TranslatedText xml:lang="en">desc822</TranslatedText>
+      </Decode>
+    </CodeListItem>
+  </CodeList>
+</ODM>

@@ -1,0 +1,62 @@
+<ODM>
+  <CodeList DataType="text" Name="Action Taken with Study Treatment" OID="ACN">
+    <Alias Context="nci:ExtCodeID" Name="C66767"/>
+    <CodeListItem CodedValue="DOSE INCREASED">
+      <Decode>
+        <TranslatedText xml:lang="en">Dose Increased</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C49503"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="DOSE NOT CHANGED">
+      <Decode>
+        <TranslatedText xml:lang="en">Dose Not Changed</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C49504"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="DOSE REDUCED">
+      <Decode>
+        <TranslatedText xml:lang="en">Dose Reduced</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C49505"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="DRUG INTERRUPTED">
+      <Decode>
+        <TranslatedText xml:lang="en">Drug Interrupted</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C49501"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="DRUG WITHDRAWN">
+      <Decode>
+        <TranslatedText xml:lang="en">Drug Withdrawn</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C49502"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="NOT APPLICABLE">
+      <Decode>
+        <TranslatedText xml:lang="en">Not Applicable</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C48660"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="UNKNOWN">
+      <Decode>
+        <TranslatedText xml:lang="en">Unknown</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C17998"/>
+    </CodeListItem>
+  </CodeList>
+  <CodeList DataType="text" Name="Acute Coronary Syndrome Presentation Category" OID="ACSPCAT1_BillyD">
+    <Alias Context="nci:ExtCodeID" Name="C101865"/>
+    <CodeListItem CodedValue="ST ELEVATION MYOCARDIAL INFARCTION">
+      <Decode>
+        <TranslatedText xml:lang="en">ST Elevation Myocardial Infarction by ECG Finding</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C101888"/>
+    </CodeListItem>
+    <CodeListItem CodedValue="UNSTABLE ANGINA">
+      <Decode>
+        <TranslatedText xml:lang="en">Unstable Angina</TranslatedText>
+      </Decode>
+      <Alias Context="nci:ExtCodeID" Name="C66911"/>
+    </CodeListItem>
+  </CodeList>
+</ODM>

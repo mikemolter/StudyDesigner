@@ -1,0 +1,118 @@
+<body>
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+	<p><b>Parent Codelist: {{Items.0.parentOID}}</b></p>
+</div>
+
+<form method="post" action='DBChangeFromChild' class="w3-container w3-teal" style="height:100%">
+{% csrf_token %}
+<input type="hidden" name="ParentOID" value="{{Items.0.parentOID}}"/>
+<input type="hidden" name="ParentName" value="{{Items.0.parentname}}"/>
+<input type="hidden" name="NextChild" value="{{NextChild}}"/>
+<input type="hidden" name="Extensible" value="{{Items.0.parentext}}"/>
+<input type="hidden" name="Alias" value="{{Items.0.parentalias}}"/>
+<input type="hidden" name="DataType" value="{{Items.0.DataType}}"/>
+
+<p>
+<textarea rows="2" cols="40" maxlength="80" name="newname" class="w3-input"
+	placeholder="Describe the relationship of this codelist to its parent"></textarea>
+</p>
+
+<hr>
+
+<div class="w3-cell-row">
+
+	<div class="w3-cell" style="width:50%; height:100%">
+		<p>Codelist Items</p>
+
+		<input type="button" name="selectall" onclick="AllChecks('select')" value="Select All" class="w3-button w3-dark-grey w3-round-large"/> &nbsp;
+		<input type="button" name="clearall" onclick="AllChecks('clear')" value="Clear All" class="w3-button w3-dark-grey w3-round-large"/> &nbsp;
+		<input type="submit" name="submit" value="Save" id="save" class="w3-button w3-dark-grey w3-round-large"/> &nbsp;
+		<input type="submit" name="submit" value="Cancel" class="w3-button w3-dark-grey w3-round-large"/>
+
+		<div id="itemlist">
+		{% for x in Items %}
+			<input type="checkbox" class="w3-check" name="c_{{x.codedvalue}}">{{x.codedvalue}} ({{x.decode}})</input><br/>
+		{% endfor %}
+		</div>
+	</div>
+
+	<div id="therest" class="w3-cell">
+		<p>Codelist Extensions</p>
+		<textarea name="t1" cols="40" rows="5" maxlength="200" placeholder="Extended Value"></textarea><br/><br/>
+		<textarea name="t2" cols="40" rows="5" maxlength="200" placeholder="Extended Decode"></textarea><br/><br/>
+		<input value="Add CodeList Extension" type="button" onclick="AddItem();" class="w3-button w3-dark-grey w3-round-large"/>
+	</div>
+
+</div>
+</form>
+
+<script>
+function AllChecks(CheckType) {
+    var x = document.getElementsByTagName("input");
+    var i;
+    if (CheckType == "select"){
+    for (i = 0; i < x.length; i++) {
+        if (x[i].type == "checkbox") {
+            x[i].checked = true;
+        }
+    }
+	}
+
+	else {
+	    for (i = 0; i < x.length; i++) {
+        if (x[i].type == "checkbox") {
+            x[i].checked = false;
+        }
+    }
+	}
+}
+
+function AddItem() {
+	var formelement = document.getElementsByTagName("form")[0];
+	var divelement1 = document.getElementById("itemlist");
+	var divelement2 = document.getElementById("therest");
+	var textareas = divelement2.getElementsByTagName("textarea");
+	var text1 = textareas[0].value ;
+	var text2 = textareas[1].value ;
+	var text3 = document.createTextNode(text1+' ('+text2+')') ;
+	var aceelement = document.createElement("input");
+	var ckbox = document.createElement("input");
+	var hideelement = document.createElement("input");
+
+	var type = document.createAttribute("type") ;
+	var name = document.createAttribute("name") ;
+	var chck = document.createAttribute("checked") ;
+	var label = document.createElement('label');
+	var hidename = document.createAttribute("name") ;
+	var hidevalue = document.createAttribute("value") ;
+	var chkclass = document.createAttribute("class") ;
+
+	type.value = "checkbox" ;
+	name.value = 'ec_'+text1 ;
+	chck.value = "true";
+	hideelement.type="hidden";
+	hidename.value = 'e_'+text1;
+	hidevalue.value = text2 ;
+	chkclass.value="w3-check"
+
+	ckbox.setAttributeNode(type);
+	ckbox.setAttributeNode(name);
+	ckbox.setAttributeNode(chck);
+	ckbox.setAttributeNode(chkclass);
+	label.appendChild(text3);
+	divelement1.appendChild(ckbox);
+	divelement1.appendChild(label);
+	divelement1.appendChild(document.createElement("br"));
+	hideelement.setAttributeNode(hidename) ;
+	hideelement.setAttributeNode(hidevalue) ;
+	formelement.appendChild(hideelement) ;
+	textareas[0].value="";
+	textareas[1].value="";
+	textareas[0].setAttribute("placeholder","Extended Value")
+	textareas[1].setAttribute("placeholder","Extended Decode")
+}
+
+</script>
+</body>

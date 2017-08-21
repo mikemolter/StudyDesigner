@@ -1,36 +1,55 @@
 <body>
-<p>Parent Codelist: {{ParentOID}} <br/> {{ParentName}} </p>
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
 
-<form method="post" action="Back2DBCodeList">
+<div class="w3-container w3-center w3-large">
+	<p><b>Parent Codelist: {{Items.0.parentOID}}</b></p>
+</div>
+
+<form method="post" action='DBChangeFromChild' class="w3-container w3-teal">
 {% csrf_token %}
-<input type="hidden" name="ParentOID" value="{{ParentOID}}"/>
-<input type="hidden" name="ParentName" value="{{ParentName}}"/>
+<input type="hidden" name="ParentOID" value="{{Items.0.parentOID}}"/>
+<input type="hidden" name="ParentName" value="{{Items.0.parentname}}"/>
 <input type="hidden" name="NextChild" value="{{NextChild}}"/>
-<input type="hidden" name="Extensible" value="{{ParentExt}}"/>
-<input type="hidden" name="Alias" value="{{ParentAlias}}"/>
-<input type="hidden" name="DataType" value="{{DataType}}"/>
+<input type="hidden" name="Extensible" value="{{Items.0.parentext}}"/>
+<input type="hidden" name="Alias" value="{{Items.0.parentalias}}"/>
+<input type="hidden" name="DataType" value="{{Items.0.DataType}}"/>
 
-<p> Describe the relationship of this codelist to its parent </p>
-<textarea rows="2" cols="40" maxlength="80" name="newname"></textarea>
+<p>
+<textarea rows="2" cols="40" maxlength="80" name="newname" class="w3-input"
+	placeholder="Describe the relationship of this codelist to its parent"></textarea>
+</p>
 
-<p>Select the items for this codelist</p>
+<hr>
 
-<input type="button" name="selectall" onclick="AllChecks('select')" value="Select All"/> &nbsp;
-<input type="button" name="clearall" onclick="AllChecks('clear')" value="Clear All"/><br/><br/>
+<div class="w3-cell-row">
 
-<div id="itemlist">
-{% for x in Items %}
-	<input type="checkbox" name="c_{{x.codedvalue}}">{{x.codedvalue}} ({{x.decode}})</input><br/>
-{% endfor %}
+	<div class="w3-cell" style="width:50%; height:100%">
+		<p>Codelist Items</p>
+
+		<input type="button" name="selectall" onclick="AllChecks('select')" value="Select All" class="w3-button w3-dark-grey w3-round-large"/> &nbsp;
+		<input type="button" name="clearall" onclick="AllChecks('clear')" value="Clear All" class="w3-button w3-dark-grey w3-round-large"/> &nbsp;
+		<input type="submit" name="submit" value="Save" id="save" class="w3-button w3-dark-grey w3-round-large"/> &nbsp;
+		<input type="submit" name="submit" value="Cancel" class="w3-button w3-dark-grey w3-round-large"/>
+
+		<div id="itemlist">
+		{% for x in Items %}
+			<input type="checkbox" class="w3-check" name="c_{{x.codedvalue}}">{{x.codedvalue}} ({{x.decode}})</input><br/>
+		{% endfor %}
+		</div>
+	</div>
+
+	<div id="therest" class="w3-cell">
+		<p>Codelist Extensions</p>
+		{% if Items.0.parentext == "Yes" %}
+		<textarea name="t1" cols="40" rows="5" maxlength="200" placeholder="Extended Value"></textarea><br/><br/>
+		<textarea name="t2" cols="40" rows="5" maxlength="200" placeholder="Extended Decode"></textarea><br/><br/>
+		<input value="Add CodeList Extension" type="button" onclick="AddItem();" class="w3-button w3-dark-grey w3-round-large"/>
+		{% else %}
+		<p class="w3-yellow"><b>Extensions not allowed</b></p>
+		{% endif %}
+	</div>
+
 </div>
-
-<div id="therest">
-<input type="button" value="Add a Codelist Extension" id="acebutton" onclick="ext()"/><br/>
-</div>
-
-<input type="submit" name="submit" value="Save" id="save"/> &nbsp;
-<input type="submit" name="submit" value="Cancel"/>
-
 </form>
 
 <script>
@@ -54,110 +73,49 @@ function AllChecks(CheckType) {
 	}
 }
 
-function ext(){
-	var textarea1 = document.createElement("textarea");
-	var textarea2 = document.createElement("textarea");
-	var addbutton = document.createElement("input");
-	var rows1 = document.createAttribute("rows");
-	var cols1 = document.createAttribute("cols");
-	var maxL1 = document.createAttribute("maxLength");
-	var type1 = document.createAttribute("type");
-	var valu1 = document.createAttribute("value");
-	var rows2 = document.createAttribute("rows");
-	var cols2 = document.createAttribute("cols");
-	var click = document.createAttribute("onclick");
-	var addid = document.createAttribute("id");
-	var formelement = document.getElementsByTagName("form")[0];
-	var divelement = document.getElementById("therest");
-	var aceelement = document.getElementById("acebutton");
-	var text1 = document.createTextNode("Provide Submission value here");
-	var text2 = document.createTextNode("Provide Decode here if applicable");
-
-	rows1.value = "5";
-	rows2.value = "5";
-	cols1.value = "40";
-	cols2.value = "40";
-	maxL1.value = "200";
-	type1.value = "button";
-	valu1.value = "Add";
-	click.value = "AddItem()";
-	addid.value = "addid";
-
-	textarea1.setAttributeNode(rows1);
-	textarea1.setAttributeNode(cols1);
-	textarea1.setAttributeNode(maxL1);
-	textarea2.setAttributeNode(rows2);
-	textarea2.setAttributeNode(cols2);
-	addbutton.setAttributeNode(type1);
-	addbutton.setAttributeNode(valu1);
-	addbutton.setAttributeNode(addid);
-	addbutton.setAttributeNode(click);
-	divelement.removeChild(aceelement);
-	divelement.appendChild(textarea1);
-	divelement.appendChild(document.createElement("br"));
-	divelement.appendChild(textarea2);
-	divelement.appendChild(document.createElement("br"));
-	divelement.appendChild(document.createElement("br"));
-	divelement.appendChild(addbutton);
-	textarea1.appendChild(text1);
-	textarea2.appendChild(text2);
-
-}
-
 function AddItem() {
 	var formelement = document.getElementsByTagName("form")[0];
 	var divelement1 = document.getElementById("itemlist");
 	var divelement2 = document.getElementById("therest");
-	var divelement3 = document.createElement("div") ;
 	var textareas = divelement2.getElementsByTagName("textarea");
 	var text1 = textareas[0].value ;
 	var text2 = textareas[1].value ;
 	var text3 = document.createTextNode(text1+' ('+text2+')') ;
-	var addbutton = document.getElementById("addid");
 	var aceelement = document.createElement("input");
 	var ckbox = document.createElement("input");
 	var hideelement = document.createElement("input");
-	var att1 = document.createAttribute("value");
-	var att2 = document.createAttribute("id");
-	var att3 = document.createAttribute("onclick");
-	var att4 = document.createAttribute("type");
+
 	var type = document.createAttribute("type") ;
 	var name = document.createAttribute("name") ;
 	var chck = document.createAttribute("checked") ;
 	var label = document.createElement('label');
 	var hidename = document.createAttribute("name") ;
 	var hidevalue = document.createAttribute("value") ;
+	var chkclass = document.createAttribute("class") ;
 
-	att1.value = "Add a Codelist Extension" ;
-	att2.value = "acebutton" ;
-	att3.value = "ext()" ;
-	att4.value = "button";
 	type.value = "checkbox" ;
 	name.value = 'ec_'+text1 ;
 	chck.value = "true";
-	divelement3.id="therest" ;
 	hideelement.type="hidden";
 	hidename.value = 'e_'+text1;
 	hidevalue.value = text2 ;
+	chkclass.value="w3-check"
 
-
-	formelement.removeChild(divelement2);
-	aceelement.setAttributeNode(att1);
-	aceelement.setAttributeNode(att2);
-	aceelement.setAttributeNode(att3);
-	aceelement.setAttributeNode(att4);
 	ckbox.setAttributeNode(type);
 	ckbox.setAttributeNode(name);
 	ckbox.setAttributeNode(chck);
+	ckbox.setAttributeNode(chkclass);
 	label.appendChild(text3);
-	divelement3.appendChild(aceelement);
 	divelement1.appendChild(ckbox);
 	divelement1.appendChild(label);
 	divelement1.appendChild(document.createElement("br"));
-	formelement.insertBefore(divelement3,document.getElementById("save"));
 	hideelement.setAttributeNode(hidename) ;
 	hideelement.setAttributeNode(hidevalue) ;
 	formelement.appendChild(hideelement) ;
+	textareas[0].value="";
+	textareas[1].value="";
+	textareas[0].setAttribute("placeholder","Extended Value")
+	textareas[1].setAttribute("placeholder","Extended Decode")
 }
 
 </script>

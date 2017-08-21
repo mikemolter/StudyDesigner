@@ -1,48 +1,30 @@
-<p> VERSION: {{MyVersion}} </p>
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+<p> <b>NCI Controlled Terminology<br/>
+	Publication Version: {{MyVersion}} </b></p>
+</div>
 
 <form action="Child" method="post">
 {% csrf_token %}
-<input type="submit" name="XLOutput" value="Generate Excel from selected codelists" style="background-color: gray;"/>
-<input type="submit" name="XMLOutput" value="Generate XML from selected codelists" style="background-color: gray;"/>
-<input type="submit" name="NewCodeList" value="Create a custom codelist" style="background-color: gray;"/>
-<table border="1 solid">
-	<tr>
-		<th>NCI Code</th>
-		<th>Parent Codelist</th>
+<table border="1 solid" class="w3-table-all w3-hoverable">
+	<tr class="w3-teal">
+		<th>Codelist code</th>
 		<th>Codelist</th>
 		<th>Description</th>
-		<th>Click to create child codelist</th>
-		<th>Check to generate output</th>
+		<th>Click to create a child</th>
 	</tr>
 
 	{% for x in CodeLists %}
 		<tr>
-			<td>
-			{% if x.child == 0 %}
-				{{ x.AliasName }}
-			{% endif %}
-			</td>
-
-			<td>
-			{% if x.child == 0 %}
-				{{ x.ParentOID }}
-			{% endif %}
-			</td>
-
+			<td>{{ x.AliasName }}</td>
 			<td>{{ x.OID }}</td>
 			<td>{{ x.Name }}</td>
 
 			<td>
-				<input type="submit" name="s_{{ x.OID }}" value="Make Child CodeList" style="background-color: gray;"/>
+				<input type="submit" name="s_{{ x.OID }}" value="Select" style="background-color: gray;"/>
 			</td>
 
-			<td>
-				<input type="checkbox" style="display: table; margin: auto; text-align: center" name="c_{{ x.OID }}"
-				{% if x.OID in Selected %}
-					checked="true"
-				{% endif %}
-				/>
-			</td>
 		</tr>
 	{% endfor %}
 </table>

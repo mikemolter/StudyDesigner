@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3" xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" xmlns:nciodm="http://ncicb.nci.nih.gov/xml/odm/EVS/CDISC" xs:schemaLocation="http://www.nci.nih.gov/EVS/CDISC ../schema/controlledterminology1-0-0.xsd" FileType="Snapshot" FileOID="CDISC_CT.SDTM.2017-03-31" Granularity="Metadata" CreationDateTime="2017-03-30T15:49:01" AsOfDateTime="2017-03-31T00:00:00" ODMVersion="1.3.2" Originator="CDISC XML Technologies Team (Terminology2ODM converter)" SourceSystem="NCI Thesaurus" SourceSystemVersion="2017-03-31">
+    <Study OID="CDISC_CT.SDTM.2017-03-31">
+        <GlobalVariables>
+            <StudyName>CDISC SDTM Controlled Terminology</StudyName>
+            <StudyDescription>CDISC SDTM Controlled Terminology, 2017-03-31</StudyDescription>
+            <ProtocolName>CDISC SDTM Controlled Terminology</ProtocolName>
+        </GlobalVariables>
+        <MetaDataVersion OID="CDISC_CT_MetaDataVersion.SDTM.2017-03-31" Name="CDISC SDTM Controlled Terminology" Description="CDISC SDTM Controlled Terminology, 2017-03-31">
+            <CodeList OID="CL.C115388.SIXMW1TC" Name="6 Minute Walk Functional Test Test Code" DataType="text" nciodm:ExtCodeID="C115388" nciodm:CodeListExtensible="No">
+                <Description>
+                    <TranslatedText xml:lang="en">6 Minute Walk Test test code.</TranslatedText>
+                </Description>
+                <EnumeratedItem CodedValue="SIXMW101" nciodm:ExtCodeID="C115800">
+                    <nciodm:CDISCSynonym>SIXMW1-Distance at 1 Minute</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>6 Minute Walk Test - Distance at 1 minute.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>6MWT - Distance at 1 Minute</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="SIXMW102" nciodm:ExtCodeID="C115801">
+                    <nciodm:CDISCSynonym>SIXMW1-Distance at 2 Minutes</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>6 Minute Walk Test - Distance at 2 minutes.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>6MWT - Distance at 2 Minutes</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="SIXMW103" nciodm:ExtCodeID="C115802">
+                    <nciodm:CDISCSynonym>SIXMW1-Distance at 3 Minutes</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>6 Minute Walk Test - Distance at 3 minutes.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>6MWT - Distance at 3 Minutes</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="SIXMW104" nciodm:ExtCodeID="C115803">
+                    <nciodm:CDISCSynonym>SIXMW1-Distance at 4 Minutes</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>6 Minute Walk Test - Distance at 4 minutes.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>6MWT - Distance at 4 Minutes</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="SIXMW105" nciodm:ExtCodeID="C115804">
+                    <nciodm:CDISCSynonym>SIXMW1-Distance at 5 Minutes</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>6 Minute Walk Test - Distance at 5 minutes.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>6MWT - Distance at 5 Minutes</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="SIXMW106" nciodm:ExtCodeID="C115805">
+                    <nciodm:CDISCSynonym>SIXMW1-Distance at 6 Minutes</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>6 Minute Walk Test - Distance at 6 minutes.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>6MWT - Distance at 6 Minutes</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <nciodm:CDISCSubmissionValue>SIXMW1TC</nciodm:CDISCSubmissionValue>
+                <nciodm:CDISCSynonym>6 Minute Walk Functional Test Test Code</nciodm:CDISCSynonym>
+                <nciodm:PreferredTerm>CDISC Functional Test 6MWT Test Code Terminology</nciodm:PreferredTerm>
+            </CodeList>
+
+            <CodeList OID="CL.C101806.AIMS01TN" Name="Abnormal Involuntary Movement Scale Questionnaire Test Name" DataType="text" nciodm:ExtCodeID="C101806" nciodm:CodeListExtensible="No">
+                <Description>
+                    <TranslatedText xml:lang="en">Abnormal Involuntary Movement Scale test name.</TranslatedText>
+                </Description>
+                <EnumeratedItem CodedValue="AIMS01-Current Problems Teeth/Dentures" nciodm:ExtCodeID="C102044">
+                    <nciodm:CDISCSynonym>AIMS01-Current Problems Teeth/Dentures</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Dental Status, Current problems with teeth and/or dentures.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Current Teeth/Dentures Problems</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Incapacitation due Abn Movements" nciodm:ExtCodeID="C102042">
+                    <nciodm:CDISCSynonym>AIMS01-Incapacitation due Abn Movements</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Global Judgments, Incapacitation due to abnormal movements.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Incapacitation Due to Abnormal Movements</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Jaw" nciodm:ExtCodeID="C102036">
+                    <nciodm:CDISCSynonym>AIMS01-Jaw</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Facial and Oral Movements, Jaw, e.g., biting, clenching, chewing, mouth opening, lateral movement.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Jaw</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Lips and Perioral Area" nciodm:ExtCodeID="C102035">
+                    <nciodm:CDISCSynonym>AIMS01-Lips and Perioral Area</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Facial and Oral Movements, Lips and perioral area, e.g., puckering, pouting, smacking.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Lips and Perioral Area</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Lower Extremities" nciodm:ExtCodeID="C102039">
+                    <nciodm:CDISCSynonym>AIMS01-Lower Extremities</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Extremity Movements, Lower (legs, knees, ankles, toes), e.g., lateral knee movement, foot tapping, heel dropping, foot squirming, inversion and eversion of foot.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Lower Extremities</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Muscles of Facial Expression" nciodm:ExtCodeID="C102034">
+                    <nciodm:CDISCSynonym>AIMS01-Muscles of Facial Expression</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Facial and Oral Movements, Muscles of facial expression, e.g., movements of forehead, eyebrows, periorbital area, cheeks. Include frowning, blinking, grimacing of upper face.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Muscles of Facial Expression</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Neck, Shoulders, Hips" nciodm:ExtCodeID="C102040">
+                    <nciodm:CDISCSynonym>AIMS01-Neck, Shoulders, Hips</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Trunk Movements, Neck, shoulders, hips, e.g., rocking, twisting, squirming, pelvic gyrations. Include diaphragmatic movements.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Neck, Shoulders, Hips</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Patient Awareness Abn Movements" nciodm:ExtCodeID="C102043">
+                    <nciodm:CDISCSynonym>AIMS01-Patient Awareness Abn Movements</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Global Judgments, Patient's awareness of abnormal movements.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Patient's Awareness of Abnormal Movements</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Patient Usually Wear Dentures" nciodm:ExtCodeID="C102045">
+                    <nciodm:CDISCSynonym>AIMS01-Patient Usually Wear Dentures</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Dental Status, Does patient usually wear dentures?</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Patient Usually Wears Dentures</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Severity of Abnormal Movements" nciodm:ExtCodeID="C102041">
+                    <nciodm:CDISCSynonym>AIMS01-Severity of Abnormal Movements</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Global Judgments, Severity of abnormal movements, based on the highest single score on the above items.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Severity of Abnormal Movements</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Tongue" nciodm:ExtCodeID="C102037">
+                    <nciodm:CDISCSynonym>AIMS01-Tongue</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Facial and Oral Movements, Tongue. Rate only increase in movement both in and out of mouth, not inability to sustain movement.</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Tongue</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="AIMS01-Upper Extremities" nciodm:ExtCodeID="C102038">
+                    <nciodm:CDISCSynonym>AIMS01-Upper Extremities</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Abnormal Involuntary Movement Scale - Extremity Movements, Upper (arms, wrists, hands, fingers). Include movements that are choreic (rapid, objectively purposeless, irregular, spontaneous) or athetoid (slow, irregular, complex, serpentine). Do not include tremor (repetitive, regular, rhythmic movements).</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>AIMS - Upper Extremities</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <nciodm:CDISCSubmissionValue>AIMS01TN</nciodm:CDISCSubmissionValue>
+                <nciodm:CDISCSynonym>Abnormal Involuntary Movement Scale Questionnaire Test Name</nciodm:CDISCSynonym>
+                <nciodm:PreferredTerm>CDISC Questionnaire AIMS Test Name Terminology</nciodm:PreferredTerm>
+            </CodeList>
+            <CodeList OID="CL.C66767.ACN" Name="Action Taken with Study Treatment" DataType="text" nciodm:ExtCodeID="C66767" nciodm:CodeListExtensible="No">
+                <Description>
+                    <TranslatedText xml:lang="en">Terminology specifying changes to the study treatment as a result of an adverse event.</TranslatedText>
+                </Description>
+                <EnumeratedItem CodedValue="DOSE INCREASED" nciodm:ExtCodeID="C49503">
+                    <nciodm:CDISCDefinition>An indication that a medication schedule was modified by addition; either by changing the frequency, strength or amount. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Dose Increased</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="DOSE NOT CHANGED" nciodm:ExtCodeID="C49504">
+                    <nciodm:CDISCDefinition>An indication that a medication schedule was maintained. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Dose Not Changed</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="HELLO WORLD DOSE REDUCED" nciodm:ExtCodeID="C49505">
+                    <nciodm:CDISCDefinition>An indication that a medication schedule was modified by subtraction, either by changing the frequency, strength or amount. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Dose Reduced</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="DRUG INTERRUPTED" nciodm:ExtCodeID="C49501">
+                    <nciodm:CDISCDefinition>An indication that a medication schedule was modified by temporarily terminating a prescribed regimen of medication. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Drug Interrupted</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="DRUG WITHDRAWN" nciodm:ExtCodeID="C49502">
+                    <nciodm:CDISCDefinition>An indication that a medication schedule was modified through termination of a prescribed regimen of medication. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Drug Withdrawn</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="NOT APPLICABLE" nciodm:ExtCodeID="C48660">
+                    <nciodm:CDISCSynonym>NA</nciodm:CDISCSynonym>
+                    <nciodm:CDISCSynonym>Not Applicable</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Determination of a value is not relevant in the current context. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Not Applicable</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <EnumeratedItem CodedValue="UNKNOWN" nciodm:ExtCodeID="C17998">
+                    <nciodm:CDISCSynonym>U</nciodm:CDISCSynonym>
+                    <nciodm:CDISCSynonym>Unknown</nciodm:CDISCSynonym>
+                    <nciodm:CDISCDefinition>Not known, not observed, not recorded, or refused. (NCI)</nciodm:CDISCDefinition>
+                    <nciodm:PreferredTerm>Unknown</nciodm:PreferredTerm>
+                </EnumeratedItem>
+                <nciodm:CDISCSubmissionValue>ACN</nciodm:CDISCSubmissionValue>
+                <nciodm:CDISCSynonym>Action Taken with Study Treatment</nciodm:CDISCSynonym>
+                <nciodm:PreferredTerm>CDISC SDTM Action Taken with Study Treatment Terminology</nciodm:PreferredTerm>
+            </CodeList>
+        </MetaDataVersion>
+    </Study>
+</ODM>

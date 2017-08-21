@@ -1,0 +1,38 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+	<p><b>Study: {{Studyname}}<b/></p>
+</div>
+
+<div class="w3-padding-16 w3-center w3-teal">
+<form action="FromStudy">
+	<input type="submit" name="studychoice" value="Add an NCI codelist"/>&nbsp;
+	<input type="submit" name="AddStudy" value="Add codelist from another study"/>&nbsp;
+	<input type="submit" name="studychoice" value="Define a sponsor codelist"/>&nbsp;
+	<input type="submit" name="studychoice" value="Output XML"/>&nbsp;
+	<input type="submit" name="studychoice" value="Output Excel"/>&nbsp;
+	<input type="submit" name="studychoice" value="Home"/>
+</form>
+</div>
+
+<div class="w3-padding-16 w3-center">
+<form action="Child" method="post">
+{% csrf_token %}
+<table border="1 solid" class="w3-table-all w3-hoverable">
+	<tr class="w3-teal">
+		<th class="w3-center">Codelist</th>
+		<th class="w3-center">Description</th>
+		<th class="w3-center">Edit</th>
+		<th class="w3-center">Remove</th>
+	</tr>
+	{% for x in Codelists %}
+		<tr>
+		<td>{{ x.OID }}</td>
+		<td>{{ x.Name }}</td>
+		<td class="w3-center"><input type="submit" name="s_{{ x.OID }}" value="Edit" class="w3-button w3-dark-grey w3-round-large"/></td>
+		<td class="w3-center"><input type="submit" name="r_{{ x.OID }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/></td>
+		</tr>
+	{% endfor %}
+</table>
+</form>
+</div>

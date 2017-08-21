@@ -1,0 +1,22 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+<div class="w3-container w3-center w3-large w3-teal">
+<p>Your new codelist has been successfully created and added to the database</p>
+<p>New codelist ID: {{OID}}</p>
+<p>New codelist description:  {{NewName}}</p>
+
+{% if IndexChoice == 'global' %}
+<form action="displayNCI">
+<input type="submit" name="nextstep" value="Create another child codelist" class="w3-button w3-dark-grey w3-round-medium"/>&nbsp;
+</form>
+
+<form action="{% url 'idx' %}">
+<input type="submit" name="nextstep" value="Home" class="w3-button w3-dark-grey w3-round-medium"/>
+</form>
+
+{% else %}
+<form action="displayStudy">
+<input type="submit" name="nextstep" value="Back to Study" class="w3-button w3-dark-grey w3-round-medium"/>
+</form>
+
+{% endif %}
+</div>

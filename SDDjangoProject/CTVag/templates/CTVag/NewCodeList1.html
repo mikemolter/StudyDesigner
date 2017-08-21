@@ -1,0 +1,25 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<form action="NewCh" method="post" class="w3-container w3-teal" style="height: 100%">
+{% csrf_token %}
+<p>Provide short name of the new codelist</p>
+<input type="text" name="OID" length="15"/>
+<br/>
+<br/>
+<p>Provide description of new codelist</p>
+<textarea rows="3" cols="40" maxlength="120" name="Name"></textarea>
+<br/>
+<br/>
+<p>Select the proper data type</p>
+<select name="datatype">
+	<option>text</option>
+	<option>integer</option>
+	<option>float</option>
+</select>
+<br/>
+<br/>
+<input type="checkbox" class="w3-check" name="decodeflag"/>Check here to include decodes
+<br/>
+<br/>	
+<input type="submit" class="w3-button w3-dark-grey w3-round-large" name="newCL"/>
+</form>

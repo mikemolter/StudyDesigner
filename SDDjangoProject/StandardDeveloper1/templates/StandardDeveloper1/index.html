@@ -1,0 +1,67 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+<div class="w3-container w3-center w3-large">
+	<p><b>Welcome to Study Designer! <br> Select a task from the menu below and let&apos;s get started.</b></p>
+</div>
+
+<form action='DFNew' class="w3-container w3-teal" style="height:100%">
+<p/>
+<select name="indexchoice" id="idxc" onchange="task()">
+	<option selected disabled>Select a task</option>
+	<option value="newstudy">Create a new study</option>
+	<option value="currentstudy">Edit a current study</option>
+</select>
+
+<p id="text"></p>
+<div id="div1"></div>
+<p/>
+
+<input type='submit' class="w3-button w3-dark-grey w3-round-large"/>
+</form>
+
+<script type="text/javascript">
+function task() {
+	var el_p = document.getElementById("text") ;
+	var el_div = document.getElementById("div1") ;
+	var el_sel = document.getElementById("idxc") ;
+	var val_sel = el_sel.value ;
+	var el_selct = document.createElement("select") ;
+	el_selct.setAttribute("name","standards") ;
+	var option1 = document.createElement("option") ;
+	// el_sel.setAttribute("disabled","true") ;
+
+	if (val_sel == "newstudy") {
+		el_p.innerHTML = "Provide a name for the new study"
+		var newstudyname = document.createElement("input") ;
+		newstudyname.setAttribute("size","15");
+		newstudyname.setAttribute("name","newstudyname");
+		el_div.appendChild(newstudyname) ;
+		el_div.appendChild(document.createElement("br"));
+		el_div.appendChild(document.createElement("br"));
+
+		option1.text="Select a standard on which the new study is based" ;
+		{% for x in Standards %}
+			var option = document.createElement("option") ;
+			option.text="{{x.standard}}" ;
+			el_selct.add(option) ;
+		{% endfor %}
+	}
+
+	else {
+		option1.text="Select a study" ;
+		{% for x in Studies %}
+			var option = document.createElement("option") ;
+			option.text="{{x.study}}" ;
+			el_selct.add(option) ;
+		{% endfor %}
+	}
+
+	option1.setAttribute("disabled","true") ;
+	option1.setAttribute("selected","true") ;
+	el_selct.add(option1) ;
+
+	el_div.appendChild(el_selct) ;
+
+}
+</script>
+
+

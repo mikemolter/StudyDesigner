@@ -1,12 +1,66 @@
-<p> Welcome to Controlled Terminology Designer!  Let&apos;s get started. </p><br/>
-<p>Hello World from Index</p>
-<form action='DBCodelists'>
-<select name="CTVersions">
-<option>Choose a Controlled Terminology Version</option>
-{% for x in Versions %}
-	<option>{{x.version}}</option>
-{% endfor %}
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+<div class="w3-container w3-center w3-large">
+	<p><b>Welcome to Controlled Terminology Designer! <br> Select a task from the menu below and let&apos;s get started.</b></p>
+</div>
+<form action='DBCodelists' class="w3-container w3-teal" style="height:100%">
+<p/>
+<select name="indexchoice" id="idxc" onchange="task()">
+	<option selected disabled>Select a task</option>
+	<option value="global">Build child codelists in the global controlled terminology</option>
+	<option value="newstudy">Create controlled terminology for a new study</option>
+	<option value="currentstudy">Edit controlled terminology for an existing study</option>
 </select>
 
-<input type='submit'/>
+<p id="text"></p>
+<div id="div1"></div>
+<p/>
+<input type='submit' class="w3-button w3-dark-grey w3-round-large"/>
 </form>
+
+<script type="text/javascript">
+function task() {
+	var el_p = document.getElementById("text") ;
+	var el_div = document.getElementById("div1") ;
+	var el_sel = document.getElementById("idxc") ;
+	var val_sel = el_sel.value ;
+	// el_sel.setAttribute("disabled","true") ;
+
+	if (val_sel == "global" || val_sel == "newstudy") {
+		if (val_sel == "global") {
+			el_p.innerHTML = "Select a version of NCI controlled terminology" ;
+		} else {
+			el_p.innerHTML = "Provide a name for the new study"
+			var newstudyname = document.createElement("input") ;
+			newstudyname.setAttribute("size","15");
+			newstudyname.setAttribute("name","newstudyname");
+			el_div.appendChild(newstudyname) ;
+			var el_p2 = document.createElement("p") ;
+			el_p2.innerHTML = "Select a version of NCI controlled terminology" ;
+			el_div.appendChild(el_p2);
+		}
+
+		var el_selct = document.createElement("select") ;
+		el_selct.setAttribute("name","CTVersions") ;
+		{% for x in Versions %}
+			var option = document.createElement("option") ;
+			option.text="{{x.version}}" ;
+			el_selct.add(option) ;
+		{% endfor %}
+		el_div.appendChild(el_selct) ;
+	}
+
+	else {
+		var el_selct = document.createElement("select") ;
+		el_selct.setAttribute("name","currentstudyname") ;
+		{% for x in Studies %}
+			var option = document.createElement("option") ;
+			option.text="{{x.study}}" ;
+			el_selct.add(option) ;
+		{% endfor %}
+		el_div.appendChild(el_selct) ;
+	}
+
+}
+</script>
+
+
