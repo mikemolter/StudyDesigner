@@ -51,7 +51,7 @@ Vagrant.configure(2) do |config|
   # config.ssh.insert_key=false
   # config.ssh.forward_agent=true
   #config.ssh.private_key_path=
-    config.vm.synced_folder ".", "/vagrant"
+    config.vm.synced_folder ".", "/vagrant" 
 #    config.vm.synced_folder "./neo4j_properties", "/etc/neo4j"
 
   # Provider-specific configuration so you can fine-tune various

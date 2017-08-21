@@ -26,7 +26,7 @@ sudo apt-get -y -q update
 sudo apt-get -y -q upgrade
 
 echo "---------------- LIBXML2 INSTALL______________________________"
-sudo apt-get install -y -qq libxml2 
+sudo apt-get install -y libxml2 
 echo "---------------- LIBXML2 INSTALL FINISH ______________________________"
 
 
@@ -78,7 +78,7 @@ sudo neo4j restart
 echo "************	Install pips for python2&3, virtualenv and virtualenvwrapper ***********************"
 sudo apt-get install -y -qq python-pip
 sudo apt-get install -y -qq python3-pip
-pip install --upgrade pip
+sudo pip install --upgrade pip
 
 # sudo apt-get install -y -qq python-virtualenv
 # sudo pip install virtualenvwrapper
