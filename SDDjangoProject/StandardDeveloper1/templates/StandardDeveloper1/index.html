@@ -1,21 +1,57 @@
 <link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+	<script>
+		$(document).ready(function(){
+			$('#idxc').change(function(){
+				var selectedVal = this.value ;
+				if (selectedVal.substr(0,3) == 'new') {
+					$('#sel2').html('<select name=standards id="standardlist"><option selected disabled>Select a default standard version</option>');
+					$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandards',{'Model':selectedVal.substr(3)},function(data){
+						$.each(data,function() {
+							$('<option value="'+this['Name']+this['Version']+'">'+this['Name']+' IG ('+this['Version']+')</option>').appendTo('#standardlist');
+						})
+					})
+					$('#input').html('<input name="newstudyname" placeholder="Enter name of new study here" size="25"/>')
+
+				} else if (selectedVal.substr(0,4) == 'edit') {
+					$('#sel2').html('<select name=studies id="studylist"><option selected disabled>Select a study to edit</option>');
+					$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudies',{'Model':selectedVal.substr(4)},function(data){
+						$.each(data,function() {
+							$('<option>'+this['Name']+'</option>').appendTo('#studylist');
+						})
+					})
+					var subbutton = document.getElementById("submit") ;
+					subbutton.setAttribute("formaction","QueryStudy") ;
+				}
+			})
+		})
+	</script>
+
+
 <div class="w3-container w3-center w3-large">
 	<p><b>Welcome to Study Designer! <br> Select a task from the menu below and let&apos;s get started.</b></p>
 </div>
 
-<form action='DFNew' class="w3-container w3-teal" style="height:100%">
+<form action='NewStudy' class="w3-container w3-teal" style="height:100%">
 <p/>
-<select name="indexchoice" id="idxc" onchange="task()">
+<select name="indexchoice" id="idxc">
 	<option selected disabled>Select a task</option>
-	<option value="newstudy">Create a new study</option>
-	<option value="currentstudy">Edit a current study</option>
+	<option value="newSDTM">Create a new study, starting with SDTM</option>
+	<option value="newADAM">Create a new study, starting with ADaM</option>
+	<option value="adamfromsdtm">Create a new ADaM from an existing SDTM</option>
+	<option value="sdtmfromadam">Create a new SDTM from an existing ADaM</option>
+	<option value="editSDTM">Edit a current SDTM</option>
+	<option value="editADAM">Edit a current ADaM</option>
 </select>
 
-<p id="text"></p>
-<div id="div1"></div>
-<p/>
+<div id="sel2"></div><br/><br/>
 
-<input type='submit' class="w3-button w3-dark-grey w3-round-large"/>
+<div id="input"></div><br/><br/>
+
+<input type='submit' class="w3-button w3-dark-grey w3-round-large" id="submit"/>
 </form>
 
 <script type="text/javascript">
@@ -24,6 +60,7 @@ function task() {
 	var el_div = document.getElementById("div1") ;
 	var el_sel = document.getElementById("idxc") ;
 	var val_sel = el_sel.value ;
+
 	var el_selct = document.createElement("select") ;
 	el_selct.setAttribute("name","standards") ;
 	var option1 = document.createElement("option") ;
@@ -53,6 +90,8 @@ function task() {
 			option.text="{{x.study}}" ;
 			el_selct.add(option) ;
 		{% endfor %}
+		var subbutton = document.getElementById("submit") ;
+		subbutton.setAttribute("formaction","QueryStudy") ;
 	}
 
 	option1.setAttribute("disabled","true") ;

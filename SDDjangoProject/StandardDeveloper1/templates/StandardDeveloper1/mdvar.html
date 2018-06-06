@@ -1,0 +1,831 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+	<script>
+		$(document).ready(function(){
+			// Get the list of all global codelists
+			$("[id*='GlobalCodeLists']").click(function(){
+				var id=$(this).attr('id');
+				var tagnbr=id.slice(id.length-1);
+				$("#C"+tagnbr+'1').html('<table border="1" style="background-color:white" id="tbl"><tr id="tr"><th>Code</th><th>CodeList</th><th>Button</th></tr>');
+				$.getJSON('http://localhost:8000/StandardDeveloper1/GetAllGlobalCL',function(data){
+					$.each(data,function(){
+						$("#tbl").append('<tr><td>'+this['Code']+'</td><td>'+this['Name']+'</td><td><button type="button" id="'+tagnbr+this['Code']+'" value="'+this['Code']+'">Select</button></td></tr>');
+					});
+				});
+			})
+
+			// Get the items of one global codelist that is identified by its C-code
+			$("form").on("click","button",function(){
+				var tagnbr=$(this).attr('id').slice(0,1);
+				var alias=$(this).val() ;
+				$("#PCG").val(alias);
+				$.getJSON('http://localhost:8000/StandardDeveloper1/Get1GlobalCodeList',{'CLCode':$(this).val()},function(data){
+					$("#tbl").remove();
+					var CTName=data[0]['Name'];
+					var DataType=data[0]['DataType'];
+					var Extensible=data[0]['Extensible'];
+					if (data[0]['Decode']){
+						var DecodeYN='Y';
+					}
+					else {
+						var DecodeYN='N';
+					}
+					BuildCTTable(DecodeYN,tagnbr,CTName,DataType,alias,Extensible);
+					var cboxstring="CheckBox(this,'"+DecodeYN+"')";
+					if (DecodeYN == 'Y'){
+						$.each(data,function(){
+							$("#t1").append('<tr><td>'+this['Term']+'</td><td>'+this['Decode']+'</td><td class="w3-center"><input type="checkbox" name="stdterm_'+this['Term']+'"/></td></tr>');
+						});
+					}
+					else {
+						$.each(data,function(){
+							$("#t1").append('<tr><td>'+this['Term']+'</td><td class="w3-center"><input type="checkbox" name="stdterm_'+this['Term']+'"/></td></tr>');
+						});
+					}
+				});
+			});
+
+			// $(".methodchoice").click(function(){
+			// 	// Get currently existing sources
+			// 	$('#C11').html('<table border="1" style="background-color:white" id="tbl"><tr id="tr"><th>Dataset</th><th>Description</th><th>Join</th><th>Keep Source</th></tr>');
+			// 	$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudySources',{'Study':"{{Study}}"},function(data){
+			// 		$.each(data,function(){
+			// 			$("#tbl").append('<tr><td>'+this['Name']+'</td><td>'+this['Description']+'</td><td>'+this['Join']+'</td><td class="w3-center" id="src_'+this['Order']+'"><input name="src_'+this['Order']+'" type="checkbox"/></td></tr>');
+			// 		});
+			// 	});
+			// 	// Insert area to define new source
+			// 	NewSource();
+			// 	$('<input type="button" class="w3-button w3-dark-grey w3-round-large" value="OK" onclick="AddSource()"/><br/>').appendTo('#C12');
+
+			// 	// Depending on the radio button that was clicked, insert area to define method
+			// 	var id=$(this).attr('id');
+			// 	if (id == "m2"){
+			// 		Method23('Y');
+			// 	}
+			// 	else if (id == "m3"){
+			// 		Method23('N');
+			// 	}
+			// });
+		});
+	</script>
+
+</head>
+
+<body {% if RSType == "MAIN" or RSType == "MERGE" %} onload="BuildCT('1')" {% endif %} >
+
+<div class="w3-container w3-center w3-large">
+	<p><b>STUDY: {{Study}}<br/>
+	DATASET: {{DSName}}</b></p>
+	<p>{{Instruction}}</p>
+</div>
+
+<div class="w3-container w3-teal" style="height:100%">
+	<form method="post" action='NewVar' class="w3-container w3-teal" id="fid">
+	{% csrf_token %}
+		<input type="hidden" name="DSName" value="{{DSName}}"/>
+		<input type="hidden" name="RSType" value="{{RSType}}"/>
+		<input type="hidden" name="SourceName" value="{{SourceName}}"/>
+		<input type="hidden" name="SourceDescription" value="{{SourceDescription}}"/>
+		<input type="hidden" name="SourceOrder" value="{{SourceOrder}}"/>
+		<input type="hidden" name="SourceJoin" value="{{SourceJoin}}"/>
+		<input type="hidden" name="Study"  value="{{Study}}"/>
+		<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+		<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+		<input type="hidden" name="ReturnTo" value="{{ReturnTo}}"/>
+		<input type="hidden" name="VarSource" value="{{VarSource}}"/>
+		<input type="hidden" name="Class" value="{{Class}}"/>
+		<input type="hidden" name="Action" value="{{Action}}"/>
+		<input type="hidden" name="ParentCodelistGlobal" id="PCG"/>
+		<input type="hidden" name="ParentCodelistStudy" id="PCS"/>
+
+	<div class="w3-cell-row">
+		<div class="w3-cell" style="width:50%">
+			{% if Action == "Add" and RSType == "OTHER" or Action == "Add" and PredStdYN == "N" %}
+				<label>Variable Name</label>
+				<input type="text" maxlength="8" size="8" name="VarName"/><br><br/>
+			{% else %}
+				<p>Variable Name: {{VarMD.0.Name}}</p>
+				<input type="hidden" name="VarName" value="{{VarMD.0.Name}}"/>
+			{% endif %}
+
+			{% if RSType == "OTHER" or PredStdYN == "N" and Action == "Add" %}
+				<label>Variable Label</label>
+				<input type="text" maxlength="40" size="40" name="VarLabel" value="{{VarMD.0.Label}}"/><br/><br/>
+				<input type='hidden' name='BeforeVarLabel' value="{{VarMD.0.Label}}"/>
+
+				<label>SAS Type</label>
+				<select name="VarSASType">
+					<option {% if  VarMD.0.SASType == "Char" %} selected="True" {% endif %}>Char</option>
+					<option {% if  VarMD.0.SASType == "Num" %} selected="True" {% endif %}>Num</option>
+				</select><br><br/>
+				<input type='hidden' name='BeforeVarSASType' value="{{VarMD.0.VarSASType}}"/>
+
+			{% else %}
+				<p>Variable Label: {{VarMD.0.Label}}</p>
+				<p>Variable SAS Type: {{VarMD.0.SASType}}</p>
+				<input type="hidden" name="VarLabel" value="{{VarMD.0.Label}}"/>
+				<input type="hidden" name="VarSASType" value="{{VarMD.0.SASType}}"/>
+			{% endif %}
+
+			{% if RSType == "MAIN" or RSType == "MERGE" %}
+				<p>Variable Origin: Predecessor ({{SourceName}})</p>
+				<input type="hidden" name="VarOrigin" value="Predecessor"/>
+			{% endif %}
+
+		</div>
+
+
+
+
+		<div class="w3-cell" style="width:50%">
+
+		<label>SAS Length</label>
+		<input type="number" name="VarSASLength" min="1" max="200" value="{{VarMD.0.SASLength}}"/><br><br/>
+		<input type='hidden' name='BeforeVarSASLength' value="{{VarMD.0.SASLength}}"/>
+
+		<label>Order in data set</label>
+		<input type="number" name="VarOrderNumber" min="1" max="500" value="{{VarMD.0.OrderNumber}}"/><br><br/>
+		<input type='hidden' name='BeforeVarOrderNumber' value="{{VarMD.0.OrderNumber}}"/>
+
+		<label>Mandatory</label>
+		<select name="VarMandatory">
+			<option {% if VarMD.0.Mandatory == "Yes" %} selected {% endif %}>Yes</option>
+			<option {% if VarMD.0.Origin == "No" %} selected {% endif %}>No</option>
+		</select><br><br/>
+		<input type='hidden' name='BeforeVarMandatory' value="{{VarMD.0.Mandatory}}"/>
+
+
+		<label>Data Type</label>
+		<select name="VarDataType">
+			<option {% if VarMD.0.DataType == "text" %} selected {% endif %}>text</option>
+			<option {% if VarMD.0.DataType == "integer" %} selected {% endif %}>integer</option>
+			<option {% if VarMD.0.DataType == "float" %} selected {% endif %}>float</option>
+			<option {% if VarMD.0.DataType == "date" %} selected {% endif %}>date</option>
+			<option {% if VarMD.0.DataType == "datetime" %} selected {% endif %}>datetime</option>
+		</select><br/><br/>
+		<input type='hidden' name='BeforeVarDataType' value="{{VarMD.0.DataType}}"/>
+
+		{% if RSType == "MODEL" or RSType == "OTHER" %}
+			<label>Origin</label>
+			<select name="VarOrigin">
+				<option {% if VarMD.0.Origin == "Derived" %} selected {% endif %}>Derived</option>
+				<option {% if VarMD.0.Origin == "Assigned" %} selected {% endif %}>Assigned</option>
+				<option {% if VarMD.0.Origin == "Predecessor" %} selected {% endif %}>Predecessor</option>
+			</select><br>
+			<input type='hidden' name='BeforeVarOrigin' value="{{VarMD.0.Origin}}"/>
+		{% endif %}
+
+		</div>
+	</div>
+
+
+
+<!-- If this is not a predecessor, then offer a choice of ways to define a method -->
+	{% if RSType != "MAIN" and RSType != "MERGE" and Action == "Add" %}
+
+	<br/>
+	<div class="w3-container w3-left w3-large">
+		<p> Select an approach to defining programming instructions</p>
+		<input type="radio" class="methodchoice w3-radio" name="methods" id="m1">Define a programming instruction for each allowable value</input><br/>
+		<input type="radio" class="methodchoice w3-radio" name="methods" id="m2" onclick="methodchoice('Y')">Define programming instructions separate from allowable values</input><br/>
+		{% if not CTTable %}
+			<input type="radio" class="methodchoice w3-radio" name="methods" id="m3" onclick="methodchoice('N')">Define programming instruction and no allowable values</input>
+		{% endif %}
+		<p/>
+	</div>
+	<div id="hidesrc"></div>
+	<br/>
+
+	{% endif %}
+
+	<p id='I1'></p>
+
+	<div id='C1' class='w3-cell-row'>
+		<div id='C11' class='w3-cell' style='width:75%'></div>
+		<div id='C12' class='w3-cell' style='width:25%'></div>
+	</div>
+
+	<p id='I2'></p>
+
+	<div id='C2' class='w3-cell-row'>
+		<div id='C21' class='w3-cell' style='width:75%'></div>
+		<div id='C22' class='w3-cell' style='width:25%'></div>
+	</div>
+
+	<p id="I3"></p>
+
+	<div id='C3' class='w3-cell-row'>
+		<div id='C31' class='w3-cell' style='width:75%'></div>
+		<div id='C32' class='w3-cell' style='width:25%'></div>
+	</div>
+
+	<div id='hideCT'>
+	</div>
+
+	<br/><br/>
+
+	<div id='submitbuttons' class="w3-bar w3-center">
+		<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Save and Exit'/>
+		<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Cancel'/>
+	</div>
+
+	<p id='test'></p>
+
+	</form>
+</div>
+</body>
+
+<script type="text/javascript">
+
+	function methodchoice(m23){
+		$(document).ready(function(){
+			// Get currently existing sources
+			$('#C11').html('<table border="1" style="background-color:white" id="tbl"><tr id="tr"><th>Dataset</th><th>Description</th><th>Join</th><th>Keep Source</th></tr>');
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudySources',{'Study':"{{Study}}"},function(data){
+				$.each(data,function(){
+					$("#tbl").append('<tr><td>'+this['Name']+'</td><td>'+this['Description']+'</td><td>'+this['Join']+'</td><td class="w3-center" id="src_'+this['Order']+'"><input name="src_'+this['Order']+'" type="checkbox"/></td></tr>');
+				});
+			});
+			// Insert area to define new source
+			NewSource();
+			$('<input type="button" class="w3-button w3-dark-grey w3-round-large" value="OK" onclick="AddSource()"/><br/>').appendTo('#C12');
+
+			// Depending on the radio button that was clicked, insert area to define method
+			// var id=$(this).attr('id');
+			// if (id == "m2"){
+			// 	Method23('Y');
+			// }
+			// else if (id == "m3"){
+			// 	Method23('N');
+			// }
+			Method23(m23);
+		})
+	}
+
+	function NewSource(){
+		// Collect Source data set information
+		var C12=document.getElementById('C12');
+		var sourceinstruction=document.createElement('p');
+		sourceinstruction.innerHTML='If necessary, define a new source data set for this variable';
+		C12.appendChild(sourceinstruction);
+		var modeldrop=document.createElement('select');
+		modeldrop.name='NewSourceModel';
+		var op0=document.createElement('option');
+		op0.disabled=true;
+		op0.selected=true;
+		op0.text='Select SDTM or ADaM';
+		var op1=document.createElement('option');
+		op1.text='SDTM';
+		var op2=document.createElement('option');
+		op2.text='ADaM';
+		modeldrop.appendChild(op0);
+		modeldrop.appendChild(op1);
+		modeldrop.appendChild(op2);
+		C12.appendChild(modeldrop);
+		C12.appendChild(document.createElement('br'));
+		C12.appendChild(document.createElement('br'));
+		var dsnamebox=document.createElement('input');
+		dsnamebox.name='NewSourceName';
+		dsnamebox.size='20';
+		dsnamebox.placeholder='Source Dataset Name';
+		C12.appendChild(dsnamebox);
+		C12.appendChild(document.createElement('br'));
+		C12.appendChild(document.createElement('br'));
+		var descbox=document.createElement('textarea');
+		descbox.cols='60';
+		descbox.placeholder='Provide a description of the subset of the source data set (if any) (e.g excluding screen failures)';
+		descbox.rows='3';
+		descbox.name='NewSourceDescription';
+		C12.appendChild(descbox);
+		C12.appendChild(document.createElement('br'));
+		C12.appendChild(document.createElement('br'));
+		var joinbox=document.createElement('textarea');
+		joinbox.placeholder="Provide a description of how the data sets are to be merged.";
+		joinbox.rows='3';
+		joinbox.cols='60';
+		joinbox.name='NewSourceJoin';
+		C12.appendChild(joinbox);
+		C12.appendChild(document.createElement('br'));
+		C12.appendChild(document.createElement('br'));
+	}
+
+	function Method23(ctyn){
+		// Create the first radio button and its text
+		var C21=document.getElementById('C21');
+		var C22=document.getElementById('C22');
+		var r1=document.createElement('input');
+		r1.setAttribute('type','radio');
+		r1.setAttribute('onchange','disable1(this)');
+		r1.name='methodchoice';
+		r1.value='conditions';
+		var r1L=document.createElement('label');
+		var r1T=document.createTextNode(' Define a programming instruction with conditions, or ...');
+		r1L.appendChild(r1T);
+		C21.appendChild(r1);
+		C21.appendChild(r1L);
+		C21.appendChild(document.createElement('br'));
+		C21.appendChild(document.createElement('br'));
+		// Create the Else text box
+		var elsebox = document.createElement('textarea');
+		elsebox.cols="40";
+		elsebox.rows="2";
+		elsebox.name="else";
+		elsebox.id="else";
+		elsebox.className='w3-right';
+		elsebox.placeholder='Else Result';
+		elsebox.disabled=true;
+		C21.appendChild(elsebox);
+		// Create the first condition/result boxes
+		Conditions();
+		document.getElementsByClassName('cond')[0].disabled=true;
+		document.getElementsByClassName('res')[0].disabled=true;
+		// Create the button for adding conditions
+		var addbutton=document.createElement('input');
+		addbutton.type='button';
+		addbutton.value='Add a Condition';
+		addbutton.disabled=true;
+		addbutton.id='addbutton';
+		addbutton.setAttribute('onclick','Conditions()');
+		addbutton.className='w3-button w3-dark-grey w3-round-large w3-right';
+		C22.appendChild(addbutton);
+		// Create the second radio button
+		C21.appendChild(document.createElement('br'));
+		C21.appendChild(document.createElement('br'));
+		C21.appendChild(document.createElement('br'));
+		var r2=document.createElement('input');
+		r2.setAttribute('type','radio');
+		r2.setAttribute('onchange','disable2(this)');
+		r2.name='methodchoice';
+		r2.value='freetext';
+		var r2L=document.createElement('label');
+		var r2T=document.createTextNode(' ...define a programming instruction without conditions');
+		r2L.appendChild(r2T);
+		C21.appendChild(r2);
+		C21.appendChild(r2L);
+		C21.appendChild(document.createElement('br'));
+		C21.appendChild(document.createElement('br'));
+		// Create the freetext box
+		var freebox = document.createElement('textarea');
+		freebox.cols='80';
+		freebox.rows='20';
+		freebox.disabled=true;
+		freebox.id='free';
+		freebox.name='free';
+		freebox.placeholder='Enter free text method here';
+		C21.appendChild(freebox);
+
+		// Now add the CT section
+		if (ctyn == 'Y') {
+			BuildCT('3')
+		}
+	}
+
+	function Conditions(){
+		var C21=document.getElementById('C21');
+		var elsebox=document.getElementById('else');
+		var condcount=document.getElementsByClassName('Cond').length;
+		condcount++;
+
+		var cond = document.createElement('textarea');
+		cond.name = 'cond'+condcount;
+		cond.cols="40";
+		cond.rows="2";
+		cond.className="cond";
+		cond.placeholder='Condition '+condcount;
+
+		var res = document.createElement('textarea');
+		res.name = 'res'+condcount;
+		res.cols="40";
+		res.rows="2";
+		res.className="w3-right res"
+		res.placeholder='Result of Condition '+condcount ;
+
+		C21.insertBefore(cond,elsebox);
+		C21.insertBefore(res,elsebox);
+
+		C21.insertBefore(document.createElement('br'),elsebox);
+		C21.insertBefore(document.createElement('br'),elsebox);
+		
+	}
+
+	function disable1(obj) {
+		if (obj.checked == true) {
+			document.getElementById('else').disabled=false;
+			document.getElementById('addbutton').disabled=false;
+			document.getElementsByClassName('cond')[0].disabled=false;
+			document.getElementsByClassName('res')[0].disabled=false;
+		}
+		else {
+			document.getElementById('else').disabled=true;
+			document.getElementById('addbutton').disabled=true;
+			document.getElementsByClassName('cond')[0].disabled=true;
+			document.getElementsByClassName('res')[0].disabled=true;
+		}
+	}
+
+	function disable2(obj) {
+		if (obj.checked == true) {
+			document.getElementById('free').disabled=false;
+		}
+		else {
+			document.getElementById('free').disabled=true;
+		}
+	}
+
+	function BuildCT(tagnbr) {
+		document.getElementById('I'+tagnbr).innerHTML = "{{InstructionCT}}";  // Insert CT instruction
+		var C = document.getElementById('C'+tagnbr); // Get the row container 
+
+		// If defining new CT, add a row of buttons to help get started
+		{% if Action == 'Add' %}
+
+			var buttonrow = document.createElement("div"); // Create the button row 
+			buttonrow.setAttribute("class","w3-bar w3-center");
+			buttonrow.id = 'br1';
+
+			var button1 = document.createElement("input");  // Create the first button
+			button1.setAttribute("type","button");
+			button1.setAttribute("class","w3-button w3-dark-grey w3-small w3-round-large");
+			
+
+			{% if CTStdYN == "Y" %}
+				button1.setAttribute('value','Select an existing child codelist'); 
+				buttonrow.appendChild(button1);
+
+			{% else %} // Create two more buttons for custom codelists 
+				button1.setAttribute('value','Start from an existing global codelist'); 
+				button1.id="GlobalCodeLists"+tagnbr;
+				buttonrow.appendChild(button1);
+
+				var button2 = document.createElement("input");  // Create the second button
+				button2.setAttribute("type","button");
+				button2.setAttribute("class","w3-button w3-dark-grey w3-small w3-round-large");
+				button2.setAttribute("value","Start from an existing study codelist");
+				buttonrow.appendChild(button2);
+
+				{% if not CTTable %}
+					var DataType=document.getElementsByName('VarDataType')[0].value ;
+					var button3 = document.createElement("input");  // Create the third button
+					button3.setAttribute("type","button");
+					button3.setAttribute("class","w3-button w3-dark-grey w3-small w3-round-large");
+					button3.setAttribute("value","Define sponsor-defined coded values");
+					button3.setAttribute("onclick","BuildCTTable('Y','"+tagnbr+"','','"+DataType+"','','Yes');");
+					buttonrow.appendChild(button3);
+
+					var button4 = document.createElement("input");  // Create the fourth button
+					button4.setAttribute("type","button");
+					button4.setAttribute("class","w3-button w3-dark-grey w3-small w3-round-large");
+					button4.setAttribute("value","Define sponsor-defined uncoded values");
+					button4.setAttribute("onclick","BuildCTTable('N','"+tagnbr+"','','"+DataType+"','','Yes');");
+					buttonrow.appendChild(button4);
+				{% endif %}
+			{% endif %}
+
+			document.getElementById('fid').insertBefore(buttonrow,C); // Insert the button row into the beginning of the container
+			document.getElementById('fid').insertBefore(document.createElement('br'),C);
+		{% endif %}
+
+		{% if CTTable %} // if CT is already associated with the variable, display it in a table
+			BuildCTTable("{{DecodeYN}}",tagnbr,"{{CTTable.0.Name}}","{{CTTable.0.DataType}}","{{CTTable.0.AliasCL}}","{{CTExt}}");
+		{% endif %}
+
+	}
+
+	function BuildCTTable(CodedYN,tagnbr,CodeListName,DataType,Alias,Extensible){
+		// Get rid of the button row
+		document.getElementById('fid').removeChild(document.getElementById('br1'));
+
+		// Create the input box and label
+		var CTName = document.createElement('input');
+		CTName.maxLength = '40';
+		CTName.size = '40';
+		CTName.name = 'CTName';
+		CTName.value = CodeListName ;
+
+		var label = document.createElement('label');
+		var labeltext = document.createTextNode('Codelist Name');
+		label.appendChild(labeltext);
+		var Cx1 = document.getElementById('C'+tagnbr+'1'); // Get the left-most cell in the row container
+		Cx1.appendChild(label);
+		Cx1.appendChild(document.createElement('br'));
+		Cx1.appendChild(CTName);
+		Cx1.appendChild(document.createElement('br'));
+		Cx1.appendChild(document.createElement('br'));
+
+		// Create hidden elements for datatype, extensible, and alias
+		var hidect = document.getElementById('hideCT') ;
+		var datatype = document.createElement('input') ;
+		datatype.setAttribute('type','hidden');
+		datatype.name = 'CTDataType';
+		datatype.value = DataType ;
+		hidect.appendChild(datatype);
+
+		var alias = document.createElement('input');
+		alias.setAttribute('type','hidden');
+		alias.name = 'CTAlias' ;
+		alias.value = Alias ;
+		hidect.appendChild(alias);
+
+		var ext = document.createElement('input');
+		ext.setAttribute('type','hidden');
+		ext.name = 'CTExtensible' ;
+		ext.value = Extensible ;
+		hidect.appendChild(ext);
+
+		// Create the Clear All and Select All buttons
+		var Dx1 = document.createElement("div"); // Create a container for the button row 
+		Cx1.appendChild(Dx1);
+
+
+		var buttonrow2 = document.createElement("div"); // Create the button row 
+		buttonrow2.setAttribute("class","w3-bar w3-left");
+
+		var buttonClear = document.createElement("input");  // Create the Clear All button
+		buttonClear.setAttribute("type","button");
+		buttonClear.setAttribute("class","w3-button w3-dark-grey w3-round-large");
+		buttonClear.setAttribute("value","Clear All");
+		buttonClear.setAttribute("onclick","AllChecks('clear');")
+		buttonrow2.appendChild(buttonClear);
+
+		var buttonSelect = document.createElement("input");  // Create the Select All button
+		buttonSelect.setAttribute("type","button");
+		buttonSelect.setAttribute("class","w3-button w3-dark-grey w3-round-large");
+		buttonSelect.setAttribute("value","Select All");
+		buttonSelect.setAttribute("onclick","AllChecks('select');")
+		buttonrow2.appendChild(buttonSelect);
+
+		Dx1.appendChild(buttonrow2); // Put the button row in the container
+
+
+
+		// Create the table
+		var Dx2 = document.createElement('div'); // Create a container for the table
+		Cx1.appendChild(Dx2);
+		var table = document.createElement('table');
+		table.id = 't1' ;
+		table.setAttribute('border','1');
+		table.setAttribute('style','background-color:white; width:80%; table-layout:fixed');
+
+
+		// insert data 
+		{% for x in CTTable %}
+			var newrow = table.insertRow(-1);
+			var term = newrow.insertCell(0) ;
+			term.innerHTML = "{{ x.CodedValue }}" ;
+			if (CodedYN == 'Y') {
+				var decode = newrow.insertCell(1);
+				decode.innerHTML = "{{ x.Decode }}" ;
+			}
+			var keepcell = newrow.insertCell(-1) ;
+			keepcell.setAttribute('class','w3-center');
+			var keepcb = document.createElement('input');
+			keepcb.setAttribute('type','checkbox');
+			keepcb.name='stdterm_{{x.CodedValue}}';
+			keepcell.appendChild(keepcb) ;
+		{% endfor %}
+
+		// insert table headers 
+		var head = table.createTHead() ;
+		var row = head.insertRow(0);
+		var cell0 = row.insertCell(0);
+		cell0.innerHTML = '<b>Term</b>' ;
+		var cell1 = row.insertCell(1);
+		if (CodedYN == 'Y') {
+			cell0.setAttribute('style','width:30%');
+			cell1.innerHTML = '<b>Decode</b>';
+			cell1.setAttribute('style','width:60%');
+			var cell2 = row.insertCell(2) ;
+			cell2.innerHTML = '<b>Keep Term</b>';
+		}
+		else {
+			cell0.setAttribute('style','width:90%');
+			cell1.innerHTML = '<b>Keep Term</b>';
+		}
+		Dx2.appendChild(table);
+
+
+
+		// Create the input area for new terms
+		if (Extensible == "Yes") {
+			var Cx2 = document.getElementById("C"+tagnbr+'2');
+			var term = document.createElement("textarea");
+			var addbutton = document.createElement("input");
+			var text = document.createElement('p') ;
+			text.innerHTML = 'Define extended terms below' ;
+
+			addbutton.setAttribute("type","button");
+			addbutton.setAttribute("class","w3-button w3-dark-grey w3-round-large");
+			addbutton.setAttribute("value","OK");
+			addbutton.setAttribute("onclick","AddTerm('"+CodedYN+"');");
+			term.setAttribute("cols","40");
+			term.setAttribute("rows","2");
+			term.id="ta1";
+			Cx2.appendChild(text) ;
+			Cx2.appendChild(term);
+
+			if (CodedYN == "Y") {
+				term.setAttribute("placeholder","Enter coded value here") ;
+				var decode = document.createElement("textarea") ;
+				decode.setAttribute("cols","40");
+				decode.setAttribute("rows","5");
+				decode.id="ta2";
+				decode.setAttribute('placeholder','Enter decode here') ;
+				Cx2.appendChild(document.createElement('br'));
+				Cx2.appendChild(document.createElement('br'));
+				Cx2.appendChild(decode); 
+			}
+			else {
+				term.setAttribute('placeholder','Enter uncoded value here') ;
+			}
+			Cx2.appendChild(document.createElement('br'));
+			Cx2.appendChild(document.createElement('br'));
+			Cx2.appendChild(addbutton);
+		}
+
+	}
+
+function AllChecks(CheckType) {
+    var x = document.getElementsByClassName("ec");
+    var i;
+    if (CheckType == "select"){
+    for (i = 0; i < x.length; i++) {
+            x[i].checked = true;
+        }
+    }
+
+	else {
+	    for (i = 0; i < x.length; i++) {
+            x[i].checked = false;
+    	}
+	}
+}
+
+	function AddTerm(CodedYN) {
+		// Add row to table
+		var table = document.getElementById("t1") ;
+		var ta1 = document.getElementById("ta1");
+		var newrow = table.insertRow(-1);
+		var term = newrow.insertCell(0) ;
+		term.innerHTML=ta1.value ;
+		if (CodedYN == 'Y') {
+			var ta2 = document.getElementById("ta2");
+			var decode = newrow.insertCell(1) ;
+			decode.innerHTML=ta2.value ;
+			ta2.value = ''; 
+			ta2.setAttribute('placeholder','Enter decode here') ;
+		}
+		var keepcell = newrow.insertCell(-1) ;
+		keepcell.setAttribute('class','w3-center');
+
+		var keepcb = document.createElement('input');
+		keepcb.setAttribute('type','checkbox');
+		keepcb.setAttribute('class','ec');
+		keepcb.checked = true ;
+		keepcb.setAttribute('onchange','CheckBox(this,"'+CodedYN+'")');
+		keepcell.appendChild(keepcb) ;
+		CheckBox(keepcb,CodedYN);
+		ta1.value = '' ;
+		ta1.setAttribute('placeholder','Enter coded value here') ;
+
+	}
+
+	function AddSource() {
+		var table = document.getElementById("tbl") ;
+
+		// Determine what the Order value should be for this source
+		var rows=table.rows ;
+		var maxOrder=0;
+		for (x=0; x<rows.length; x++) {
+			var thisid=rows[x].cells[3].id;
+			var thisorder=Number(thisid.substr(4));
+			var maxOrder=Math.max(maxOrder,thisorder);
+		}
+		var Order=maxOrder+1;
+
+		// Add row to table
+		var Model = document.getElementsByName("NewSourceModel")[0];
+		var Name = document.getElementsByName("NewSourceName")[0];
+		var Desc = document.getElementsByName("NewSourceDescription")[0];
+		var Join = document.getElementsByName("NewSourceJoin")[0];
+
+		var newrow = table.insertRow(-1);
+		var cell1 = newrow.insertCell(0) ;
+		cell1.innerHTML=Model.value+'.'+Name.value ;
+
+		var cell2 = newrow.insertCell(1);
+		cell2.innerHTML=Desc.value ;
+
+		var cell3 = newrow.insertCell(2);
+		cell3.innerHTML=Join.value ;
+
+		var keepcell = newrow.insertCell(-1) ;
+		keepcell.setAttribute('class','w3-center');
+		keepcell.id='src_'+Order;
+
+		var keepcb = document.createElement('input');
+		keepcb.setAttribute('type','checkbox');
+		keepcb.checked = true ;
+		keepcb.id = 'newsrc_'+Order ;
+		keepcb.name = 'newsrc_'+Order ;
+		keepcb.setAttribute('onchange','CheckBoxSource(this)');
+
+		keepcell.appendChild(keepcb) ;
+		CheckBoxSource(keepcb);
+
+		Name.value = '' ;
+		Desc.value = '' ;
+		Join.value = '' ;
+
+		Name.placeholder='Source Dataset Name' ;
+		Desc.placeholder='Provide a description of the subset of the source data set (if any) (e.g excluding screen failures)';
+		Join.placeholder='Provide a description of how the data sets are to be merged.';
+
+	}
+
+	function CheckBox(obj,CodedYN) {
+		var hidect = document.getElementById('hideCT') ;
+		// Get the parent <td> element
+		var parenttd = obj.parentElement ;
+		// Get the parent <tr> element
+		var parenttr = parenttd.parentElement ;
+		// Get all <td> elements
+		var tdcoll = parenttr.children ;
+		// Get the term 
+		var term = tdcoll[0].innerHTML ;
+
+		if (obj.checked == true) {
+			var hideelement = document.createElement('input') ;
+			hideelement.setAttribute('type','hidden') ;
+			hideelement.setAttribute('name','extterm_'+term) ;
+			if (CodedYN == 'Y') {
+				var decode = tdcoll[1].innerHTML ;
+				hideelement.setAttribute('value',decode) ;
+			}
+			hidect.appendChild(hideelement);
+		}
+
+		else {
+			var rmv = document.getElementById('extterm_'+term) ;
+			hideCT.removeChild(rmv) ;
+		}
+	}
+
+	function CheckBoxSource(obj) {
+		var hidesrc = document.getElementById('hidesrc') ;
+		// Get the parent <td> element
+		var parenttd = obj.parentElement ;
+		// Get the parent <tr> element
+		var parenttr = parenttd.parentElement ;
+		// Get all <td> elements
+		var tdcoll = parenttr.children ;
+		// Get the term 
+		var ds = tdcoll[0].innerHTML ;
+		var desc = tdcoll[1].innerHTML;
+		var join = tdcoll[2].innerHTML;
+
+		if (obj.checked == true) {
+			var hideds = document.createElement('input') ;
+			hideds.type='hidden' ;
+			hideds.name='newds_'+obj.id ;
+			hideds.value=ds;
+			hidesrc.appendChild(hideds);
+
+			var hidedesc = document.createElement('input') ;
+			hidedesc.type='hidden' ;
+			hidedesc.name='newdesc_'+obj.id ;
+			hidedesc.value=desc;
+			hidesrc.appendChild(hidedesc);
+
+			var hidejoin = document.createElement('input') ;
+			hidejoin.type='hidden' ;
+			hidejoin.name='newjoin_'+obj.id ;
+			hidejoin.value=join;
+			hidesrc.appendChild(hidejoin);
+		}
+
+		else {
+			var rmv = document.getElementsByName('newds_'+obj.id) ;
+			hidesrc.removeChild(rmv[0]) ;
+			var rmv = document.getElementsByName('newdesc_'+obj.id);
+			hidesrc.removeChild(rmv[0]);
+			var rmv = document.getElementsByName('newjoin_'+obj.id);
+			hidesrc.removeChild(rmv[0]);
+		}
+	}
+
+	function test(parm) {
+		alert('Hello World!  Parm='+parm);
+	}
+
+</script>
+
+
+
+
+
+
+
+

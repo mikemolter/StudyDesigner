@@ -12,8 +12,7 @@ wb = openpyxl.load_workbook('adam-2-1-draft.xlsx')
 model_datasets = wb.get_sheet_by_name('ADaM 2.1 Dataset')
 model_vars = wb.get_sheet_by_name('ADaM 2.1 Variable')
 
-#graph = Graph("http://neo4j:letsgowings@10.0.0.10:7474/db/data/")
-graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+graph=Graph('http://<neo4j-user-name>:<neo4j-password>@<url>/db/data/')
 
 tx = graph.cypher.begin()
 
@@ -32,7 +31,7 @@ for row in range(2,model_datasets.max_row+1):
         tx.append(statement,{"C1":model_datasets.cell(row=row,column=1).value})
 
 # Create relationship from model node to itemgroupdefs
-tx.append("MATCH (m:Model),(igd:ItemGroupDef) CREATE (m)-[r:ItemGroupRef]->(igd)")
+tx.append("MATCH (m:Model {Name:'"+modelname+"''}),(igd:ItemGroupDef) CREATE (m)-[r:ItemGroupRef]->(igd)")
 
 # Import variable level metadata and create the itemdef nodes
 propertynames = ['Name', 'ModelOID', 'Label', 'SASType', 'Codelist', 'Core', 'DataType', 'MaxLength','Origin','Predecessor']

@@ -3,25 +3,25 @@ from py2neo import Graph
 
 modelname='ADaM'
 modelversion='2.1'
-stdname='ADaMIG1.1'
+stdname='ADAM'
 
 wb = openpyxl.load_workbook('adam-2-1-draft.xlsx')
 IG_datasets = wb.get_sheet_by_name('ADaMIG 1.1 Dataset')
 IG_vars = wb.get_sheet_by_name('ADaMIG 1.1 Variable')
 
-#graph = Graph("http://neo4j:letsgowings@10.0.0.10:7474/db/data/")
-graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+graph=Graph('http://<neo4j-user-name>:<neo4j-password>@<url>/db/data/')
+
 
 tx = graph.cypher.begin()
 
 # Create the standard node and attach to the model
-tx.append("match (m:Model {name:'ADaM', version:'2.1'}) create (s:Standard {name:'"+stdname+"'})-[:BasedOn]->(m)")
+tx.append("match (m:Model {name:'ADaM', version:'2.1'}) create (s:Standard {Name:'"+stdname+"',Version:'1.1',Type:'IG',Status:'Final'})-[:BasedOn]->(m)")
 
 # Import dataset level metadata, create the itemgroupdef nodes, and attach to the standard
 propertynames=['Name','Label','Class','Structure','Purpose','Reference','Repeating']
 
 for row in range(2,IG_datasets.max_row+1):
-	statement = "match (s:Standard {name:'ADaMIG', version:'1.1'}),(c:ItemGroupDef {Name:'"+IG_datasets.cell(row=row,column=3).value+"'}) create (s)-[:ItemGroupRef]->(igd:ItemGroupDef {"
+	statement = "match (s:Standard {name:'ADaMIG1.1'}),(c:ItemGroupDef {Name:'"+IG_datasets.cell(row=row,column=3).value+"'}) create (s)-[:ItemGroupRef]->(igd:ItemGroupDef {"
 	firstproperty=True
 	if IG_datasets.cell(row=row,column=1).value:
 		for col in range(len(propertynames)):
@@ -47,7 +47,7 @@ for row in range(2,IG_vars.max_row+1):
         firstproperty = False
 
     # Create relationship to itemdef
-    statement=statement+'}) on create set id.OID="ID.'+stdname+stdversion+'.'+str(IG_vars.cell(row=row,column=5).value)+'.'+str(row)+'" with id match (igd:ItemGroupDef {Name: "'+str(IG_vars.cell(row=row,column=3).value)+'"}) create (igd)-[:ItemRef'
+    statement=statement+'}) on create set id.OID="ID.'+stdname+'.'+str(IG_vars.cell(row=row,column=5).value)+'.'+str(row)+'" with id match (igd:ItemGroupDef {Name: "'+str(IG_vars.cell(row=row,column=3).value)+'"}) create (igd)-[:ItemRef'
     statement=statement+' {OrderNumber:'+str(IG_vars.cell(row=row,column=1).value)
     if IG_vars.cell(row=row,column=15).value:
         statement=statement+', MethodOID:"MT.'+modelname+modelversion+'.'+IG_vars.cell(row=row,column=4).value+'"'

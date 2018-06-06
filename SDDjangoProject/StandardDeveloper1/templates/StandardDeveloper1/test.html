@@ -1,10 +1,51 @@
-<button style="background-color: gray;">
-<a style="color: white; border: 1px solid transparent;border-radius: .25rem; text-decoration: none;" href='test'>Hello {{Items}}</a>
-</button>
-<button style="background-color: blue;">
-<a style="color: white; border: 1px solid transparent;border-radius: .25rem; text-decoration: none;" href='test'>Hi</a>
-</button>
-<p id="test"></p>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script>
-document.getElementById("test")
-}
+	$(document).ready(function(){
+		$("#btn").click(function(){
+			// alert("hello world");
+			// $("#fart").load("http://localhost:8000/StandardDeveloper1/TestJQ.py");
+			// $("#fart").load("http://localhost:8000/TestJQ.py"); 404 file not found
+			// $("#fart").load("http://localhost/TestJQ.py");  ERR_CONNECTION_REFUSED
+
+			// THIS WORKS!!  EXAMPLE OF GETTING DATA
+			// $.get('http://localhost:8000/StandardDeveloper1/TestJQ',function(data,status){
+			// 	$("#fart").append(data);
+
+			// JSON EXAMPLE
+			// $.getJSON('http://localhost:8000/StandardDeveloper1/TestJQ',function(data){
+			// 	$.each(data,function(){
+			// 		$("#fart").html(this['CodedValue']+'<br>');
+			// 	})
+
+			// MAKE A TABLE
+			var id='fart';
+			$('#'+id).html('<table border="1" background-color:white id="tbl"><tr id="tr"><th>Code</th><th>CodeList</th><th>Button</th></tr>');
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetGlobalCL',function(data){
+				$.each(data,function(){
+					$("#tbl").append('<tr><td>'+this['Code']+'</td><td>'+this['Name']+'</td><td><button id="'+this['Code']+'" value="'+this['Code']+'">Click Me</button></td></tr>');
+					//$('<tr><td>'+this['Code']+'</td><td>'+this['CodedValue']+'</td><td><button name="btnname" class="btnclass" id="'+this['Code']+'" value="'+this['Code']+'">Click Me</button></td></tr>').insertAfter("#tr");
+
+				});
+			});
+		});
+
+
+		$("p").on("click","button",function(){
+			$("#fart").html('<table border="1" background-color:white id="tbl"><tr id="tr"><th>Code</th><th>Term</th><th>Decode</th></tr>');
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetACodeList',{'CLCode':$(this).val()},function(data){
+				$.each(data,function(){
+					$("#tbl").append('<tr><td>'+this['Code']+'</td><td>'+this['Term']+'</td><td>'+this['Decode']+'</td></tr>');
+				})
+			});
+		});
+	});
+</script>
+
+
+
+</head>
+
+<p>hello world</p>
+<button id="btn">Select Me</button>
+<p id="fart">Before</p>

@@ -16,12 +16,12 @@ tx = graph.cypher.begin()
 tx.append("CREATE (m:Model {name:'SDTM', version:'1.4'})")
 
 # Import dataset level metadata
-statement = "CREATE (igd:ItemGroupDef {name: {C1}, transpose: {C2}})"
+statement = "CREATE (igd:ItemGroupDef {Name: {C1}, transpose: {C2}})"
 
 for row in range(2,model_datasets.max_row+1):
   tx.append(statement,{"C1":model_datasets.cell(row=row,column=1).value, "C2":model_datasets.cell(row=row,column=2).value})
 
-tx.append("MATCH (m:Model),(igd:ItemGroupDef) CREATE (m)-[r:ItemGroupRef]->(mc) RETURN r")
+tx.append("MATCH (m:Model {name:'SDTM'}),(igd:ItemGroupDef) CREATE (m)-[r:ItemGroupRef]->(mc) RETURN r")
 
 # Import variable level metadata
 propertynames = ['Name', 'OID', 'Label', 'SASType', 'Length', 'DataType', 'Role', 'Codelist', 'Dictionary', 'Origin','VLMFlag']

@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['localhost','vagrant.neo4j','127.0.0.1']
 
+CORS_ORIGIN_ALLOW_ALL = True
+
 
 # Application definition
 
@@ -38,11 +40,13 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'CTVag',
-    'StandardDeveloper1'
+    'StandardDeveloper1',
+    'corsheaders'
 )
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',

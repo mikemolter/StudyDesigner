@@ -4,8 +4,16 @@
 	<p><b>STUDY: {{Study}}</b></p>
 </div>
 
-<form action='ModifyaDataset' class="w3-container w3-teal" style="height:100%">
+<form action='QueryStandardDSMD' class="w3-container w3-teal" style="height:100%">
 	<input type="hidden" name="Study" value="{{Study}}"/>
+	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+
+	<div id="buttons" class="w3-bars w3-center">
+		<input type="submit" value="Generate Define.xml (2.0)" class="w3-button w3-dark-grey w3-round-large"/>
+		<input type="submit" value="Generate Excel Programming Spec" class="w3-button w3-dark-grey w3-round-large"/>
+	</div>
+
 	<div class="w3-cell-row">
 		<div class="w3-cell" style="width:45%">
 			<p class="w3-center">Datasets to add to {{Study}}</p>
@@ -23,18 +31,15 @@
 						</td>
 					</tr>
 				{% endfor %}
-				<tr>
-					<td>General BDS</td>
-					<td class="w3-center">
-						<input type="submit" name="add_BDS" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
-					</td>
-				</tr>
-				<tr>
-					<td>General Occurrence</td>
-					<td class="w3-center">
-						<input type="submit" name="add_Occur" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
-					</td>
-				</tr>
+
+				{% for x in ClassList %}
+					<tr>
+						<td>General {{x}}</td>
+						<td class="w3-center">
+							<input type="submit" name="{{x}}" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
+						</td>
+					</tr>
+				{% endfor %}
 			</table>
 		</div>
 
@@ -52,22 +57,17 @@
 				</tr>
 				{% for x in StudyDatasets %}
 					<tr>
-						<td>{{x.name}}</td>
+						<td>{{x.dsname}}</td>
 						<td class='w3-center'>
-							<input type="submit" name="remove_{{ x.Name }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/>
+							<input type="submit" name="remove_{{ x.dsname }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/>
 						</td>
 						<td class='w3-center'>
-							<input type="submit" name="edit_{{ x.Name }}" value="Edit" class="w3-button w3-dark-grey w3-round-large"/>
+							<input type="submit" name="edit_{{ x.dsname }}" value="Edit" class="w3-button w3-dark-grey w3-round-large" formaction="QSDS"/>
 						</td>
 					</tr>
 				{% endfor %}
 			</table>
 			<p/>
-			<input type="submit" value="Export {{Study}} to Excel" name="Export" class="w3-button w3-dark-grey w3-round-large w3-center"/><br><br>
-			{% if Message %}
-				<p class="w3-yellow"><b>{{Message}}</b></p>
-			{% endif %}
 		</div>
-
 	</div>
 </form>

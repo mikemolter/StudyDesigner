@@ -1,0 +1,74 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<div class="w3-container w3-center w3-large">
+	<p><b>STUDY: {{Study}}<br/></b></p>
+</div>
+
+<div class="w3-container w3-teal">
+
+	<p>
+	{{Instruction}}
+	</p>
+
+	<form method="post" action='SetMDVar' class="w3-container w3-teal" style="height:100%">
+	{% csrf_token %}
+
+	<input type="hidden" name="DSName" value="{{DSName}}"/>
+	<input type="hidden" name="Class" value="{{Class}}"/>
+	<input type="hidden" name="RSType" value="{{RSType}}"/>
+	<input type="hidden" name="ReturnTo" value="mergepredotherlist"/>
+	<input type="hidden" name="Study" value="{{Study}}"/>
+	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+	<input type="hidden" name="SourceName" value="{{SourceName}}"/>
+	<input type="hidden" name="SourceDescription" value="{{SourceDescription}}"/>
+	<input type="hidden" name="SourceJoin" value="{{SourceJoin}}"/>
+	<input type="hidden" name="SourceOrder" value="{{SourceOrder}}"/>
+	<input type="hidden" name="VarSource" value=""/>
+
+	{% if RSType == "MERGE" %}
+		<p>Source Name: {{SourceName}}<br/>Source Description: {{SourceDescription}}</p>
+	{% endif %}
+
+		<div id='submitbuttons' class="w3-bar w3-center">
+			{% if RSType == "MERGE" %}
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define a Predecessor' name="add_pred"/>
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish and define another Merge data set' formaction="NewMerge"/>
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' formaction='NewModel' value='Finish and define Model Variables'/>
+			{% elif RSType == "OTHER" %}
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define a Custom Variable' name="add_other"/>
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish {{DSName}}' formaction="QueryStudy" formmethod="get"/><br/><br/>
+			{% endif %}
+		</div>
+
+		{% if RSType == "MERGE" %}
+			<p class="w3-center">{{Study}} {{DSName}} Predecessor Variables from {{SourceName}}</p>
+		{% endif %}
+
+		<table border="1 solid" class="w3-table-all w3-hoverable">
+			<thead>
+				<tr>
+					<th>Variable</th>
+					<th>Label</th>
+					<th class="w3-center">Remove</th>
+					<th class="w3-center">Edit</th>
+				</tr>
+			</thead>
+			<tbody>
+
+			{% for x in StudyVarsRL %}
+ 					<tr>
+						<td>{{x.Name}}</td>
+						<td>{{x.Label}}</td>
+						<td class='w3-center'>
+							<input type="submit" value="Remove" class="w3-button w3-dark-grey w3-round-medium" name="rmv_{{x.Name}}"/>
+						</td>
+						<td class='w3-center'>
+							<input type="submit" value="Edit" class="w3-button w3-dark-grey w3-round-medium" name="edit_{{x.Name}}"/>
+						</td>
+					</tr>
+ 			{% endfor %}
+			</tbody>
+		</table>
+</div>
+
