@@ -76,7 +76,7 @@
 				<input type="hidden" name="BeforeDSName" value="{{StudyDSProps.0.DSName}}"/>
 			{% endif %}
 
-			<p> Data set Label &nbsp; &nbsp; <input type="text" maxlength="40" size="40" name="DSLabel" value="{{StudyDSProps.0.Label}}"/></p>
+			<p> Data set Label &nbsp; &nbsp; <input type="text" maxlength="40" size="40" name="Label" value="{{StudyDSProps.0.Label}}"/></p>
 			{% if StudyDSProps.0.Label %}
 				<input type="hidden" name="BeforeLabel" value="{{StudyDSProps.0.Label}}"/>
 			{% endif %}
@@ -104,7 +104,7 @@
 				Data set Structure&nbsp;&nbsp;
 				<input type="text" maxlength="75" size="75" name="Structure" value="{{StudyDSProps.0.Structure}}"/></p>
 			{% else %}
-				<input type="text" maxlength="75" size="75" name="DSStructure" placeholder="Data set Structure" /></p>
+				<input type="text" maxlength="75" size="75" name="Structure" placeholder="Data set Structure" /></p>
 			{% endif %}
 			</p>
 

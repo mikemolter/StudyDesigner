@@ -16,7 +16,7 @@
 	<input type="hidden" name="DSName" value="{{DSName}}"/>
 	<input type="hidden" name="Class" value="{{Class}}"/>
 	<input type="hidden" name="RSType" value="{{RSType}}"/>
-	<input type="hidden" name="ReturnTo" value="mergepredotherlist"/>
+	<input type="hidden" name="ReturnTo" value="{{ReturnTo}}"/>
 	<input type="hidden" name="Study" value="{{Study}}"/>
 	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
@@ -34,7 +34,7 @@
 			{% if RSType == "MERGE" %}
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define a Predecessor' name="add_pred"/>
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish and define another Merge data set' formaction="NewMerge"/>
-				<input type='submit' class='w3-button w3-dark-grey w3-round-large' formaction='NewModel' value='Finish and define Model Variables'/>
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' formaction='NewModel' value='Finish and define Model Variables' name="add_model"/>
 			{% elif RSType == "OTHER" %}
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define a Custom Variable' name="add_other"/>
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish {{DSName}}' formaction="QueryStudy" formmethod="get"/><br/><br/>

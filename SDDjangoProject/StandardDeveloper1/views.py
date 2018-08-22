@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import sys
 from django.http import HttpResponse, JsonResponse
+import json
 
 
 #graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
@@ -42,13 +43,14 @@ def NewMerge(request):
 	StandardName=request.POST['StandardName']
 	StandardVersion=request.POST['StandardVersion']
 	IGDName=request.POST['DSName']
+	Class=request.POST['Class']
 
 	Instruction="We're now ready to define "+IGDName+" predecessors from other data sets.  "
 	Instruction=Instruction+"Fill in the following information about one of the merge data sets.  "
 	Instruction=Instruction+"Then click the button to begin defining predecessor variables from that data set."
 
 	return render(request,'StandardDeveloper1/predsource.html', \
-		{'RSType':'MERGE','Action':'Add','NewStudy':'N','Study':Study,'Instruction':Instruction,'IGDName':IGDName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+		{'RSType':'MERGE','Action':'Add','NewStudy':'N','Study':Study,'Instruction':Instruction,'IGDName':IGDName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class})
 
 def NewModel(request):
 	Study=request.POST['Study']
@@ -56,10 +58,17 @@ def NewModel(request):
 	StandardVersion=request.POST['StandardVersion']
 	IGDName=request.POST['DSName']
 	Class=request.POST['Class']
+	Model=request.POST['add_model']
+
 
 	Instruction="We're now ready to define other "+IGDName+" model variables.  "
 	Instruction=Instruction+"As with predecessors, we'll start by choosing a model variable.  "
 	Instruction=Instruction+"We'll then define the metadata along with methods for derived variables."
+
+	if Model == "Add Model variable":
+		ReturnTo='datasethome'
+	else:
+		ReturnTo='modelvarlist'
 
 	Lists=PrepModelLists(StandardName,StandardVersion,Study,IGDName,Class)
 	Lists['Study']=Study
@@ -70,6 +79,7 @@ def NewModel(request):
 	Lists['Instruction']=Instruction
 	Lists['RSType']='MODEL'
 	Lists['Action']='Add'
+	Lists['ReturnTo']=ReturnTo
 
 	return render(request,'StandardDeveloper1/modelvarlist.html', Lists)
 
@@ -84,24 +94,296 @@ def NewDS(request):
 	Structure=request.POST["Structure"]
 	Repeat=request.POST["Repeat"]
 	Reference=request.POST["Reference"]
-	Instruction="To define a new data set, we begin by defining the main source data set. "
-	Instruction=Instruction+"Provide the name of the source, and if applicable, a description of the subset of the source"
-	Instruction=Instruction+"Then click the button to begin defining predecessors of the source. "
 
 	if StandardYN == 'Y':
 		stmt='match (a:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(end:ItemGroupDef \
 			{Name:"'+DSName+'"})'
 	else:
-		stmt='match (a:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef \
-			{Name:"'+DSName+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(end:ItemGroupDef {Name:"'+Class+'"})'
+		stmt='match (a:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(end:ItemGroupDef {Name:"'+Class+'"})'
 
 	tx=graph.cypher.begin()
 	tx.append(stmt+' create (a)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'",Label:"'+Label+'",Repeating:"'+Repeat+'",Structure:"'+Structure+'",IsReferenceData:"'+Reference+'"}) \
 		-[:BasedOn]->(end)')
 	tx.commit()
 
+	if Class == 'BASIC DATA STRUCTURE':
+		return render(request,'StandardDeveloper1/ParameterDefs.html',{'Action':'Add','Study':Study,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+
+	else:
+		return render(request,'StandardDeveloper1/predsource.html', \
+			{'RSType':'MAIN','Action':'Add','NewStudy':'N','Study':Study,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class})
+
+def AddParms(request):
+	Study=request.POST["Study"]
+	StandardName=request.POST["StandardName"]
+	StandardVersion=request.POST["StandardVersion"]
+	DSName=request.POST["DSName"]
+	ParmsDict=json.loads(request.POST["parms"])
+	ParmsList=ParmsDict['parms']
+
+	for i,v1 in enumerate(ParmsList):
+		print 'Row '+str(i)
+		for k,v2 in v1.iteritems():
+			if k not in ['parcats','dtypes']:
+				print k+': '+v2
+			else:
+				for k2,v3 in v2.iteritems():
+					print k2+': '+v3
+
+	# Get model metadata for the necessary parameter variables
+	# First determine which variables and create a string of their names separated by commas enclosed in brackets
+	varsString="['PARAMCD','PARAM'"
+	if 'paramn' in ParmsList[0]:
+		varsString=varsString+",'PARAMN'"
+	if 'parcats' in ParmsList[0]:
+		varsString=varsString+",'PARCATy'"
+	for x,y in enumerate(ParmsList):
+		if 'dtypes' in ParmsList[x]:
+			varsString=varsString+",'DTYPE'"
+			break
+
+	varsString=varsString+']'
+
+	# Now get the standard/model metadata for these variables
+	ParmMDRL = graph.cypher.execute('match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef \
+		{Name:"'+DSName+'"})-[:ItemRef]->(a:ItemDef) where a.Name in '+varsString+' return a.Name as Name,a.Label as Label,a.DataType as DataType, \
+		a.Origin as Origin,a.SASType as SASType,a.MaxLength as SASLength order by a.Name desc')
+
+	if ParmMDRL:
+		VarSource='Standard'
+		BasedOnString='match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(ms:ItemGroupDef {Name:"'+DSName+'"}) '
+
+	else:
+		ParmMDRL = graph.cypher.execute('match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(m:Model)--(:ItemGroupDef \
+			{Name:"BASIC DATA STRUCTURE"})-[:ItemRef]->(a:ItemDef) where a.Name in '+varsString+' return a.Name as Name,a.Label as Label,a.DataType as DataType, \
+			a.Origin as Origin,a.SASType as SASType,a.MaxLength as SASLength,m.name as ModelName,m.version as ModelVersion order by a.Name desc')
+		VarSource='Model'
+		ModelName=ParmMDRL[0]['ModelName']
+		ModelVersion=ParmMDRL[0]['ModelVersion']
+		BasedOnString='match (:Model {name:"'+ModelName+'",version:"'+ModelVersion+'"})-[:ItemGroupRef]->(ms:ItemGroupDef {Name:"BASIC DATA STRUCTURE"}) '
+
+	print 'PARMMDRL: ('+VarSource+')'
+	print ParmMDRL
+
+	# Start generating the query
+	stmt='match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"}) with igd '+BasedOnString
+	withlist=['igd','ms']
+
+	# Calculate new Method OID and WhereClause OID
+	MethodOID=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(md:MethodDef) return max(md.OID) as OID')[0][0]
+	if not MethodOID:
+		MethodOID=0
+
+	WCOIDmax=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(w:WhereClauseDef) return max(w.OID) as OID')[0][0]
+	if not WCOIDmax:
+		WCOIDmax=0
+
+
+	for x in ParmMDRL:
+		if x['Name'] == 'PARCATy':
+
+			for xk in ParmsList[0]['parcats']:
+				# For each PARCAT...
+				# create the itemdef, codelist, and methoddef nodes
+				WhichCat=xk[6:]
+				MethodOID=MethodOID+1
+
+				stmt=stmt+WithClause(withlist)+'create (igd)-[:ItemRef {Mandatory:"Yes",SourceRef:"'+DSName+'",MethodOID:'+str(MethodOID)+'}]->(id:ItemDef {Name:"'+xk.upper()+'",\
+					Label:"Parameter Category '+WhichCat+'",Origin:"'+x['Origin']+'",SASType:"'+x['SASType']+'",DataType:"'+x['DataType']+'",SASLength:"'+x['SASLength']+'"})-\
+					[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter Category '+WhichCat+'"}) with igd, id, cl, ms \
+					create (id)-[:MethodRef]->(mt:MethodDef {OID:'+str(MethodOID)+'}) '
+
+				withlist.append('cl')
+				withlist.append('mt')
+				withlist.append('id')
+
+				# Create the BASEDON relationship
+				if VarSource == 'Standard':
+					MSString=xk
+				else:
+					MSString='PARCATy'
+
+				stmt=stmt+WithClause(withlist)+'match (ms)-[:ItemRef]->(idms:ItemDef {Name:"'+MSString+'"}) '+WithClause(withlist)+',idms create (id)-[:BasedOn]->(idms) '
+
+				withlist.remove('id')
+
+				# Create codelistitem and methodcondition nodes
+				# pcatCL is a list of values for PARCATxk (e.g. "parcat2"), across all parameters
+				pcatCL = []
+				for y in ParmsList:
+					pcatCL.append(y['parcats'][xk])
+
+				# If there's only value for PARCATxk...
+				if len(set(pcatCL)) == 1:
+					stmt=stmt+'set mt.Description="Set to '+pcatCL[0]+'" '+WithClause(withlist)+'create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+pcatCL[0]+'"}) '
+
+				else:
+					CodeMaps={}
+					for x1,y1 in enumerate(set(pcatCL)):
+						stmt=stmt+WithClause(withlist)+'create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+y1+'"}) '
+						# Prepare for generating method by determining for each value in the PARCATxk codelist, which PARAMCD values map to it.
+						# The CodeMaps dictionary will map each unique value of PARCATxk to a list of PARAMCD values that map to it
+						CodeMaps[y1]=[]
+						for y in ParmsList:
+							if y['parcats'][xk] == y1:
+								CodeMaps[y1].append(y['paramcd'])
+
+						# Connect the codelist item to a method condition, and connect the condition back to the method def.
+						stmt=stmt+'<-[:IfThen {MethodOID:'+str(MethodOID)+'}]-(:MethodCondition {'
+						if x1 < len(set(pcatCL))-1:
+							stmt=stmt+'Order:'+str(x1+1)+',ElseFL:"N"'
+							if len(CodeMaps[y1]) == 1:
+								stmt=stmt+',If:"PARAMCD eq '+CodeMaps[y1][0]+'" '
+							else:
+								stmt=stmt+',If:"PARAMCD in ('
+								for y2 in CodeMaps[y1]:
+									stmt=stmt+y2+' '
+								stmt=stmt+')" '
+
+						else:
+							stmt=stmt+'Order:99999,ElseFL:"Y"'
+
+						stmt=stmt+'})<-[:ContainsConditions]-(mt) '
+
+				withlist.remove('mt')
+				withlist.remove('cl')
+
+		else:
+			MethodOID=MethodOID+1
+			stmt=stmt+WithClause(withlist)+'create (igd)-[:ItemRef {Mandatory:"Yes",SourceRef:"'+DSName+'"}]->(id:ItemDef {Name:"'+x['Name']+'",\
+				Label:"'+x['Label']+'",Origin:"'+x['Origin']+'",SASType:"'+x['SASType']+'",DataType:"'+x['DataType']+'",SASLength:"'+x['SASLength']+'"}) '
+
+			if x['Name'] == 'DTYPE' and len(ParmsList) == 1:
+				stmt=stmt+'-[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"DTYPE1"}) '
+
+				withlist.append('cl')
+				withlist.append('id')
+
+				# Create CodeListItems
+				for x1,y1 in ParmsList[0]['dtypes'].iteritems():
+					stmt=stmt+WithClause(withlist)+'create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+x1+'",Decode:"'+y1+'"}) '
+				withlist.remove('cl')
+
+				# Create the BASEDON relationship
+				stmt=stmt+WithClause(withlist)+'match (ms)-[:ItemRef]->(idms:ItemDef {Name:"DTYPE"}) '+WithClause(withlist)+',idms create (id)-[:BasedOn]->(idms) '
+				withliist.remove('id')
+
+			elif x['Name'] == 'DTYPE':
+				stmt=stmt+'-[:ValueListRef]->(vl:ValueListDef) '
+				withlist.append('vl')
+				# First, create a list of dictionaries, each representing a unique codelist
+				CodeLists=[]
+				for x1,y1 in enumerate(ParmsList):
+					if 'dtypes' in ParmsList[x1]:
+						if ParmsList[x1]['dtypes'] not in CodeLists:
+							CodeLists.append(ParmsList[x1]['dtypes'])
+
+				# Create the BASEDON relationship
+				withlist.append('id')
+				stmt=stmt+WithClause(withlist)+'match (ms)-[:ItemRef]->(idms:ItemDef {Name:"DTYPE"}) '+WithClause(withlist)+',idms create (id)-[:BasedOn]->(idms) '
+				withlist.remove('id')
+
+				# For each codelist, determine which PARAMCDs are associated with it, create the ItemDef, CodeList, and Where clause
+				for x1,y1 in enumerate(CodeLists):
+					CLNbr=x1+1
+					WhichParms=[]
+					for x2,y2 in enumerate(ParmsList):
+						if 'dtypes' in ParmsList[x2]:
+							if ParmsList[x2]['dtypes'] == y1:
+								WhichParms.append(ParmsList[x2]['paramcd'])
+
+					# determine Length attribute
+					length=0
+					for x2 in CodeLists[x1]:
+						length=max(length,len(x2))
+
+					# generate ItemDef, CodeList, Where Clause
+					stmt=stmt+WithClause(withlist)+'create (vl)-[:ItemRef {Mandatory:"No",OrderNumber:'+str(CLNbr)+',WCRef:'+str(WCOIDmax)+'}]\
+						->(id:ItemDef {Name:"DTYPE'+str(CLNbr)+'",Label:"Derivation Type '+str(CLNbr)+'",Origin:"Assigned",DataType:"text",\
+						Length:'+str(length)+'})-[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"DTYPE'+str(CLNbr)+'"}) '
+
+					withlist.append('id')
+					withlist.append('cl')
+
+					# Now add the CodeList Items
+					for x2,y2 in CodeLists[x1].iteritems():
+						stmt=stmt+WithClause(withlist)+'create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+x2+'",Decode:"'+y2+'"}) '
+
+					# Add the where clause
+					withlist.remove('cl')
+					stmt=stmt+WithClause(withlist)+'create (id)-[:WhereClauseRef]->(:WhereClauseDef {OID:'+str(WCOIDmax)+'})-[:RangeRef]->(rc:RangeCheck {Operator:"'
+
+					if len(WhichParms)>1:
+						stmt=stmt+'IN'
+					else:
+						stmt=stmt+'EQ'
+					stmt=stmt+'"}) '
+
+					withlist.append('rc')
+					withlist.remove('id')
+
+					for x2 in WhichParms:
+						stmt=stmt+WithClause(withlist)+'create (rc)-[:CheckRef]->(:CheckValue {Value:"'+x2+'"}) '
+					stmt=stmt+WithClause(withlist)+'match (igd)--(id:ItemDef {Name:"PARAMCD"}) create (rc)-[:Range2Item]->(id) '
+					withlist.remove('rc')
+
+
+			else:
+				# Create the CodeList
+				stmt=stmt+'-[:CodeListRef]->(cl:CodeList {Extensible:"Yes", '
+				if x['Name'] == 'PARAMN':
+					stmt=stmt+'DataType:"integer", Name:"'+DSName+' Parameter Number"'
+				else:
+					stmt=stmt+'DataType:"text", Name:"'+DSName+' Parameter '
+					if x['Name'] == 'PARAMCD':
+						stmt=stmt+'Code"'
+					else:
+						stmt=stmt+'Description"'
+				stmt=stmt+'}) '
+
+				withlist.append('cl')
+				withlist.append('id')
+
+				# Create the method (not necessary for PARAMCD)
+				if x['Name'] != 'PARAMCD':
+					stmt=stmt+WithClause(withlist)+'create (id)-[:MethodRef]->(mt:MethodDef {OID:'+str(MethodOID)+'}) '
+					withlist.append('mt')
+
+				# Create the BASEDON relationship
+				stmt=stmt+WithClause(withlist)+'match (ms)-[:ItemRef]->(idms:ItemDef {Name:"'+x['Name']+'"}) '+WithClause(withlist)+',idms create (id)-[:BasedOn]->(idms) '
+				withlist.remove('id')
+
+				# Create CodeListItems and attach them to Method conditions
+				for x1,y in enumerate(ParmsList):
+					stmt=stmt+WithClause(withlist)+'create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+y[x['Name'].lower()]+'" '
+					if x['Name'] != 'PARAM':
+						stmt=stmt+', Decode:"'+y['param']+'"'
+					stmt=stmt+'}) '
+
+					if x['Name'] != 'PARAMCD' and len(ParmsList) > 1:
+						stmt=stmt+'<-[:IfThen {MethodOID:'+str(MethodOID)+'}]-(:MethodCondition {'
+
+						if x1 < len(ParmsList)-1:
+							stmt=stmt+'Order:'+str(x1+1)+',ElseFL:"N",If:"PARAMCD = '+y['paramcd']+'"'
+						else:
+							stmt=stmt+'Order:99999,ElseFL:"Y"'
+
+						stmt=stmt+'})<-[:ContainsConditions]-(mt) '
+
+					elif x['Name'] != 'PARAMCD':
+						stmt=stmt+'set mt.Description="Set to '+y[x['Name'].lower()]+'" '
+
+				withlist.remove('cl')
+				if x['Name'] != 'PARAMCD':
+					withlist.remove('mt')
+
+	print 'STMT: '+stmt
+	tx=graph.cypher.begin()
+	tx.append(stmt)
+	tx.commit()
+
 	return render(request,'StandardDeveloper1/predsource.html', \
-		{'RSType':'MAIN','Action':'Add','NewStudy':'N','Study':Study,'Instruction':Instruction,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class})
+		{'RSType':'MAIN','Action':'Add','NewStudy':'N','Study':Study,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':'BASIC DATA STRUCTURE'})
 
 
 def QueryStudy(request):
@@ -153,23 +435,14 @@ def QueryStudyDS(request):
 
 	# Get data set metadata
 	MDDS=QStudyDSMD(Study,DSName)
-	print 'MDDS: '
-	print MDDS
-	print 'REQUEST.GET: '
-	print request.GET
-	print 'DSNAME: '
-	print DSName
 
 	# Get data set class
 	Class=QDSClass(Study,DSName)
 
-	# Get all sources for the data set
-	Sources=QDSSources(Study,DSName)
-
 	# Get Variable list
 	Variables=QStudyDSVarList(Study,DSName)
 
-	return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Sources':Sources,'Variables':Variables,'Class':Class,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+	return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Variables':Variables,'Class':Class,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
 
 def ESDS(request):
 	StandardName=request.POST['StandardName']
@@ -237,13 +510,10 @@ def ESDS(request):
 	# Get data set class
 	Class=QDSClass(Study,DSName)
 
-	# Get all sources for the data set
-	Sources=QDSSources(Study,DSName)
-
 	# Get Variable list
 	Variables=QStudyDSVarList(Study,DSName)
 
-	return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Sources':Sources,'Variables':Variables,'Class':Class,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+	return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Variables':Variables,'Class':Class,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
 
 
 def NewSource(request):
@@ -261,6 +531,7 @@ def NewSource(request):
 		PMPDict=PrepMainPredList(StandardName,StandardVersion,Study,IGDName,ModelClass,VarSource)
 		form='mainpredlist'
 		PMPDict['SourceJoin']=''
+		PMPDict['ReturnTo']='mainpredlist'
 		Instruction='Predecessor variables are those that are copied from one data set to another.  '
 		Instruction=Instruction+'Define predecessors from '+SourceName+'.'
 	elif RSType == 'MERGE':
@@ -268,9 +539,14 @@ def NewSource(request):
 		Instruction='Predecessor variables are those that are copied from one data set to another.  '
 		Instruction=Instruction+'Define predecessors from '+SourceName+'.'
 		SourceJoin=request.POST["SourceJoin"]
-		PMPDict={'StudyVarsRL':QStudyVars(Study,IGDName,'d.Name="'+SourceName+'" and d.Description="'+SourceDescription+'"')}
+		PMPDict={'StudyVarsRL':QStudyVarsandSources(Study,IGDName,'d.Name="'+SourceName+'" and d.Description="'+SourceDescription+'"')}
 		PMPDict['SourceJoin']=SourceJoin
-	elif RSType == 'MODEL':
+		PMPDict['ReturnTo']='mergepredotherlist'
+	elif RSType == 'MODEL' or (not RSType and request.POST['RSType_Button'] == 'Add Custom variable'):
+		if RSType == 'MODEL':
+			ReturnTo='mergepredotherlist'
+		else:
+			ReturnTo='datasethome'
 		RSType='OTHER'
 		form='mergepredotherlist'
 		Instruction='ADaM allows for the definition of custom variables under guidelines outlined in the IG. '
@@ -279,6 +555,8 @@ def NewSource(request):
 		SourceDescription=''
 		PMPDict={}
 		PMPDict['SourceJoin']=''
+		PMPDict['ReturnTo']=ReturnTo
+
 
 	# Determine SourceOrder by adding 1 to the max SourceOrder that currently exists
 	maxOrder=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)-[:FromSource]->(a:Source) return max(a.Order) as Order')
@@ -297,8 +575,603 @@ def NewSource(request):
 	PMPDict['SourceDescription']=SourceDescription
 	PMPDict['SourceOrder']=SourceOrder
 	PMPDict['Instruction']=Instruction
+	
 
 	return render(request,'StandardDeveloper1/'+form+'.html', PMPDict)
+
+def EditStudyVar(request):
+	DSName=request.POST['DSName']
+	Study=request.POST['Study']
+	StandardName=request.POST['StandardName']
+	StandardVersion=request.POST['StandardVersion']
+	VarSource=request.POST['VarSource']
+	VarName=request.POST['VarName']
+	VarLabel=request.POST['VarLabel']
+	VarSASType=request.POST['VarSASType']
+	VarOrigin=request.POST['VarOrigin']
+	VarDataType=request.POST['VarDataType']
+	VarOrderNumber=request.POST['VarOrderNumber']
+	VarMandatory=request.POST['VarMandatory']
+	VarSASLength=request.POST['VarSASLength']
+	RSType=request.POST['RSType']
+	methodchoice=request.POST['methodchoice']
+	
+	for k in request.POST:
+		if k[:8] == 'vlmedit_':
+			VLMOID=int(k[8:])
+
+	if not VLMOID:
+		VLM=False
+		# get the variable metadata
+		VName=request.POST['VarName']
+		VLabel=request.POST['VarLabel']
+		VSASType=request.POST['VarSASType']
+		VOrigin=request.POST['VarOrigin']
+		VSASLength=request.POST['VarSASLength']
+		VMandatory=request.POST['VarMandatory']
+		VOrderNumber=request.POST['VarOrderNumber']
+		VDataType=request.POST['VarDataType']
+
+	else:
+		VLM=True
+		VName=request.POST['VLMName']
+		VLabel=request.POST['VLMLabel']
+		VOrigin=request.POST['VLMOrigin']
+		VLength=request.POST['VLMLength']
+		VMandatory=request.POST['VLMMandatory']
+		VDataType=request.POST['VLMDataType']
+
+	# MODIFY THE METADATA IN THE DATABASE FOR THIS VARIABLE
+
+	# Get the variable metadata, the sources, the method, and the controlled terminology.
+	# Turn each recordlist into a dataframe containing only the columns necessary for comparison
+
+	if VLM:
+		VLMString='-(VLD:ValueListDef)-[:ItemRef]->(:ItemDef)-'
+		VarMDDic = QStudyVarMD(Study,DSName,VarName,VLMOID=VLMOID)[1]
+		MethodList = QMethod('Study',Study,0,DSName,VarName)
+	else:
+		VLMString=''
+		VarMDDic = QStudyVarMD(Study,DSName,VarName)[1]
+		MethodList = QMethod('Study',Study,0,DSName,VarName,VLMOID=VLMOID)
+
+	DataSources = graph.cypher.execute('match (s:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(c:ItemDef \
+		{Name:"'+VarName+'"})-'+VLMString+'[:FromSource]->(d:Source) with s,d match (:ItemGroupDef)--(e:ItemDef)-[:FromSource]->(d) with s,d,count(e) as Count1 match (s)--(b1:ItemGroupDef)-\
+		[:ItemRef {SourceRef:"'+DSName+'"}]->(e1:ItemDef {Name:"'+VarName+'"}) with d,Count1,count(b1) as Count2 return d.Order as Order,Count1>1 or Count2>1 as Count')
+
+	SrcBeforeDF = pd.DataFrame(DataSources.records,columns=DataSources.columns)
+
+	MethodRL = MethodList[0]
+	if MethodList[1]==2:
+		# See how many times each condition node is being used
+		# Then merge that with the method results (from before any changes were made)
+		ConditionCountsRL=graph.cypher.execute('match (s:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"'+VarName+'"}) \
+			-'+VLMString+'-(:MethodDef)--(mc:MethodCondition) match (m:MethodDef)--(mc) return mc.If as If2,count(m.OID) as Count')
+		ConditionCountsDF=pd.DataFrame(ConditionCountsRL.records,columns=ConditionCountsRL.columns)
+		MethodBeforeDF1=pd.DataFrame(MethodRL.records,columns=MethodRL.columns)[['If2','ElseFL2','Order2','Then2']]
+		MethodBeforeDF=pd.merge(MethodBeforeDF1,ConditionCountsDF,how='left',on='If2')
+	else:
+		MethodBeforeDF=pd.DataFrame(columns=['If2','ElseFL2','Order2','Then2','Count'])
+
+
+	CTRL = graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]-(:ItemDef {Name:"'+VarName+'"})\
+		-'+VLMString+'-[:CodeListRef]->(a:CodeList)-[:ContainsCodeListItem]->(b:CodeListItem) match (c:CodeList)-[:ContainsCodeListItem]->(b) return b.CodedValue as CodedValue, count(c) as Count')
+	CTBeforeDF = pd.DataFrame(CTRL.records,columns=CTRL.columns)
+
+
+	# Create dataframes from the collected metadata for comparison to what is currently in the database
+	SrcAfter=[]
+	for k,v in request.POST.iteritems():
+		if k[0:4] == 'src_':
+			SrcAfter.append({'Order':int(k[4:]),'New':False})
+		elif k[0:7] == 'newsrc_':
+			SrcAfter.append({'Order':int(k[7:]),'New':True})
+
+	SrcAfterDF = pd.DataFrame(SrcAfter)
+	SrcMergeDF = pd.merge(SrcBeforeDF,SrcAfterDF,how='outer',indicator=True)
+
+	CTAfter=[]
+	for k,v in request.POST.iteritems():
+		if k[0:8] == 'stdterm_':
+			CTAfter.append({'CodedValue':k[8:],'Ext':False,'New':False})
+		elif k[0:8] == 'extterm_':
+			CTAfter.append({'CodedValue':k[8:],'Ext':True,'New':False})
+		elif k[0:8] == 'newterm_':
+			CTAfter.append({'CodedValue':k[8:],'Ext':False,'New':True})
+
+	if CTAfter:
+		CTAfterDF = pd.DataFrame(CTAfter).sort_values(by='CodedValue')
+	else:
+		CTAfterDF = pd.DataFrame(columns=['CodedValue'])
+
+	CTMergeDF = pd.merge(CTBeforeDF,CTAfterDF,how='outer',indicator=True)
+	if not CTMergeDF.empty:
+		CTName=request.POST['CTName']
+		CTExt=request.POST['CTExtensible']
+		CTAlias=request.POST['CTAlias']
+		CTDataType=request.POST['CTDataType']
+		CTStdYN=request.POST['CTStdYN']
+		PCGCode=request.POST['ParentCodelistGlobal']
+
+	MethodAfter=[]
+	if methodchoice == 'conditions':
+		cond={}
+		res={}
+		elseres=request.POST['else']
+		for key,val in request.POST.iteritems():
+			if key[0:4] == 'cond':
+				Order=key[4:]
+				MethodAfter.append({'If2':val,'ElseFL2':'N','Order2':int(Order),'Then2':request.POST['res'+Order]})
+		MethodAfter.append({'ElseFL2':'Y','Order2':99999,'Then2':request.POST['else']})
+		MethodAfterDF=pd.DataFrame(MethodAfter)
+	else:
+		MethodAfterDF=pd.DataFrame(columns=['If2','ElseFL2','Order2','Then2'])
+
+	MethodMergeDF=pd.merge(MethodBeforeDF,MethodAfterDF,how='outer',indicator=True,suffixes=['_before','_after'],on='If2')
+	print 'METHODMERGEDF: '
+	print MethodMergeDF
+
+	# Determine if anything changed
+	if VLM:
+		VarDefChg = VarMDDic['Name']!=VName or VarMDDic['Label']!=VLabel or VarMDDic['DataType']!=VDataType \
+			or VarMDDic['Origin']!=VOrigin or VarMDDic['SASLength']!=VSASLength
+
+		VarRefChg = VarMDDic['Mandatory']!=VMandatory
+
+	else:
+		VarDefChg = VarMDDic['Name']!=VarName or VarMDDic['Label']!=VarLabel or VarMDDic['SASType']!=VarSASType or VarMDDic['DataType']!=VarDataType \
+			or VarMDDic['Origin']!=VarOrigin or VarMDDic['SASLength']!=VarSASLength
+
+		VarRefChg = VarMDDic['OrderNumber']!=int(VarOrderNumber) or VarMDDic['Mandatory']!=VarMandatory
+
+	SrcChg = False
+	for k,v in SrcMergeDF.iterrows():
+		if v['_merge'] in ['left_only','right_only']:
+			SrcChg = True
+
+
+	CTChg = False
+	for k,v in CTMergeDF.iterrows():
+		if v['_merge'] in ['left_only','right_only']:
+			CTChg = True
+
+
+	MethodChg = False
+	if methodchoice=='freetext':
+		if request.POST['free'] != MethodRL[0]['Description3']:
+			print 'DESCRIPTION BEFORE: '
+			print MethodRL[0]['Description3']
+			print 'DESCRIPTION AFTER: '
+			print request.POST['free']
+			MethodChg = True
+
+	for k,v in MethodMergeDF.iterrows():
+		if v['_merge'] in ['left_only','right_only'] or (v['_merge'] == 'both' and (v['Order2_before']!=v['Order2_after'] or v['ElseFL2_before']!=v['ElseFL2_after'] or v['Then2_before']!=v['Then2_after'])):
+			MethodChg=True
+
+	# Build the Cypher query
+
+	# Count the number of data sets that contain this variable.  If only one, then we can just modify properties, or point it to a new code list or method. 
+	# Otherwise, we have to create a new node
+	DSVarCount=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(c:ItemDef {Name:"'+VarName+'"})\
+		with a,c match (a)--(b1:ItemGroupDef)--(c) return count(*)')[0][0]
+
+	# How many variables point to the same codelist that this variable points to
+	CLCount=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(c:ItemDef {Name:"'+VarName+'"})\
+		-'+VLMString+'[:CodeListRef]->(d:CodeList) with (d) match (e:ItemDef)-[:CodeListRef]->(d) return count(e)')[0][0]
+
+	# Now do the same with methods
+	MethodCount=graph.cypher.execute('match (s:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(c:ItemDef {Name:"'+VarName+'"})\
+		-'+VLMString+'[:MethodRef]->(d:MethodDef) with s,d match (s)--(b1:ItemGroupDef)-[ir:ItemRef]->(c1:ItemDef) where ir.MethodOID=d.OID return count(ir) as count')[0][0]
+
+	# Start generating the statement
+	if VLM:
+		stmt0='match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b1:ItemGroupDef {Name:"'+DSName+'"})-[IR0:ItemRef]->(c0:ItemDef {Name:"'+VarName+'"}) \
+			-(:ValueListDef)-[IR1:ItemRef {WCRefOID:'+str(VLMOID)+'}]->(c1:ItemDef)'
+	else:
+		stmt0='match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b1:ItemGroupDef {Name:"'+DSName+'"})-[IR1:ItemRef]->(c1:ItemDef {Name:"'+VarName+'"}) '
+
+	# If Variable definition property changes or codelist changes, and other data sets point at this variable, then generate a new ItemDef node.
+	if (VarDefChg or CTChg) and DSVarCount > 1:
+		stmt=stmt0+'optional match (c1)-[:BasedOn]->(cc:ItemDef) with b1,c1,IR1,collect(cc) as cccoll create (b1)-[IR2:ItemRef {Mandatory:"'+VarMandatory+'",Order:'+VarOrderNumber+',MethodRef:"'+DSName+'",SourceRef:"'+DSName+'"}]->\
+			(c2:ItemDef {Name:"'+VarName+'",Label:"'+VarLabel+'",SASType:"'+VarSASType+'",SASLength:"'+VarSASLength+'",\
+			Origin:"'+VarOrigin+'",DataType:"'+VarDataType+'"}) with b1,c1,c2,cccoll,IR1,IR2 delete IR1 with b1,c1,c2,cccoll,IR2 foreach(x in cccoll|create (c2)-[:BasedOn]->(x)) '
+		NewItemDef=True
+		AliasNumber='2'
+		withlist=['c1','c2','IR2']
+
+	else:
+		# New ItemDef is not necessary.  Just modify the original one
+		if VarDefChg:
+			if VLM:
+				stmt=stmt0+'set c1.Label="'+VLabel+'",c1.Length="'+VLength+'",c1.DataType="'+VarDataType+'",c1.Origin="'+VarOrigin+'" '
+			else:
+				stmt=stmt0+'set c1.Label="'+VarLabel+'",c1.SASType="'+VarSASType+'",c1.SASLength="'+VarSASLength+'",c1.DataType="'+VarDataType+'",c1.Origin="'+VarOrigin+'" '
+
+		if VarRefChg:
+			if VarDefChg:
+				stmt=stmt+','
+			else:
+				stmt=stmt0+'set '
+
+			stmt=stmt+'IR1.Mandatory="'+VMandatory+'",IR1.SourceRef="'+DSName+'",IR1.MethodRef="'+DSName+'" '
+			if VLM:
+				stmt=stmt+',IR1.Order='+VOrderNumber
+
+		if not VarDefChg and not VarRefChg:
+			stmt=''
+			withlist=[]
+		else:
+			withlist=['c1']
+			if VLM:
+				withlist.append('c0')
+
+		NewItemDef=False
+		AliasNumber='1'
+
+	# Determine if a new codelist node is needed
+	if CTChg and (DSVarCount > 1 or CLCount > 1 or CTBeforeDF.empty):
+		NewCLDef=True
+	else:
+		NewCLDef=False
+
+	# Determine if a new method node is needed
+	if MethodChg and MethodCount>1:
+		NewMethodDef=True
+	else:
+		NewMethodDef=False
+
+	# Add Sources
+
+	for k,v in SrcMergeDF.iterrows():
+		# Drop an existing source
+		if v['_merge']=='left_only':
+			if stmt:
+				stmt=stmt+WithClause(withlist)+'match (c1) '
+			else:
+				stmt=stmt0
+				withlist=['c1']
+
+			stmt=stmt+'-[FS1:FromSource]->(f1:Source {Order:'+str(v['Order'])+'}) '
+
+			if v['Count']:
+				stmt=stmt+'delete FS1 '
+				if VLM:
+					stmt=stmt+WithClause(withlist)+',f1 match (c0)-[FS1:FromSource]->(f1) delete FS1 '
+			else:
+				stmt=stmt+'detach delete f1 '
+
+		# Keep an existing source
+		elif v['_merge']=='both' and NewItemDef:
+			if stmt:
+				stmt=stmt+WithClause(withlist)+'match (c1) '
+			else:
+				stmt=stmt0
+				withlist=['c1']
+
+			stmt=stmt+'-[FS1:FromSource]->(f1:Source {Order:'+str(v['Order'])+'}) create (c2)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(f1) delete FS1 '
+
+		# Add a new source
+		elif v['_merge'] == 'right_only':
+			if stmt:
+				stmt=stmt+WithClause(withlist)
+			else:
+				stmt=stmt0+'with c1 '
+				withlist=['c1']
+
+			if v['New']:
+				SourceOrder=v['Order']
+				SourceName=request.POST['newds_newsrc_'+str(SourceOrder)]
+				SourceDescription=request.POST['newdesc_newsrc_'+str(SourceOrder)]
+				SourceJoin=request.POST['newjoin_newsrc_'+str(SourceOrder)]
+
+				stmt=stmt+'create (c'+AliasNumber+')-[:FromSource {Type:"'+RSType+'", SourceRef:"'+DSName+'"}]->(src:Source {Name:"'+SourceName+'",\
+					Description:"'+SourceDescription+'",Join:"'+SourceJoin+'",Order:'+str(SourceOrder)+'}) '
+
+			else:
+				stmt=stmt+'match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(:ItemGroupDef)-[:ItemRef]->(:ItemDef)-[:FromSource]\
+					->(src:Source {Order:'+str(v['Order'])+'}) with c'+AliasNumber+',src limit 1 create (c'+AliasNumber+')-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+
+			if VLM:
+				stmt=stmt+WithClause(withlist)+',src create (c0)-[:FromSource {Type:"'+RSType+'", SourceRef:"'+DSName+'"}]->(src) '
+
+	# Methods
+
+	# Start by creating or matching the MethodDef node and adding or updating its Description property
+	if NewItemDef or MethodChg:
+		if not stmt:
+			stmt=stmt0
+			withlist=['c1','IR1']
+
+		# If a new MethodDef node is needed, create it here
+		if NewMethodDef:
+			# Calculate new OID
+			maxOIDRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(md1:MethodDef) with max(md1.OID) as max1 \
+				match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(md2:MethodDef) return max1,max(md2.OID) \
+				as max2')
+			if maxOIDRL:
+				MethodOID=max(maxOIDRL[0]['max1'],maxOIDRL[0]['max2'])+1
+			else:
+				MethodOID=1
+
+			# Create the new MethodDef
+			stmt=stmt+WithClause(withlist)+'match (c1)-[mr1:MethodRef]->(m1:MethodDef) '
+			withlist.append('mr1')
+			withlist.append('m1')
+
+			# If the method was connected to conditions, connect the new MethodDef to the same conditions
+			# We'll delete them later if necessary
+			if not MethodBeforeDF.empty:
+				stmt=stmt+'-[cc1:ContainsConditions]->(mt:MethodCondition)-[it:IfThen]->(x) where it.MethodOID=m1.OID '
+				withlist.append('mt')
+
+			stmt=stmt+WithClause(withlist)+'set '
+
+			if not MethodBeforeDF.empty:
+				stmt=stmt+'it.MethodOID='+str(MethodOID)+', '
+
+			stmt=stmt+'IR'+AliasNumber+'.MethodOID='+str(MethodOID)+' create (c'+AliasNumber+')-[:MethodRef]->(m:MethodDef {OID:'+str(MethodOID)
+
+			if request.POST['free']:
+				stmt=stmt+', Description:"'+request.POST['free']+'"'
+			stmt=stmt+'}) '
+
+			if not MethodBeforeDF.empty:
+				stmt=stmt+'-[cc:ContainsConditions]->(mt) '
+				withlist.remove('mt')
+
+			# delete the link to the old MethodDef and conditions if necessary
+			if DSVarCount == 1:
+				stmt=stmt+'delete mr1 '
+
+			withlist.remove('mr1')
+			withlist.remove('m1')
+
+		else:
+			stmt=stmt+WithClause(withlist)+'match (c1)--(m:MethodDef) '
+
+			if NewItemDef:
+				stmt=stmt+'create (c2)-[:MethodRef]->(m) set IR2.MethodOID=m.OID '
+
+			if methodchoice == 'freetext':
+				stmt=stmt+'set m.Description="'+request.POST['free']+'" '
+			elif MethodRL[0]['Description3']:
+				stmt=stmt+'remove m.Description '
+
+		withlist.append('m')
+
+		# If conditions are involved
+		if not MethodMergeDF.empty:
+			for k,v in MethodMergeDF.iterrows():
+				# If something changed about a condition...
+				if v['_merge']!='both' or v['Order2_before']!=v['Order2_after'] or v['ElseFL2_before']!=v['ElseFL2_after'] or v['Then2_before']!=v['Then2_after']:
+					# Find the condition
+					if v['_merge']!='right_only':
+						stmt=stmt+WithClause(withlist)+'match (m)-[mr:ContainsConditions]->(cond:MethodCondition {Order:'+str(v['Order2_before'])+'})-[it:IfThen]-> '
+						withlist.append('cond')
+						withlist.append('mr')
+						if MethodList[1]==2:
+							stmt=stmt+'(mt:MethodThen) where it.MethodOID=m.OID '
+							withlist.append('mt')
+						elif MethodList[1]==1:
+							stmt=stmt+'(cli:CodeListItem)<-[ccli:ContainsCodeListItem]-(:CodeList) where it.MethodOID=m.OID '
+							withlist.append('cli')
+							withlist.append('ccli')
+
+					# drop unwanted conditions
+					if v['_merge']=='left_only':
+						if NewMethodDef:
+							stmt=stmt+WithClause(withlist)+'delete mr '
+							withlist.remove('mr')
+						else:
+							if MethodCount==1 and v['Count']==1:
+								stmt=stmt+WithClause(withlist)+' detach delete cond,mt '
+								withlist.remove('cond')
+								withlist.remove('mt')
+							else:
+								stmt=stmt+WithClause(withlist)+' detach delete mt '
+								withlist.remove('mt')
+
+					# add/change conditions
+					else:
+						if MethodCount==1 and v['Count']==1 and v['_merge']!='right_only':
+							stmt=stmt+'set cond.IF="'+v['If2']+'", cond.ElseFL="'+v['ElseFL2_after']+'", cond.Order='+str(v['Order2_after'])+', mt.Then="'+v['Then2_after']+'" '
+						else:
+							stmt=stmt+WithClause(withlist)+'create (m)-[:ContainsConditions]->(:MethodCondition {Order:'+str(v['Order2_after'])+',If:"'+v['If2']+'",\
+								ElseFL:"'+v['ElseFL2_after']+'"})-[it:IfThen]->'
+							if request.POST['methods']=='m2':
+								stmt=stmt+'(:MethodThen {Then:"'+v['Then2_after']+'"}) '
+							stmt=stmt+'set it.MethodOID=m.OID '
+
+		withlist.remove('m')
+
+
+	# Add controlled terminology if desired
+	if not CTMergeDF.empty:
+		stdterms=''
+		newterms={}
+		extterms=''
+		delterms=''
+
+		if CTAfterDF.empty and not NewItemDef:
+			if stmt:
+				stmt=stmt+WithClause(withlist)+'match (c1) '
+			else:
+				stmt=stmt0
+
+			if CLCount < 2:
+				stmt=stmt+'-[:CodeListRef]->(e:CodeList) detach delete e '
+			else:
+				stmt=stmt+'-[CR:CodeListRef]->(e:CodeList) delete CR '
+
+		elif not CTAfterDF.empty:
+			for k,v in CTMergeDF.iterrows():
+				if (v['_merge'] == 'right_only' or (v['_merge'] == 'both' and NewCLDef)) and not v['New'] and not v['Ext']:
+					if stdterms:
+						stdterms=stdterms+', '
+					else:
+						stdterms='['
+					stdterms=stdterms+"'"+v['CodedValue']+"'"
+
+				elif (v['_merge'] == 'right_only' or (v['_merge'] == 'both' and NewCLDef)) and v['Ext']:
+					if extterms:
+						extterms=extterms+', '
+					else:
+						extterms='['
+					extterms=extterms+"'"+v['CodedValue']+"'"
+
+				elif v['New'] and not pd.isnull(v['New']):
+					newterms[v['CodedValue']]=request.POST['newterm_'+v['CodedValue']] 
+
+				elif v['_merge'] == 'left_only' and not NewCLDef:
+					if delterms:
+						delterms=delterms+', '
+					else:
+						delterms='['
+					delterms=delterms+"'"+v['CodedValue']+"'"
+
+			if stdterms:
+				stdterms=stdterms+'] '
+
+				if stmt and not CTBeforeDF.empty:
+					stmt=stmt+WithClause(withlist)+'match (c1)-[CR:CodeListRef]->(d:CodeList) '+WithClause(withlist)+', d, CR '
+					withlist.append('d')
+					withlist.append('CR')
+
+				elif not stmt:
+					withlist.append('c1')
+					if not CTBeforeDF.empty:
+						withlist.append('d')
+						withlist.append('CR')
+						stmt=stmt0+'-[CR:CodeListRef]->(d:CodeList) '+WithClause(withlist)
+					else:
+						stmt=stmt0+WithClause(withlist)
+
+				else:
+					stmt=stmt+WithClause(withlist)
+
+				if VarSource=='Standard' and CTStdYN=='Y':
+					stmt=stmt+'match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(:ItemDef {Name:"'+VarName+'"}) \
+						-[:CodeListRef]->(:CodeList)-[:ContainsCodeListItem]->(es:CodeListItem) where es.CodedValue in '+stdterms+WithClause(withlist)+', collect(distinct es) as colles '
+					withlist.append('colles')
+				elif VarSource=='Model' and CTStdYN=='Y':
+					stmt=stmt+'match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+ModelClass+'"})-[:ItemRef]->(:ItemDef {Name:"'+VarName+'"}) \
+						-[:CodeListRef]->(:CodeList)-[:ContainsCodeListItem]->(es:CodeListItem) where es.CodedValue in '+stdterms+WithClause(withlist)+', collect(distinct es) as colles '
+					withlist.append('colles')
+				elif PCGCode:
+					stmt=stmt+'match (:CT)--(:CodeList {AliasName:"'+PCGCode+'"})--(es:CodeListItem) where es.CodedValue in '+stdterms+WithClause(withlist)+', collect(distinct es) as colles '
+					withlist.append('colles')
+
+			if extterms:
+				if stmt:
+					if stdterms:
+						stmt=stmt+'match (d)-[:ContainsCodeListItem]'
+					else:
+						stmt=stmt+WithClause(withlist)+'match (c1)-[CR:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]'
+						withlist.append('d')
+						withlist.append('CR')
+				else:
+					stmt=stmt0+'-[CR:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]'
+					withlist.append('d')
+					withlist.append('CR')
+					withlist.append('c1')
+
+				extterms=extterms+'] '
+				stmt=stmt+'->(ee:CodeListItem) where ee.CodedValue in '+extterms+WithClause(withlist)+', collect(ee) as collee '
+				withlist.append('collee')
+
+			if delterms:
+				delterms=delterms+']'
+
+			if NewCLDef:
+				# Delete pointers to relationships if not creating a new ItemDef but are changing an existing codelist
+				if not CTBeforeDF.empty and not NewItemDef:
+					if stmt:
+						if not stdterms and not extterms:
+							stmt=stmt+WithClause(withlist)+'match (c1)-[CR:CodeListRef]->(d:CodeList) '+WithClause(withlist)+', d '
+							withlist.append('d')
+
+					else:
+						withlist.append('c1')
+						withlist.append('d')
+						stmt=stmt0+'-[CR:CodeListRef]->(d:CodeList) '+WithClause(withlist)
+
+					stmt=stmt+'delete CR '
+					withlist.remove('CR')
+
+				# Create a new codelist node
+				if not stmt:
+					stmt=stmt0
+					withlist.append('c1')
+
+				stmt=stmt+WithClause(withlist)+'create (c'+AliasNumber+')-[:CodeListRef]->(e1:CodeList {Name:"'+CTName+'",DataType:"'+CTDataType+'",Extensible:"'+CTExt+'",AliasName:"'+CTAlias+'"}) '
+				withlist.append('e1')
+				# if stdterms or extterms or newterms:
+				# 	stmt=stmt+WithClause(withlist)
+
+				AliasNumber2='e1'
+
+			elif (CTChg or NewItemDef):
+				# Find the existing codelist node
+				if stmt:
+					if not stdterms and not extterms:
+						stmt=stmt+WithClause(withlist)+'match (c1)-[CR:CodeListRef]->(d:CodeList) '
+						withlist.append('d')
+				else:
+					withlist.append('d')
+					withlist.append('c1')
+					stmt=stmt0+'-[CR:CodeListRef]->(d:CodeList) '
+
+				if delterms:
+					stmt=stmt+WithClause(withlist)+'match (d)-[rd:ContainsCodeListItem]->(ed:CodeListItem) where ed.CodedValue in '+delterms+' '+WithClause(withlist)+', collect(rd) as collrd \
+						foreach(x in collrd|delete x) '
+
+				if NewItemDef:
+					stmt=stmt+WithClause(withlist)+'create (c2)-[:CodeListRef]->(d) '
+
+				AliasNumber2='d'
+
+			if stdterms or extterms or newterms:
+				stmt=stmt+WithClause(withlist)
+
+			if stdterms:
+				stmt=stmt+'foreach(x in colles|create ('+AliasNumber2+')-[:ContainsCodeListItem]->(x)) '
+
+			if extterms:
+				stmt=stmt+'foreach(x in collee|create ('+AliasNumber2+')-[:ContainsCodeListItem]->(x)) '
+
+			if newterms:
+				for k,v in newterms.iteritems():
+					stmt=stmt+'create ('+AliasNumber2+')-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+k+'",Decode:"'+v+'"}) '
+
+
+	print 'STMT: '+stmt
+	tx=graph.cypher.begin()
+	tx.append(stmt)
+	tx.commit()
+
+
+	# NOW GET READY FOR RENDERING THE PAGE
+
+	# Get data set metadata
+	MDDS=QStudyDSMD(Study,DSName)
+
+	# Get data set class
+	Class=QDSClass(Study,DSName)
+
+	# Get Variable list
+	Variables=QStudyDSVarList(Study,DSName)
+
+	return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Variables':Variables,'Class':Class,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+
+def WithClause(list):
+	clause='with '
+	for x,y in enumerate(set(list)):
+		if x>0:
+			clause=clause+', '
+		clause=clause+y+' '
+	return clause
+
 
 def NewVar(request):
 	ReturnTo = request.POST['ReturnTo']
@@ -316,162 +1189,303 @@ def NewVar(request):
 	Action=request.POST['Action']
 	ParentCLGlobal=request.POST['ParentCodelistGlobal']
 	ParentCLStudy=request.POST['ParentCodelistStudy']
-
-
-
-	# get the variable metadata
+	Condition=request.POST['Condition']
 	VarName=request.POST['VarName']
 	VarLabel=request.POST['VarLabel']
 	VarSASType=request.POST['VarSASType']
-	VarOrigin=request.POST['VarOrigin']
-	VarSASLength=request.POST['VarSASLength']
 	VarMandatory=request.POST['VarMandatory']
-	VarOrderNumber=request.POST['VarOrderNumber']
 	VarDataType=request.POST['VarDataType']
+	VarOrderNumber=request.POST['VarOrderNumber']
 
-	if Action == 'Add':
+	if not Condition:
+		VLM=False
+		# get the variable metadata
+		VName=request.POST['VarName']
+		VLabel=request.POST['VarLabel']
+		VSASType=request.POST['VarSASType']
+		VOrigin=request.POST['VarOrigin']
+		VSASLength=request.POST['VarSASLength']
+		VMandatory=request.POST['VarMandatory']
+		VOrderNumber=request.POST['VarOrderNumber']
+		VDataType=request.POST['VarDataType']
 
-		# Make variables for query parts
-		QIGD='(study:Study {Name:"'+Study+'"})--(IGD:ItemGroupDef {Name:"'+DSName+'"}) '
-		QID='(ID:ItemDef {Name:"'+VarName+'", Label:"'+VarLabel+'",SASType:"'+VarSASType+'",Origin:"'+VarOrigin+'",SASLength:"'+VarSASLength+'",DataType:"'+VarDataType+'"}) '
-		QIR='[:ItemRef {Mandatory:"'+VarMandatory+'", Order:'+VarOrderNumber+',MethodRef:"'+DSName+'",SourceRef:"'+DSName+'"}]'
-		QSRC='(src:Source {Name:"'+SourceName+'", Description:"'+SourceDescription+'",Order:'+str(SourceOrder)+',Join:"'+SourceJoin+'"}) '
+	else:
+		VLM=True
+		VName=request.POST['VLMName']
+		VLabel=request.POST['VLMLabel']
+		VOrigin=request.POST['VLMOrigin']
+		VLength=request.POST['VLMLength']
+		VMandatory=request.POST['VLMMandatory']
+		VDataType=request.POST['VLMDataType']
+
+	# Calculate the numeric OID value of the method being created
+	# by calculating the max value of the current OIDs in the study
+
+	maxOIDRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(md1:MethodDef) with max(md1.OID) as max1 \
+		match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(md2:MethodDef) return max1,max(md2.OID) \
+		as max2')
+	if maxOIDRL:
+		MethodOID=max(maxOIDRL[0]['max1'],maxOIDRL[0]['max2'])+1
+	else:
+		MethodOID=1
 
 
-		# create itemdef node
-		ItemDefExist=graph.cypher.execute('return exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef {Name:"'+VarName+'", Label:"'+VarLabel+'",SASType:"'+VarSASType+'",Origin:"'+VarOrigin+'",SASLength:"'+VarSASLength+'",DataType:"'+VarDataType+'"}))')[0][0]
+	# Make variables for query parts
+	QIGD='(study:Study {Name:"'+Study+'"})--(IGD:ItemGroupDef {Name:"'+DSName+'"}) '
+	QSRC='(src:Source {Name:"'+SourceName+'", Description:"'+SourceDescription+'",Order:'+str(SourceOrder)+',Join:"'+SourceJoin+'"}) '
+
+
+	# Create ItemDef node
+	# For variable-level metadata, set all the properties.  For VLM, set only the name, but also create the ValueListDef and the value-level ItemDef
+	# Also with variable-level, see if the ItemDef with all its properties has already been defined for another data set.  If so, use it.
+	# This won't be done for VLM.
+
+	stmt='match '+QIGD
+	withlist=['study','IGD']
+	VarMDDic={}
+
+	if not VLM:
+		ItemDefExist=graph.cypher.execute('return exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef {Name:"'+VName+'", Label:"'+VLabel+'",SASType:"'+VSASType+'",Origin:"'+VOrigin+'",SASLength:"'+VSASLength+'",DataType:"'+VDataType+'"}))')[0][0]
+		QID='(ID:ItemDef {Name:"'+VName+'", Label:"'+VLabel+'",SASType:"'+VSASType+'",Origin:"'+VOrigin+'",SASLength:"'+VSASLength+'",DataType:"'+VDataType+'"}) '
+		QIR='[:ItemRef {Mandatory:"'+VMandatory+'", Order:'+VOrderNumber+',SourceRef:"'+DSName+'", MethodOID:'+str(MethodOID)+'}] '
+
 		if ItemDefExist:
-			stmt='match '+QIGD+', '+QID+' create (IGD)-'+QIR+'->(ID) '
+			stmt=stmt+WithClause(withlist)+'match (study)--(:ItemGroupDef)--'+QID
+			withlist.append('ID')
+			stmt=stmt+WithClause(withlist)+'limit 1 create (IGD)-'+QIR+'->(ID) '
 		else:
-			stmt='match '+QIGD+' create (IGD)-'+QIR+'->'+QID
+			stmt=stmt+WithClause(withlist)+' create (IGD)-'+QIR+'->'+QID
+			withlist.append('ID')
 
-
-		# create source nodes (if necessary), and connect them to itemdef
-		if RSType in ['MAIN','MERGE']:
-			# Determine if the source node already exists
-			SourceNodeExist=graph.cypher.execute('return exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:Source {Order:'+str(SourceOrder)+'}))')[0][0]
-			if SourceNodeExist:
-				stmt=stmt+'with (ID) match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(src:Source {Order:'+str(SourceOrder)+'}) with (ID),(src) limit 1 create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+	else:
+		BeforeVarName=request.POST['BeforeVarName']
+		WCOID=request.POST['WCOID']
+		# If the variable-level node already exists, then determine if any property values need changing
+		VarMDDic = QStudyVarMD(Study,DSName,BeforeVarName)[1]
+		if VarMDDic:
+			# Determine what SASLength should be based on max value at the value level, and what Mandatory should be based on value level
+			propsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"'+VarName+'"})--\
+				(:ValueListDef)-[r:ItemRef]->(a:ItemDef) return max(a.Length) as SASLength,case when "No" in collect(r.Mandatory) then "No" else \
+				"Yes" end as Mandatory')
+			VarSASLength=max(propsRL[0]['SASLength'],int(VLength))
+			if propsRL[0]['Mandatory'] == 'No' or VMandatory == 'No':
+				VarMandatory='No'
 			else:
-				stmt=stmt+'-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->'+QSRC
-		elif RSType in ['MODEL','OTHER']:
+				VarMandatory='Yes'
+
+			stmt=stmt+'-[IR1:ItemRef]->(ID1:ItemDef {Name:"'+BeforeVarName+'"})-[VLR:ValueListRef]->(VLD:ValueListDef)'
+			if VarName != VarMDDic['Name'] or VarLabel != VarMDDic['Label'] or VarSASType != VarMDDic['SASType'] or VarDataType != VarMDDic['DataType'] or VarOrderNumber != VarMDDic['OrderNumber'] or VarSASLength != VarMDDic['SASLength'] or VarMandatory != VarMDDic['Mandatory'] :
+				stmt=stmt+' set IR1.OrderNumber='+VarOrderNumber+',ID1.Name="'+VarName+'",ID1.Label="'+VarLabel+'",ID1.SASType="'+VarSASType+'",ID1.DataType="'+VarDataType+'" \
+					,ID1.SASLength="'+str(VarSASLength)+'",IR1.Mandatory="'+VarMandatory+'" '
+
+		else:
+			stmt=stmt+WithClause(withlist)+'create (IGD)-[IR1:ItemRef {Order:'+VarOrderNumber+',Mandatory:"'+VMandatory+'"}]->(ID1:ItemDef {Name:"'+VarName+'",Label:"'+VarLabel+'",SASType:"'+VarSASType+'",\
+				DataType:"'+VarDataType+'",SASLength:"'+str(VLength)+'"})-[VLR:ValueListRef]->(VLD:ValueListDef) '
+
+		withlist.append('IR1')
+		withlist.append('ID1')
+		withlist.append('VLD')
+
+		stmt=stmt+WithClause(withlist)+'create (VLD)-[IR:ItemRef {Mandatory:"'+VMandatory+'",MethodOID:'+str(MethodOID)+'}]->(ID:ItemDef {Name:"'+VName+'", Label:"'+VLabel+'",Origin:"'+VOrigin+'",Length:"'+VLength+'",DataType:"'+VDataType+'"}) '
+		withlist.remove('VLD')
+		withlist.append('IR')
+		withlist.append('ID')
+
+		if WCOID:
+			stmt=stmt+WithClause(withlist)+'match (study)--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(WC:WhereClauseDef {OID:'+WCOID+'}) with WC limit 1 \
+				create (ID)-[:WhereClauseRef]->(WC) '
+		else:
+			# Calculate a numeric value for the WhereClauseDef OID value by finding the currently existing max value in the study and then adding 1
+			WCOIDmax=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(w:WhereClauseDef) return max(w.OID) as OID')[0][0]
+			if WCOIDmax:
+				WCOID=WCOIDmax+1
+			else:
+				WCOID=1
+
+			stmt=stmt+'-[:WhereClauseRef]->(WC:WhereClauseDef {OID:'+str(WCOID)+'}) '
+			withlist.append('WC')
+
+			# Create the RangeCheck and CheckValue nodes
+			for rc in Condition.split(';'):
+				cond=rc.split('|')
+				stmt=stmt+WithClause(withlist)+'create (WC)-[:RangeRef]->(RC:RangeCheck {Operator:"'+cond[1]+'"}) '
+				withlist.append('RC')
+				stmt=stmt+WithClause(withlist)+'match (study)--(:ItemGroupDef {Name:"'+DSName+'"})--(ID2:ItemDef {Name:"'+cond[0]+'"}) create (RC)-[:Range2Item]->(ID2) '
+				for cv in cond[2].split(','):
+					stmt=stmt+WithClause(withlist)+'create (RC)-[:CheckRef]->(:CheckValue {Value:"'+cv+'"}) '
+				withlist.remove('RC')
+
+		stmt=stmt+'set IR.WCRefOID='+str(WCOID)+' '
+
+
+
+	# create source nodes (if necessary), and connect them to itemdef
+	#if RSType in ['MAIN','MERGE']:
+	if VOrigin == 'Predecessor':
+		# Determine if the source node already exists
+		SourceNodeExistRL=graph.cypher.execute('return exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:Source {Order:'+str(SourceOrder)+'})) as ID1,\
+			exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(:Source {Order:'+str(SourceOrder)+'})) as ID2')
+		if SourceNodeExistRL[0][0]:
+			stmt=stmt+WithClause(withlist)+'match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(src:Source {Order:'+str(SourceOrder)+'}) '
+			withlist.append('src')
+			stmt=stmt+WithClause(withlist)+'limit 1 create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+			if VLM:
+				stmt=stmt+WithClause(withlist)+'merge (ID1)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+			withlist.remove('src')
+
+		elif SourceNodeExistRL[0][1]:
+			stmt=stmt+WithClause(withlist)+'match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(src:Source {Order:'+str(SourceOrder)+'}) '
+			withlist.append('src')
+			stmt=stmt+WithClause(withlist)+'limit 1 create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+			if VLM:
+				stmt=stmt+WithClause(withlist)+'merge (ID1)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+			withlist.remove('src')
+
+		else:
+			stmt=stmt+WithClause(withlist)+'create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->'+QSRC+WithClause(withlist)+'\
+				,src create (ID1)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+
+	#elif RSType in ['MODEL','OTHER']:
+	else:
+		for key,val in request.POST.iteritems():
+			if key[0:4] == 'src_':
+				SourceOrder=key[4:]
+				stmt=stmt+WithClause(withlist)+'match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(src:Source {Order:'+str(SourceOrder)+'}) '+WithClause(withlist)+',src \
+					limit 1 create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '+WithClause(withlist)+',src create (ID1)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+
+			elif key[0:7] == 'newsrc_':
+				SourceOrder=key[7:]
+				SourceName=request.POST['newds_newsrc_'+SourceOrder]
+				SourceDescription=request.POST['newdesc_newsrc_'+SourceOrder]
+				SourceJoin=request.POST['newjoin_newsrc_'+SourceOrder]
+				QSRC='(src:Source {Name:"'+SourceName+'", Description:"'+SourceDescription+'",Order:'+str(SourceOrder)+',Join:"'+SourceJoin+'"}) '
+				stmt=stmt+WithClause(withlist)+'create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->'+QSRC+WithClause(withlist)+',src create (ID1)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src) '
+
+
+	# Create methods
+
+	#if RSType in ['MAIN','MERGE']:
+	if VOrigin == 'Predecessor':
+		MethodDesc='Copy '+VarName+' from '+SourceName
+		methodchoice='freetext'
+
+	#elif RSType in ['MODEL','OTHER']:
+	else:
+		MethodDesc=''
+		methodchoice=request.POST['methodchoice']
+
+		if methodchoice == 'freetext':
+			MethodDesc=request.POST['free']
+
+		elif methodchoice == 'conditions':
+			cond={}
+			res={}
+			elseres=request.POST['else']
+
 			for key,val in request.POST.iteritems():
-				if key[0:4] == 'src_':
-					SourceOrder=key[4:]
-					stmt=stmt+'with (ID) match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(src'+str(SourceOrder)+':Source {Order:'+str(SourceOrder)+'}) with (ID),(src'+str(SourceOrder)+') limit 1 create (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->(src'+str(SourceOrder)+') '
-				elif key[0:7] == 'newsrc_':
-					SourceOrder=key[7:]
-					SourceName=request.POST['newds_newsrc_'+SourceOrder]
-					SourceDescription=request.POST['newdesc_newsrc_'+SourceOrder]
-					SourceJoin=request.POST['newjoin_newsrc_'+SourceOrder]
-					QSRC='(:Source {Name:"'+SourceName+'", Description:"'+SourceDescription+'",Order:'+str(SourceOrder)+',Join:"'+SourceJoin+'"}) '
-					stmt=stmt+', (ID)-[:FromSource {SourceRef:"'+DSName+'",Type:"'+RSType+'"}]->'+QSRC
+				if key[0:4] == 'cond':
+					cond[key]=val
+				elif key[0:3] == 'res':
+					res[key]=val
+
+			stmt=stmt+WithClause(withlist)+'create (ID)-[:MethodRef]->(MD:MethodDef {OID:'+str(MethodOID)+'}) '
+			withlist.append('MD')
+
+			for key,val in cond.iteritems():
+				Order=key[4:]
+				stmt=stmt+WithClause(withlist)+'create (MD)-[:ContainsConditions]->(:MethodCondition {Order:'+Order+',If:"'+val+'",ElseFL:"N"})-[:IfThen {MethodOID:'+str(MethodOID)+'}]->(:MethodThen {Then:"'+res['res'+Order]+'"}) '
+
+			stmt=stmt+WithClause(withlist)+'create (MD)-[:ContainsConditions]->(:MethodCondition {ElseFL:"Y", Order:99999})-[:IfThen {MethodOID:'+str(MethodOID)+'}]->(:MethodThen {Then:"'+elseres+'"}) '
+			withlist.remove('MD')
 
 
-		# Create methods
-		if RSType in ['MAIN','MERGE']:
-			MethodDesc='Copy '+VarName+' from '+SourceName
-			methodchoice='freetext'
-
-		elif RSType in ['MODEL','OTHER']:
-			MethodDesc=''
-			methodchoice=request.POST['methodchoice']
-
-			if methodchoice == 'freetext':
-				MethodDesc=request.POST['free']
-
-			elif methodchoice == 'conditions':
-				cond={}
-				res={}
-				elseres=request.POST['else']
-				for key,val in request.POST.iteritems():
-					if key[0:4] == 'cond':
-						cond[key]=val
-					elif key[0:3] == 'res':
-						res[key]=val
-				stmt=stmt+', (ID)-[:MethodRef {MethodRef:"'+DSName+'"}]->(MD:MethodDef) '
-				print 'COND: '
-				print cond
-				for key,val in cond.iteritems():
-					Order=key[4:]
-					stmt=stmt+', (MD)-[:ContainsConditions]->(:MethodCondition {Order:'+Order+',If:"'+val+'",ElseFL:"N"})-[:IfThen]->(:MethodThen {Then:"'+res['res'+Order]+'"}) '
-				stmt=stmt+', (MD)-[:ContainsConditions]->(:MethodCondition {ElseFL:"Y"})-[:IfThen]->(:MethodThen {Then:"'+elseres+'"}) '
-
-		if MethodDesc:
-			MethodExist=graph.cypher.execute('return exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:MethodDef {Description:"'+MethodDesc+'"}))')[0][0]
-			if MethodExist:
-				stmt=stmt+'with (ID) match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(mt:MethodDef {Description:"'+MethodDesc+'"}) with (ID),(mt) limit 1 create (ID)-[:MethodRef {MethodRef:"'+DSName+'"}]->(mt) '
-			else:
-				stmt=stmt+', (ID)-[:MethodRef {MethodRef:"'+DSName+'"}]->(:MethodDef {Description:"'+MethodDesc+'"}) '
+	# For methods with a description, see if one exists already.  If so, connnect to it.  Otherwise, create it.
+	if MethodDesc:
+		MethodExistRL=graph.cypher.execute('return exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:MethodDef {Description:"'+MethodDesc+'"})) as ID1,\
+			exists((:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(:MethodDef {Description:"'+MethodDesc+'"})) as ID2')
+		if MethodExistRL[0][0]:
+			stmt=stmt+WithClause(withlist)+'match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(MD:MethodDef {Description:"'+MethodDesc+'"}) '+WithClause(withlist)+',MD limit 1 create (ID)-[:MethodRef]->(mt) '
+		elif MethodExistRL[0][1]:
+			stmt=stmt+WithClause(withlist)+'match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(MD:MethodDef {Description:"'+MethodDesc+'"}) '+WithClause(withlist)+',MD limit 1 create (ID)-[:MethodRef]->(mt) '
+		else:
+			stmt=stmt+WithClause(withlist)+'create (ID)-[:MethodRef]->(:MethodDef {Description:"'+MethodDesc+'",OID:'+str(MethodOID)+'}) '
 
 
-		# Create the BasedOn relationship from the study variable to the Standard/Model variable
+	# Create the BasedOn relationship from the study variable to the Standard/Model variable
+	if not VarMDDic:
+		if VLM:
+			Alias='ID1'
+		else:
+			Alias='ID'
+
 		if VarSource == "Model":
-			stmt=stmt+'with (ID) match (e:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(f:Model)-[:ItemGroupRef]->(g:ItemGroupDef {Name:"'+ModelClass+'"})-[:ItemRef]->(h:ItemDef {Name:"'+VarName+'"}) \
-				create (ID)-[:BasedOn]->(h) '
+			stmt=stmt+WithClause(withlist)+'match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+ModelClass+'"})-[:ItemRef]->(ID2:ItemDef {Name:"'+VarName+'"}) '+WithClause(withlist)+',ID2 \
+				create ('+Alias+')-[:BasedOn]->(ID2) '
 		elif VarSource == "Standard":
-			stmt=stmt+'with (ID) match (e:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(f:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(g:ItemDef {Name:"'+VarName+'"}) create (ID)-[:BasedOn]->(g) '
+			stmt=stmt+WithClause(withlist)+'match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(ID2:ItemDef {Name:"'+VarName+'"}) '+WithClause(withlist)+',ID2 create ('+Alias+')-[:BasedOn]->(ID2) '
 
 
-		# Controlled Terminology
-		
-		stdterms=''
-		extterms={}
+	# Controlled Terminology
+	
+	stdterms=''
+	newterms={}
 
-		# Put the standard terms into a list
-		for x in request.POST:
-			if x[0:8] == 'stdterm_':
-				if stdterms:
-					stdterms=stdterms+', '
-				else:
-					stdterms='['
-				stdterms=stdterms+"'"+x[8:]+"'"
-		if stdterms:
-			stdterms=stdterms+']'
-			print 'STDTERMS: '+stdterms
-
-		# Put the extended terms into a dictionary
-		for k,v in request.POST.iteritems():
-			if k[0:8] == 'extterm_':
-				extterms[k[8:]]=v
-		print 'EXTTERMS: '
-		print extterms
-
-
-		# If there is any controlled terminology...
-		if stdterms or extterms:
-			CTExt=request.POST['CTExtensible']
-			CTAlias=request.POST['CTAlias']
-			CTDataType=request.POST['CTDataType']
-			CTName=request.POST['CTName']
-
-			# A variable whose standard does not associate CT, but a custom list is based on some standard codelist
-			if ParentCLGlobal:
-				stdstmt='match (:CT)--(a:CodeList {AliasName:"'+ParentCLGlobal+'"})--(e:CodeListItem) where e.CodedValue in '+stdterms
-
-			elif ParentCLStudy:
-				pass
-
-			# CT associated with the variable at the standard level or custom CT
-			else:
-				# Find the items from the standard that were chosen by the user
-				if VarSource == "Standard":
-					stdstmt = 'match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+VarName+'"}) \
-						-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) where e.CodedValue in '+stdterms
-				elif VarSource == "Model":
-					stdstmt = 'match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(a:Model)-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+ModelClass+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+VarName+'"}) \
-						-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) where e.CodedValue in '+stdterms
-
-			# Create the study codelist
-			stmt=stmt+', (ID)-[:CodeListRef]->(CL:CodeList {Extensible:"'+CTExt+'", DataType:"'+CTDataType+'",Name:"'+CTName+'",AliasName:"'+CTAlias+'"}) '
-
-			# Connect the study codelist to the items
+	# Put the standard terms into a list
+	for x in request.POST:
+		if x[0:8] == 'stdterm_':
 			if stdterms:
-				stmt=stmt+'with (CL) '+stdstmt+' create (CL)-[:ContainsCodeListItem]->(e) '
+				stdterms=stdterms+', '
+			else:
+				stdterms='['
+			stdterms=stdterms+"'"+x[8:]+"'"
 
-			# Connect the study codelist to extended items
-			for k,v in extterms.iteritems():
-				stmt=stmt+'with (CL) limit 1 create (CL)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+k+'",Decode:"'+v+'"})'
+	if stdterms:
+		stdterms=stdterms+'] '
+		print 'STDTERMS: '+stdterms
+
+	# Put the extended terms into a dictionary
+	for k,v in request.POST.iteritems():
+		if k[0:8] == 'newterm_':
+			newterms[k[8:]]=v
+	print 'NEWTERMS: '
+	print newterms
+
+
+	# If there is any controlled terminology...
+	if stdterms or newterms:
+		CTExt=request.POST['CTExtensible']
+		CTAlias=request.POST['CTAlias']
+		CTDataType=request.POST['CTDataType']
+		CTName=request.POST['CTName']
+
+		# A variable whose standard does not associate CT, but a custom list is based on some standard codelist
+		if ParentCLGlobal:
+			stdstmt='match (:CT)--(a:CodeList {AliasName:"'+ParentCLGlobal+'"})--(e:CodeListItem) where e.CodedValue in '+stdterms
+
+		elif ParentCLStudy:
+			pass
+
+		# CT associated with the variable at the standard level or custom CT
+		else:
+			# Find the items from the standard that were chosen by the user
+			if VarSource == "Standard":
+				stdstmt = 'match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(:ItemDef {Name:"'+VarName+'"}) \
+					-[:CodeListRef]->(:CodeList)-[:ContainsCodeListItem]->(CLI:CodeListItem) where CLI.CodedValue in '+stdterms
+			elif VarSource == "Model":
+				stdstmt = 'match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+ModelClass+'"})-[:ItemRef]->(:ItemDef {Name:"'+VarName+'"}) \
+					-[:CodeListRef]->(:CodeList)-[:ContainsCodeListItem]->(CLI:CodeListItem) where CLI.CodedValue in '+stdterms
+
+		# Create the study codelist
+		stmt=stmt+WithClause(withlist)+'create (ID)-[:CodeListRef]->(CL:CodeList {Extensible:"'+CTExt+'", DataType:"'+CTDataType+'",Name:"'+CTName+'",AliasName:"'+CTAlias+'"}) '
+		withlist.append('CL')
+
+		# Connect the study codelist to the items
+		if stdterms:
+			stmt=stmt+WithClause(withlist)+stdstmt+' create (CL)-[:ContainsCodeListItem]->(CLI) '
+
+		# Connect the study codelist to extended items
+		for k,v in newterms.iteritems():
+			stmt=stmt+WithClause(withlist)+'create (CL)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+k+'",Decode:"'+v+'"})'
 
 	print 'NEWVAR STATEMENT: '+stmt
 	print 'REQUEST.POST: '
@@ -481,34 +1495,57 @@ def NewVar(request):
 	tx.append(stmt)
 	tx.commit()
 
-	if RSType == "MAIN":
-		PMPDict=PrepMainPredList(StandardName,StandardVersion,Study,DSName,ModelClass,VarSource)
-	elif RSType == "MERGE":
-		PMPDict={'StudyVarsRL':QStudyVars(Study,DSName,'d.Name="'+SourceName+'" and d.Description="'+SourceDescription+'" and c.Origin="Predecessor"')}
-	elif RSType == "MODEL":
-		PMPDict=PrepModelLists(StandardName,StandardVersion,Study,DSName,ModelClass)
-	elif RSType == 'OTHER':
-		OtherVars=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef) \
-			where c.Origin<>"Predecessor" and not (c)-[:BasedOn]->(:ItemDef) return c.Name as Name,c.Label as Label')
-		PMPDict={}
-		PMPDict['StudyVarsRL']=OtherVars
+	if 'SaveSubset' in request.POST:
+		PredStdYN=request.POST['PredStdYN']
 
-	print 'STUDYVARSRL: '
-	print PMPDict['StudyVarsRL']
+		# Create VarDic
+		VarDic={'Name':VarName,'Label':VarLabel,'SASType':VarSASType,'OrderNumber':VarOrderNumber,'Mandatory':VarMandatory,'DataType':VarDataType}
 
-	PMPDict['Class']=ModelClass
-	PMPDict['StandardName']=StandardName
-	PMPDict['StandardVersion']=StandardVersion
-	PMPDict['Study']=Study
-	PMPDict['DSName']=DSName
-	PMPDict['RSType']=RSType
-	PMPDict['SourceName']=SourceName
-	PMPDict['SourceDescription']=SourceDescription
-	PMPDict['SourceJoin']=SourceJoin
-	PMPDict['SourceOrder']=SourceOrder
+		return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'VarMD':VarDic,'RSType':RSType,\
+			'PredStdYN':PredStdYN,'CTStdYN':'N','CTExt':'Yes','SourceName':SourceName,'ReturnTo':ReturnTo,'Action':"Add",\
+			'InstructionCT':'Optionally, you may define a list of allowable values for this variable called a Codelist.  Click one of the buttons to get started.',\
+			'DecodeYN':'','StandardName':StandardName,'Class':ModelClass,'SourceDescription':SourceDescription,'SourceJoin':SourceJoin,\
+			'SourceOrder':SourceOrder,'StandardVersion':StandardVersion,'CondExist':True})
 
-	# return render(request,'StandardDeveloper1/test.html')
-	return render(request,'StandardDeveloper1/'+ReturnTo+'.html',PMPDict)
+	elif ReturnTo == 'datasethome':
+		MDDS=QStudyDSMD(Study,DSName)
+
+		# Get Variable list
+		Variables=QStudyDSVarList(Study,DSName)
+
+		return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Variables':Variables,'Class':ModelClass,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+
+	else:
+		if RSType == "MAIN":
+			PMPDict=PrepMainPredList(StandardName,StandardVersion,Study,DSName,ModelClass,VarSource)
+		elif RSType == "MERGE":
+			PMPDict={'StudyVarsRL':QStudyVarsandSources(Study,DSName,'d.Name="'+SourceName+'" and d.Description="'+SourceDescription+'" and c.Origin="Predecessor"')}
+		elif RSType == "MODEL":
+			PMPDict=PrepModelLists(StandardName,StandardVersion,Study,DSName,ModelClass)
+		elif RSType == 'OTHER':
+			OtherVars=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef) \
+				where c.Origin<>"Predecessor" and not (c)-[:BasedOn]->(:ItemDef) return c.Name as Name,c.Label as Label')
+			PMPDict={}
+			PMPDict['StudyVarsRL']=OtherVars
+
+		print 'STUDYVARSRL: '
+		print PMPDict['StudyVarsRL']
+
+		PMPDict['Class']=ModelClass
+		PMPDict['StandardName']=StandardName
+		PMPDict['StandardVersion']=StandardVersion
+		PMPDict['Study']=Study
+		PMPDict['DSName']=DSName
+		PMPDict['RSType']=RSType
+		PMPDict['SourceName']=SourceName
+		PMPDict['SourceDescription']=SourceDescription
+		PMPDict['SourceJoin']=SourceJoin
+		PMPDict['SourceOrder']=SourceOrder
+		PMPDict['ReturnTo']=ReturnTo
+		PMPDict['CondExist']=VLM
+
+		# return render(request,'StandardDeveloper1/test.html')
+		return render(request,'StandardDeveloper1/'+ReturnTo+'.html',PMPDict)
 
 def PrepMainPredList(Standard,Version,Study,DSName,Class,VarSource):
 
@@ -557,7 +1594,7 @@ def PrepModelLists(StandardName,StandardVersion,Study,DSName,ModelClass):
 
 	# Now get study variables
 	StudyRL=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef) \
-		where c.Origin<>"Predecessor" and (c)-[:BasedOn]->(:ItemDef) return c.Name as Name')
+		where (c.Origin<>"Predecessor" or c.Origin IS NULL) and (c)-[:BasedOn]->(:ItemDef) return c.Name as Name')
 
 	StandardVarList=EliminateDups(StandardRL,StudyRL)
 	ModelVarList=[]
@@ -638,17 +1675,14 @@ def SetMDVar(request):
 	SourceOrder=request.POST['SourceOrder']
 	RSType=request.POST['RSType']
 
-	Instruction="Here we define the metadata for the chosen variable"
-
 	for k,v in request.POST.iteritems():
 		if k[0:3] == "add":
 			action="Add"
 			if k == "add_pred" or k == "add_other":
 				# Add a custom predecessor or other custom variable
-				return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'StandardName':StandardName,'DSName':DSName,'Instruction':Instruction,'RSType':RSType,'SourceName':SourceName,\
+				return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'StandardName':StandardName,'DSName':DSName,'RSType':RSType,'SourceName':SourceName,'Class':ModelClass,\
 					'ReturnTo':ReturnTo,'PredStdYN':"N",'Action':'Add','SourceDescription':SourceDescription,'InstructionCT':'Optionally, you may define a list of allowable values for this variable called a Codelist.  Click one of the buttons to get started.',\
-					'CTStdYN':'N','CTExt':'Y','CTTable':'','DecodeYN':'','SourceOrder':SourceOrder,'SourceJoin':SourceJoin,'StandardVersion':StandardVersion
-					})
+					'CTStdYN':'N','CTExt':'Y','CTTable':'','DecodeYN':'','SourceOrder':SourceOrder,'SourceJoin':SourceJoin,'StandardVersion':StandardVersion,'CondExist':False})
 			else:
 				if k[0:6] == 'addstd':
 					# From modelvarlist, when adding a standard variable 
@@ -667,17 +1701,18 @@ def SetMDVar(request):
 
 				# Query the database for the variable metadata 
 				if VarSource == "Standard":
-					VarRL=QStandardVar(StandardName,StandardVersion,DSName,varname)
+					VarDic=QStandardVar(StandardName,StandardVersion,DSName,varname)[1]
 					CTRL=QStandardCT(StandardName,StandardVersion,DSName,varname)
-					MethodRL=QStandardMethod(StandardName,StandardVersion,DSName,varname)
+					MethodList=QMethod('Standard',StandardName,StandardVersion,DSName,varname)
+
 
 				elif VarSource == "Model":
 					ModelInfoRL=graph.cypher.execute('match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(b:Model) return b.name as Name,b.version as Version')
 					ModelName=ModelInfoRL[0][0]
 					ModelVersion=ModelInfoRL[0][1]
-					VarRL=QModelVar(ModelName,ModelVersion,ModelClass,varname)
+					VarDic=QModelVar(ModelName,ModelVersion,ModelClass,varname)[1]
 					CTRL=QModelCT(ModelName,ModelVersion,ModelClass,varname)
-					MethodRL=QModelMethod(ModelName,ModelVersion,ModelClass,varname)
+					MethodList=QMethod('Model',ModelName,ModelVersion,ModelClass,varname)
 
 				if CTRL:
 					if CTRL[0].Decode:
@@ -695,136 +1730,142 @@ def SetMDVar(request):
 					CTExt = 'Yes'
 					DecodeYN=''
 
-				return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'Instruction':Instruction,'VarMD':VarRL,'CTTable':CTRL,'MethodMD':MethodRL,'RSType':RSType,\
+				return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'VarMD':VarDic,'CTTable':CTRL,'MethodMD':MethodList[0],'MethodType':MethodList[1],'RSType':RSType,\
 					'PredStdYN':PredStdYN,'CTStdYN':CTStdYN,'CTExt':CTExt,'SourceName':SourceName,'ReturnTo':ReturnTo,'Action':"Add",'InstructionCT':InstructionCT,'DecodeYN':DecodeYN,'StandardName':StandardName,\
-					'VarSource':VarSource,'Class':ModelClass,'SourceDescription':SourceDescription,'SourceJoin':SourceJoin,'SourceOrder':SourceOrder,'StandardVersion':StandardVersion})
+					'VarSource':VarSource,'Class':ModelClass,'SourceDescription':SourceDescription,'SourceJoin':SourceJoin,'SourceOrder':SourceOrder,'StandardVersion':StandardVersion,'CondExist':False})
 
-		elif k[0:8] == 'varedit_':
-			action="Edit"
-			varname=k[8:]
-			VarMDRL=QStudyVar(Study,DSName,varname)
-			return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'Instruction':Instruction,'VarMD':VarMDRL,'RSType':RSType,'Source':Source,'Action':'Edit'})
 
 def QueryStudyVarMD(request):
 	StandardName=request.POST["StandardName"]
 	StandardVersion=request.POST["StandardVersion"]
 	Study=request.POST["Study"]
 	DSName=request.POST["DSName"]
+	Class=request.POST['Class']
+	Instruction="Here we define the metadata for the chosen variable"
+	StandardPath='(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})'
+	ModelPath='(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+Class+'"})'
+	StudyPath='(:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})'
+	CLPath='-[:CodeListRef]->(:CodeList)'
+	CLItemPath='-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) return d.Name as Name,d.Extensible as Extensible,d.DataType as DataType,\
+					d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode'
+	VarPath='-[:ItemRef]->(:ItemDef {Name:"'+varname+'"})'
+	CLstmt=''
+
 
 	for k,v in request.POST.iteritems():
 		if k[0:8] == 'varedit_':
+			Level='Var'
 			varname=k[8:]
+
 			# Get variable metadata 
-			VarMDRL=QStudyVarMD(Study,DSName,varname)
-			# Get Sources
-			VarSources=QStudyVarSources(Study,DSName,varname)
-			RSType=VarSources[0]['RSType']
-
-
-
-
-			# Determine if the variable has a codelist
-			StudyCLExist=graph.cypher.execute("return exists((:Study {Name:'"+Study+"'})-[:ItemGroupRef]->(:ItemGroupDef {Name:'"+DSName+"'})-[:ItemRef]->(:ItemDef {Name:'"+varname+"'})\
-				-[:CodeListRef]->(:CodeList))")[0][0]
-			CTStdYN='N'
-			DecodeYN=''
-			CTTable=''
-			StudyList=''
-			CTExt='Yes'
-
-			if StudyCLExist:
-				# Get the study codelist
-				StudyStmt='match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(:ItemDef {Name:"'+varname+'"})\
-						-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) return d.Name as Name,d.Extensible as Extensible,d.DataType as DataType,\
-						d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode'
-
-				StudyCLRL=graph.cypher.execute(StudyStmt)
-
-				# Put the study terms into a list to pass to the template so we know which ones to check
-				StudyList=[]
-				for x in StudyCLRL:
-					StudyList.append(x['CodedValue'])
-
-				# Determine if the codelist is associated with the standard variable
-				# Make a record list that combines the standard codelist with the study codelist
-				StdCLExist=graph.cypher.execute('return exists((a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-					-[:CodeListRef]->(d:CodeList))')[0][0]
-
-				if not StdCLExist:
-					ModelCLExist=graph.cypher.execute('return exists((a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-						-[:CodeListRef]->(d:CodeList))')[0][0]
-					if ModelCLExist:
-						CTStdYN='Y'
-						CTTable=graph.cypher.execute('match (a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-							-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) return d.Name as Name,d.Extensible as Extensible,d.DataType as DataType,\
-							d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode union '+StudyStmt)
-				else:
-					CTStdYN='Y'
-					CTTable=graph.cypher.execute('match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-						-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) return d.Name as Name,d.Extensible as Extensible,d.DataType as DataType,\
-						d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode union '+StudyStmt)
-
-				# Now see if a custom codelist was built from another standard codelist, if the codelist is not associated with the standard variable
-				if CTStdYN == 'N':
-					# Get the codelist alias of the study codelist
-					StudyAlias=StudyCLRL[0]['AliasName']
-
-					# If StudyAlias exists, then the study codelist must be based on a global codelist
-					if StudyAlias:
-						CTTable=graph.cypher.execute('match (:CT)--(d:CodeList {AliasName:"'+StudyAlias+'"})--(e:CodeListItem) return d.Name as Name,d.Extensible as Extensible,d.DataType as DataType,\
-							d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode union '+StudyStmt)
-
-					# Otherwise the codelist is custom and not based on a standard codelist
-					else:
-						CTTable=StudyCLRL
-
-				CTExt=CTTable[0]['Extensible']
-
-			return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'Instruction':Instruction,'VarMD':VarMDRL,'CTTable':CTTable,'MethodMD':MethodRL,'RSType':RSType,\
-				'PredStdYN':'','CTStdYN':CTStdYN,'CTExt':CTExt,'SourceName':'','ReturnTo':ReturnTo,'Action':"Edit",'InstructionCT':InstructionCT,'DecodeYN':DecodeYN,'StandardName':StandardName,\
-				'VarSource':'','Class':ModelClass,'SourceDescription':'','SourceJoin':'','SourceOrder':'','StandardVersion':StandardVersion})
-
-
-
-
-def modvar(request):
-	if "SourceDS" in request.POST:
-		SourceDS=request.POST["SourceDS"]
-	else:
-		SourceDS=""
-	VarType=request.POST["VarType"]
-	for k,v in request.POST.iteritems():
-		# Variables defined in the standard
-		if k[0:3] == 'add':
-			if VarType == "Predecessor":
-				varname=k[4:]
-				Form='Predecessors'
-				RSType=request.POST['RSType']
-			elif VarType == "Model":
-				varname=k[7:]
-				Form='Model'
-				RSType='Model'
-
-			varprops=graph.cypher.execute('match(a:Standard {name:"'+parentstandard+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) return c.Name as Name,c.Label as Label,\
-				c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.MaxLength as SASLength,c.Core as Core,c.CodeList as CodeList,r.OrderNumber as OrderNumber,r.Mandatory as Mandatory')
-			return render(request,'StandardDeveloper1/mdvar.html',{'VarProps':varprops,'SourceDS':SourceDS,'Form':Form,'readonly':'Y','VarType':VarType,'Study':study,'DSName':request.POST["DSName"],'RSType':RSType})
-
-		elif k == 'new_var':
-			if VarType == 'Predecessor':
-				Form='Predecessors'
-				RSType=request.POST['RSType']
+			VarMDDic=QStudyVarMD(Study,DSName,varname)[1]
+			# Determine if this variable is defined with VLM
+			VLM = VarMDDic['VLM']
+			# Get Data Sources
+			DataSources=QStudyVarSources(Study,DSName,varname)
+			RSType=DataSources[0]['RSType']
+			# These are needed for predecessors
+			SourceName=DataSources[0]['Name']
+			SourceOrder=DataSources[0]['Order']
+			# Determine if the variable is from the standard, the model, or neither
+			StdVarExist=graph.cypher.execute('return exists('+StandardPath+VarPath+')')[0][0]
+			if StdVarExist:
+				VarSource='Standard'
 			else:
-				VarType='Model'
-				Form='Model'
-				RSType='Other'
-			return render(request,'StandardDeveloper1/mdvar.html',{'SourceDS':SourceDS,'Form':Form,'readonly':'N','VarType':VarType,'Study':study,'DSName':request.POST["DSName"],'RSType':RSType})
+				ModelVarExist=graph.cypher.execute('return exists('+ModelPath+VarPath+')')[0][0]
+				if ModelVarExist:
+					VarSource='Model'
+				else:
+					VarSource=''
 
-		elif k == 'merge':
-			mergeorderRL=graph.cypher.execute('match (a:Study {Name:"'+study+'"})-->(b:ItemGroupDef {Name:"'+request.POST['DSName']+'"})-->(c:RecordSourceContainer)-->(d:RecordSource {Type:"Merge"}) return count(d) as count')
-			mergeorder=mergeorderRL[0][0]+1
-			return render(request,'StandardDeveloper1/merge.html',{'MergeOrder':mergeorder,'DSName':request.POST["DSName"]})
+			StudyMethodRL=QMethod('Study',Study,0,DSName,varname)
+			StudyCLRL=graph.cypher.execute('match '+StudyPath+VarPath+CLItemPath)
+
+			# Begin to generate the Cypher statement
+			if StudyCLRL:
+				CLstmt='match '+StudyPath+VarPath+CLItemPath
+
+		elif k[0:8] == 'vlmedit_':
+			Level='VLM'
+			varname=request.POST['VarName']
+			VLMOID=k[8:]
+			VLMPath='-[:ItemRef]->(:ItemDef {Name:"'+varname+'"})--(:ValueListDef)-[IR:ItemRef {WCRefOID:'+VLMOID+'}]->(:ItemDef)'
+			VarSource=request.POST['VarSource']
+			SourceName=request.POST['SourceName']
+			SourceOrder=request.POST['SourceOrder']
+			RSTYPE=request.POST['RSType']
+			VLMDic=QStudyVarMD(Study,DSName,varname,VLMOID=int(VLMOID))
+			StudyMethodRL=QMethod('Study',Study,0,DSName,varname,VLMOID=int(VLMOID))
+			StudyCLRL=graph.cypher.execute('match '+StudyPath+VLMPath+CLItemPath)
+
+			# Begin to generate the Cypher statement
+			if StudyCLRL:
+				CLstmt='match '+StudyPath+VLMPath+CLItemPath
 
 
+		# STUDY-LEVEL CONTROLLED TERMINOLOGY AND METHOD
+		# Initiate some values and get the study codelist
+		CTStdYN='N'
+		DecodeYN='N'
+		CTTable=''
+		CTExt='Yes'
+		StudyList=[]
+		StudyAlias=''
+
+		print 'STUDYCLRL: '
+		print StudyCLRL 
+
+		if StudyCLRL:
+			# Put the study terms into a list to pass to the template so we know which ones to check
+			for x in StudyCLRL:
+				StudyList.append(x['CodedValue'])
+
+
+		# STANDARD-LEVEL CONTROLLED TERMINOLOGY AND METHOD
+		if VarSource == 'Standard':
+			# Determine if a codelist is assocated with the variable at the standard level
+			StdCLExist=graph.cypher.execute('return exists('+StandardPath+VarPath+CLPath+')')[0][0]
+			if StdCLExist:
+				if CLstmt:
+					CLstmt=CLstmt+' union '
+				CLstmt=CLstmt+'match '+StandardPath+VarPath+CLItemPath
+				CTStdYN='Y'
+
+		elif VarSource == 'Model':
+			ModelCLExist=graph.cypher.execute('return exists('+ModelPath+VarPath+CLPath+')')[0][0]
+			if ModelCLExist:
+				if CLstmt:
+					CLstmt=CLstmt+' union '
+				CLstmt=CLstmt+'match '+ModelPath+VarPath+CLItemPath
+				CTStdYN='Y'
+
+		# Now see if a custom codelist was built from another standard codelist, if the codelist is not associated with the standard variable
+		if CTStdYN == 'N' and StudyCLRL:
+			# Get the codelist alias of the study codelist
+			StudyAlias=StudyCLRL[0]['AliasCL']
+
+			# If StudyAlias exists, then the study codelist must be based on a global codelist
+			# If that is the case, then get that codelist and combine it with the study codelist
+			if StudyAlias:
+				CLstmt=CLstmt+' union match (:CT)--(d:CodeList {AliasName:"'+StudyAlias+'"})--(e:CodeListItem) return d.Name as Name,d.Extensible as Extensible,d.DataType as DataType,\
+					d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode'
+
+		if CLstmt:
+			print 'CLSTMT: '+CLstmt
+			CTTable=graph.cypher.execute(CLstmt)
+			CTExt=CTTable[0]['Extensible']
+			if CTTable[0]['Decode']:
+				DecodeYN='Y'
+
+		if Level == 'Var':
+			return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'Instruction':Instruction,'VarMD':VarMDDic,'CTTable':CTTable,'MethodMD':StudyMethodRL[0],'MethodType':StudyMethodRL[1],'RSType':RSType,\
+				'PredStdYN':'','CTStdYN':CTStdYN,'CTExt':CTExt,'SourceName':SourceName,'Action':"Edit",'DecodeYN':DecodeYN,'StandardName':StandardName,\
+				'VarSource':VarSource,'Class':Class,'StudyList':StudyList,'SourceOrder':SourceOrder,'StandardVersion':StandardVersion,'ParentCodelistGlobal':StudyAlias,'CondExist':VLM,'FromVar':True})
+
+		elif Level == 'VLM':
+			return render(request,'StandardDeveloper1/mdvar.html',{'Study':Study,'DSName':DSName,'Instruction':Instruction,'VLMD':VLMDic,'CTTable':CTTable,'MethodMD':StudyMethodRL[0],'MethodType':StudyMethodRL[1],'RSType':RSType,\
+				'PredStdYN':'','CTStdYN':CTStdYN,'CTExt':CTExt,'SourceName':SourceName,'Action':"Edit",'DecodeYN':DecodeYN,'StandardName':StandardName,\
+				'VarSource':VarSource,'Class':Class,'StudyList':StudyList,'SourceOrder':SourceOrder,'StandardVersion':StandardVersion,'ParentCodelistGlobal':StudyAlias,'CondExist':True,'FromVar':False})
 
 def QStandardDS(standardname,standardversion=''):
 	""" This function returns a single-column Record List of data sets attached to the given standard """
@@ -855,9 +1896,16 @@ def QStandardVars(standardname,standardversion,dsname,filter=''):
 	return stdvars
 
 def QStandardVar(standardname,standardversion,dsname,varname):
-	return graph.cypher.execute('match (a:Standard {Name:"'+standardname+'",Version:"'+standardversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
+	# This function returns a set of properties for a chosen variable in a chosen data set, in the form of a record list and a dictionary
+	RL=graph.cypher.execute('match (a:Standard {Name:"'+standardname+'",Version:"'+standardversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
 		return distinct c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.MaxLength as SASLength, \
 		c.Core as Core,c.CodeList as CodeList,r.OrderNumber as OrderNumber,r.Mandatory as Mandatory')
+	df=pd.DataFrame(RL.records,columns=RL.columns)
+	dic={}
+	for k,v in df.iloc[0].iteritems():
+		dic[k]=v
+
+	return [RL,dic]
 
 
 def QStandardCT(standardname,standardversion,dsname,varname):
@@ -865,25 +1913,57 @@ def QStandardCT(standardname,standardversion,dsname,varname):
 		-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) return d.Name as Name, \
 		d.Extensible as Extensible,d.DataType as DataType,d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode') 
 
-def QStandardMethod(standardname,standardversion,dsname,varname):
-	return graph.cypher.execute('match (a:Standard {Name:"'+standardname+'",Version:"'+standardversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-		-[:MethodRef]->(d:Method) return d.Description as Description')
+def QMethod(Level,LevelName,LevelVersion,IGDName,VarName,VLMOID=''):
+	# This function determine method type and returns a record list whose structure depends on the type of method as well as a method type indicator
+	# Level is either Standard or Model or Study
+	if Level == "Standard":
+		LevelString='match (a:Standard {Name:"'+LevelName+'",Version:"'+LevelVersion+'"})'
+	elif Level == "Model":
+		LevelString='match (a:Model {name:"'+LevelName+'",version:"'+LevelVersion+'"})'
+	elif Level == "Study":
+		LevelString='match (a:Study {Name:"'+LevelName+'"})'
 
+	stmt=LevelString+'-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+IGDName+'"})-[:ItemRef]->'
+
+	if VLMOID:
+		stmt=stmt+'(c0:ItemDef {Name:"'+VarName+'"})-[:ValueListRef]->(:ValueListDef)-[r1:ItemRef {WCRefOID:'+str(VLMOID)+'}]->(c:ItemDef) '
+	else:
+		stmt=stmt+'(c:ItemDef {Name:"'+VarName+'"}) '
+
+	stmt=stmt+'optional match (c)-[:MethodRef]->(d:MethodDef) optional match (d)-[:ContainsConditions]->(b2:MethodCondition)-[e2:IfThen]->(c2:MethodThen) where d.OID=e2.MethodOID optional match (d)-[:ContainsConditions]->\
+		(b1:MethodCondition)-[e1:IfThen]->(c1:CodeListItem) where d.OID=e1.MethodOID return d.Description as Description3,b1.If as If1,b1.Order as Order1,b1.ElseFL as ElseFL1,\
+		b2.If as If2,b2.Order as Order2,b2.ElseFL as ElseFL2,c2.Then as Then2,c1.CodedValue as CodedValue1,d.OID as MethodDefOID,e1.MethodOID as ConditionOID1,\
+		e2.MethodOID as ConditionOID2 order by b1.Order,b2.Order'
+
+	result=graph.cypher.execute(stmt)
+
+	if result[0][3]:
+		return [result,1]
+	elif result[0][6]:
+		return [result,2]
+	elif result[0][0]:
+		return [result,3]
+	else:
+		return [result,'']
 
 
 def QModelVar(modelname,modelversion,classname,varname):
-	return graph.cypher.execute('match (a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
+	# Get all properties of a model variable and return them in a record list and a dictionary
+	RL=graph.cypher.execute('match (a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
 		return distinct c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.MaxLength as SASLength, \
 		c.Core as Core,c.CodeList as CodeList,r.OrderNumber as OrderNumber,r.Mandatory as Mandatory')
+	df=pd.DataFrame(RL.records,columns=RL.columns)
+	dic={}
+	for x,y in df.iloc[0].iteritems():
+		dic[x]=y
+
+	return [RL,dic]
 
 def QModelCT(modelname,modelversion,classname,varname):
 	return graph.cypher.execute('match (a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
 		-[:CodeListRef]->(d:CodeList)-[:ContainsCodeListItem]->(e:CodeListItem) return d.Name as Name, \
 		d.Extensible as Extensible,d.DataType as DataType,d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode') 
 
-def QModelMethod(modelname,modelversion,classname,varname):
-	return graph.cypher.execute('match (a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-		-[:MethodRef]->(d:Method) return d.Description as Description')
 
 
 def QModelVars(modelname,modelversion,classname,filter=''):
@@ -896,23 +1976,42 @@ def QModelVars(modelname,modelversion,classname,filter=''):
 	return ModelVarsRL
 
 
-def QStudyVarMD(studyname,dsname,varname):
-	return graph.cypher.execute('match (a:Study {Name:"'+studyname+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-		return distinct c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.SASLength, \
-		r.Order as OrderNumber,r.Mandatory as Mandatory')
+def QStudyVarMD(studyname,dsname,varname,VLMOID=''):
+	# This function returns ItemDef metadata.  If VLMOID is specified, it will return VLM for the condition specified by this OID.
+	# When no VLMOID is given, then variable-level metadata is returned, as well as a boolean (VLM) that indicates whether or not this variable is defined with VLM.
+	stmt='match (a:Study {Name:"'+studyname+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]-> '
+	if VLMOID:
+		stmt=stmt+'(c0:ItemDef {Name:"'+varname+'"})-[:ValueListRef]->(:ValueListDef)-[r1:ItemRef {WCRefOID:'+str(VLMOID)+'}]->(c:ItemDef) \
+			return distinct c.Name as Name,c.Label as Label,c.DataType as DataType,c.Origin as Origin,c.Length as Length, \
+			r.Order as OrderNumber,r.Mandatory as Mandatory'
+	else:
+		stmt=stmt+'(c:ItemDef {Name:"'+varname+'"}) return distinct c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.SASLength as SASLength, \
+		r.Order as OrderNumber,r.Mandatory as Mandatory,exists((c)--(:ValueListDef)) as VLM'
+
+	RL=graph.cypher.execute(stmt)
+	df=pd.DataFrame(RL.records,columns=RL.columns)
+	dic={}
+	if not df.empty:
+		for x,y in df.iloc[0].iteritems():
+			dic[x]=y
+
+	return [RL,dic]
 
 def QStudyVarSources(studyname,dsname,varname):
 	return graph.cypher.execute('match (a:Study {Name:"'+studyname+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[:ItemRef]->(c:ItemDef {Name:"'+varname+'"}) \
-		-[r:FromSource]->(b:Source) return distinct r.Type as RSType,b.Name as Name,b.Description as Description,b.Join as Join,b.Order as Order')
+		-[r:FromSource]->(d:Source) return distinct r.Type as RSType,d.Name as Name,d.Description as Description,d.Join as Join,d.Order as Order order by d.Order')
 
 
-def QStudyVars(studyname,dsname,filter=''):
+def QStudyVarsandSources(studyname,dsname,filter=''):
 	""" This function returns a record list of all study variables """
 	statement='match (a:Study {Name:"'+studyname+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]->(c:ItemDef)-[:FromSource]->(d:Source)'
 	if filter:
 		statement=statement+'where '+filter
 	statement=statement+'return distinct c.Name as Name,c.Label as Label,r.Order,d.Name as SourceName,d.Description as SourceDescription order by r.Order'
 	return graph.cypher.execute(statement)
+
+def QStudyVars(studyname,dsname):
+	return graph.cypher.execute('match (a:Study {Name:"'+studyname+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+dsname+'"})-[r:ItemRef]->(c:ItemDef) return c.Name as Name')
 
 def QStudyDS(studyname):
 	""" This function returns a two-column Record List of study name, data set names for the given study """
@@ -961,6 +2060,22 @@ def GetAllGlobalCL(self):
 	return JsonResponse(resultlist,safe=False)
 
 def Test1(request):
+	Parms=request.POST['parms']
+	ParmsDict=json.loads(Parms)
+	ParmsList=ParmsDict['parms']
+	print 'ParmsDict: '
+	print ParmsDict
+	print 'ParmsList: '
+	print ParmsList
+	for i,v1 in enumerate(ParmsList):
+		print 'Row '+str(i)
+		for k,v2 in v1.iteritems():
+			if k not in ['parcats','dtypes']:
+				print k+': '+v2
+			else:
+				for k2,v3 in v2.iteritems():
+					print k2+': '+v3
+
 	return render(request,'StandardDeveloper1/test.html')
 
 def Get1GlobalCodeList(request):
@@ -969,16 +2084,17 @@ def Get1GlobalCodeList(request):
 	resultlist=[]
 	for x in result:
 		resultlist.append({'Term':x[0],'Decode':x[1],'Code':x[2],'Name':x[3],'DataType':x[4],'Extensible':x[5]})
-	print resultlist
 	return JsonResponse(resultlist,safe=False)
 
 def GetStudySources(request):
 	Study=request.GET['Study']
-	result=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)-[:FromSource]-(a:Source) return distinct a.Name,a.Description, \
-		a.Join,a.Order order by a.Order')
+	DSName=request.GET['DSName']
+	VarName=request.GET['VarName']
+	result=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(b:ItemGroupDef)--(c:ItemDef)-[:FromSource]-(a:Source) return distinct a.Name,a.Description, \
+		a.Join,a.Order,"'+DSName+'.'+VarName+'" in collect(b.Name+"."+c.Name) order by a.Order')
 	resultlist=[]
 	for x in result:
-		resultlist.append({'Name':x[0],'Description':x[1],'Join':x[2],'Order':x[3]})
+		resultlist.append({'Name':x[0],'Description':x[1],'Join':x[2],'Order':x[3],'VarIn':x[4]})
 	return JsonResponse(resultlist,safe=False)
 
 def GetStandards(request):
@@ -996,6 +2112,111 @@ def GetStudies(request):
 	for x in result:
 		resultlist.append({'Name':x[0]})
 	return JsonResponse(resultlist,safe=False)
+
+def GetPotentialWhereConditions(request):
+	# This function builds a set of potential where clauses based on all parameters defined and dtypes defined for those parameters.
+	# Those that have already been defined in the study for a given variable are identified (_MERGE variable in FINAL dataframe)
+	Study=request.GET['Study']
+	DSName=request.GET['DSName']
+	VarName=request.GET['VarName']
+
+	print 'VARNAME: '+VarName
+	# This first query captures all potential conditions for parameters that have DTYPEs
+	dtparms=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"DTYPE"})--(:ValueListDef)\
+		--(a:ItemDef)--(:WhereClauseDef)--(:RangeCheck)--(b:CheckValue) match (a)--(:CodeList)--(c:CodeListItem) return b.Value as PARAMCD,c.CodedValue as DTYPE')
+	# Turn it into a dataframe
+	dtparmsdf=pd.DataFrame(dtparms.records,columns=dtparms.columns)
+	# For each of these parameters, we need to add the possibility that DTYPE is null too.  
+	# To do that, we'll create a dataframe with each unique parameter from DTPARMSDF, but with DTYPE=NULL.
+	# We'll then append that to DTPARMSDF.
+	dtparmsuniquelist=[]
+	for x in dtparmsdf.PARAMCD.unique():
+		dtparmsuniquelist.append({'PARAMCD':x,'DTYPE':'NULL'})
+
+	dtparmsuniquedf=pd.DataFrame(dtparmsuniquelist)
+	dtparmswithnulldf=dtparmsdf.append(dtparmsuniquedf)
+	print 'DTPARMSWITHNULLDF AFTER APPEND: '
+	print dtparmswithnulldf
+
+	# Now get all parameters
+	allparms=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"PARAMCD"})\
+		--(:CodeList)--(a:CodeListItem) return a.CodedValue as PARAMCD')
+	# Turn it into a dataframe
+	allparmsdf=pd.DataFrame(allparms.records,columns=allparms.columns)
+	# Now merge the two data frames together, giving us an idea of which parameters have DTYPEs (_MERGE=both) and which don't (_MERGE=left_only)
+	apmrgdf=pd.merge(allparmsdf,dtparmswithnulldf,how='left',indicator=True,on='PARAMCD')
+	# Since we'll have to merge again, change the name _MERGE to MERGE1
+	newcols=[]
+	for x in apmrgdf.columns:
+		if x == '_merge':
+			newcols.append('merge1')
+		else:
+			newcols.append(x)
+
+	apmrgdf.columns=newcols
+
+	print "APMRGDF: "
+	print apmrgdf
+
+	# Now see which PARAMCD/DTYPE combintations exist in where clauses (without regard to the operator) for this variable 
+	WC = graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"'+VarName+'"})--(:ValueListDef)\
+		--(:ItemDef)--(w:WhereClauseDef) match (w)--(rp:RangeCheck)--(:ItemDef {Name:"PARAMCD"}) match (rp)--(cp:CheckValue) optional match (w)\
+		--(rd:RangeCheck)--(:ItemDef {Name:"DTYPE"}) with w,rd,cp optional match (rd)--(cd:CheckValue) return w.OID as wcOID,cp.Value as PARAMCD, cd.Value as DTYPE')
+
+	WCdf = pd.DataFrame(WC.records,columns=WC.columns)
+
+	print "WCDF: "
+	print WCdf
+	# Now merge with the above data frame.  Matches (_merge=both) represent conditions that already exist for this variable
+	final=pd.merge(apmrgdf,WCdf,how='left',indicator=True,on=['PARAMCD','DTYPE'])
+
+	print "FINAL: "
+	print final
+
+	return JsonResponse(final.to_json(orient='records'),safe=False)
+
+def GetStudyVarConditions(request):
+	# This function retrieves all where clauses that have been defined by the study for a given variable
+	Study=request.GET['Study']
+	DSName=request.GET['DSName']
+	VarName=request.GET['VarName']
+
+	results=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"'+VarName+'"})--(:ValueListDef)--(:ItemDef)\
+		-(wc:WhereClauseDef)--(rc:RangeCheck) with wc,rc match (rc)-[:CheckRef]->(cv:CheckValue) with wc,rc,collect(cv.Value) as values \
+		match (rc)-[:Range2Item]->(ID:ItemDef) with wc,rc,values,ID  return wc.OID as wcoid,collect(ID.Name+"|"+rc.Operator) as coll1,\
+		collect(values) as coll2')
+
+	resultlist=[]
+	for x in results:
+		dic={}
+		dic['WCOID']=x['wcoid']
+		string=''
+		for y1,y2 in enumerate(x['coll1']):
+			if y1 != 0:
+				string=string+' AND '
+			cond1=y2.split('|')
+			string=string+cond1[0]+' '+cond1[1]
+			for z1,z2 in enumerate(x['coll2'][y1]):
+				if z1 != 0:
+					string=string+', '
+				string=string+z2
+		dic['Condition']=string 
+		resultlist.append(dic)
+
+	return JsonResponse(resultlist,safe=False)
+
+
+def GetParmList(request):
+	Study=request.GET['Study']
+	DSName=request.GET['DSName']
+
+	allparms=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(:ItemDef {Name:"PARAMCD"})\
+		--(:CodeList)--(a:CodeListItem) return a.CodedValue as PARAMCD')
+	allparmsdf=pd.DataFrame(allparms.records,columns=allparms.columns)
+	return JsonResponse(allparmsdf.to_json(orient='records'),safe=False)
+
+
+
 
 
 

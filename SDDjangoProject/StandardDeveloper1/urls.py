@@ -22,10 +22,14 @@ urlpatterns = [
     url('GetStandards',views.GetStandards),
     url('GetStudies',views.GetStudies),
     url('EditStudyDS',views.ESDS),
+    url('QSVMD',views.QueryStudyVarMD),
+    url('ESV',views.EditStudyVar),
+    url('AddParameters',views.AddParms),
+    url('GetPotentialWhereConditions',views.GetPotentialWhereConditions),
+    url('GetStudyVarConditions',views.GetStudyVarConditions),
+    url('GetParmList',views.GetParmList),
 
     url('ModifyaDataset',views.modds),
-    url('ModifyaVariable',views.modvar),
-    url('ModifyVars',views.modvar),
     url('Predecessors',views.predlist),
     url('Merge',views.merge),
     url('Model',views.model)

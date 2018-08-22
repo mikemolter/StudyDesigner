@@ -16,6 +16,10 @@
 			<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 			<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
 			<input type="hidden" name="DSName" value="{{DSName}}"/>
+			<input type="hidden" name="Class" value="{{Class}}"/>
+			<input type="hidden" name="RSType"/>
+			<input type="hidden" name="SourceName"/>
+			<input type="hidden" name="SourceDescription"/>
 			<p>Data set Name: {{DSName}}</p>
 			<p>Data set Label: {{MDDS.0.Label}}</p>
 			<p>Data set Class: {{Class}}</p>
@@ -31,31 +35,6 @@
 
 	<hr/>
 
-	<h1>Change global definition of a source</h1><br/><br/>
-	<table border="1 solid" class="w3-table-all">
-		<tr>
-			<th>Source Name</th>
-			<th>Description</th>
-			<th>Join Condition</th>
-			<th class="w3-center">Edit</th>
-			<th class="w3-center">Remove</th>
-		</tr>
-		{% for x in Sources %}
-			<tr>
-				<td>{{x.Name}}</td>
-				<td>{{x.Description}}</td>
-				<td>{{x.Join}}</td>
-				<td class='w3-center'>
-					<input type="submit" name="srcedit_{{ x.Order }}" value="Edit" class="w3-button w3-dark-grey w3-round-large"/>
-				</td>
-				<td class='w3-center'>
-					<input type="submit" name="srcrmv_{{ x.Order }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/>
-				</td>
-			</tr>
-		{% endfor %}
-	</table>
-
-	<hr/>
 
 	<h1>Add or Edit variable</h1><br/><br/>
 	<div class="w3-cell-row">
@@ -72,7 +51,7 @@
 						<td>{{x.Name}}</td>
 						<td>{{x.Label}}</td>
 						<td class='w3-center'>
-							<input type="submit" name="varedit_{{ x.Name }}" value="Edit" class="w3-button w3-dark-grey w3-round-large" formaction="SetMDVar"/>
+							<input type="submit" name="varedit_{{ x.Name }}" value="Edit" class="w3-button w3-dark-grey w3-round-large" formaction="QSVMD"/>
 						</td>
 						<td class='w3-center'>
 							<input type="submit" name="varrmv_{{ x.Name }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/>
@@ -84,8 +63,8 @@
 
 		<div class="w3-cell w3-center" style="width:25%">
 			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Add Predecessor"/><br/><br/>
-			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Add Model variable"/><br/><br/>
-			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Add Custom variable"/><br/><br/>
+			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Add Model variable" name="add_model" formaction="NewModel" /><br/><br/>
+			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" name="RSType_Button" value="Add Custom variable" formaction="NewSource" /><br/><br/>
 			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Finish"/><br/><br/>
 		</div>
 	</div>
