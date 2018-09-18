@@ -38,15 +38,27 @@
 				}
 
 				// if dtypes were included, then pull them out of the mini table, create a javascript object from them, and add to THISPARMS
-				var table=document.getElementById('tblDType');
-				var rowcount=table.rows.length;
-				if (rowcount > 1){
+				var tabled=document.getElementById('tblDType');
+				var rowcountd=tabled.rows.length;
+				if (rowcountd > 1){
 					var dtypes={} ;
-					for (x=1; x<rowcount; x++) {
-							dtypes[table.rows[x].cells[0].innerHTML]=table.rows[x].cells[1].innerHTML ;
+					for (x=1; x<rowcountd; x++) {
+							dtypes[tabled.rows[x].cells[0].innerHTML]=tabled.rows[x].cells[1].innerHTML ;
 						}
 					}
 					thisparm['dtypes']=dtypes; 
+
+				// Pull sources out of the mini table and each to a list
+				var tables=document.getElementById('tblSource') ;
+				var rowcounts=tables.rows.length ;
+				if (rowcounts > 1){
+					var sources=[];
+					for (x=1; x<rowcounts; x++) {
+						sources.push(tables.rows[x].cells[0].innerHTML) ;
+					}
+					thisparm['sources']=sources ;
+				}
+
 
 
 				// Add to the JSON string in the hidden parameter
@@ -82,9 +94,13 @@
 				for (x=1; x<=pcatnbr; x++){
 					$('#pcat'+x).val(null) ;
 				}
-				while (rowcount > 1) {
-					table.deleteRow(-1);
-					rowcount-- ;
+				while (rowcountd > 1) {
+					tabled.deleteRow(-1);
+					rowcountd-- ;
+				}
+				while (rowcounts > 1) {
+					tables.deleteRow(-1);
+					rowcounts-- ;
 				}
 			})
 
@@ -99,6 +115,15 @@
 					$('#dtd').remove();
 					$('#dtypedefault').prop('selected',true);
 				}
+			})
+
+			$('#S12').on('click','#addsource',function(){
+				var functioncall="RemoveRow('tblSource',this)";
+				var rowstring='<tr><td>'+$('#sourcelist').val()+'.'+$('#srcds').val()+'.'+$('#srctest').val()+'</td><td><input type="button" onclick="'+functioncall+'" class="w3-button w3-dark-grey w3-round-large w3-center" value="Remove"></td></tr>'; 
+				$(rowstring).appendTo('#tblSource');
+				$('#sourcedefault').prop('selected',true) ;
+				$('#srcds').val(null);
+				$('#srctest').val(null);
 			})
 		})
 	</script>
@@ -153,7 +178,7 @@
 			}
 		}
 		$('#S12').append('<p><select id="dtypelist" onchange="CustomDType()"><option id="dtypedefault" disabled selected>Select a DTYPE value</option><option>Custom</option></select></p>')
-		$('#S12').append('<p><input type="button" class="w3-button w3-dark-grey w3-round-large" value="Add DTYPE" id="adddtype"/></p><table border="1" style="background-color:white" id="tblDType"><tr><th>DTYPE</th><th>Description</th><th>Remove</th></tr></table></p><p><input type="button" value="Complete Parameter" id="parmdone" class="w3-button w3-dark-grey w3-round-large"></p><p><input type="submit" value="Complete Parameter Set" id="parmsetdone" class="w3-button w3-dark-grey w3-round-large"></p>')
+		$('#S12').append('<p><input type="button" class="w3-button w3-dark-grey w3-round-large" value="Add DTYPE" id="adddtype"/></p><table border="1" style="background-color:white" id="tblDType"><tr><th>DTYPE</th><th>Description</th><th>Remove</th></tr></table></p><p>Define parameter sources</p><p><select id="sourcelist"><option id="sourcedefault" disabled selected>SDTM or ADAM</option><option>SDTM</option><option>ADaM</option></select></p><p><input id="srcds" placeholder="Data Set Name"</input></p><p><input id="srctest" placeholder="Test or Parameter Name"/></p><p><input type="button" value="Add Source" id="addsource" class="w3-button w3-dark-grey w3-round-large"/></p><table border="1" style="background-color:white" id="tblSource"><tr><th>Source</th><th>Remove</th></tr></table><p><input type="button" value="Complete Parameter" id="parmdone" class="w3-button w3-dark-grey w3-round-large"></p><p><input type="submit" value="Complete Parameter Set" id="parmsetdone" class="w3-button w3-dark-grey w3-round-large"></p>')
 
 		$('#S11').append('<p><h1>Parameter List</h1></p>')
 
@@ -312,8 +337,9 @@
 					$('#parm').val(parmslist[x]['param']) ;
 				}
 
+				// Remove the original object
 				parmslist.splice(x,1) ;
-				// Put the modified object back into the hidden element
+				// Put the modified list back into the hidden element, without the original object
 				$('#parms').val(JSON.stringify({"parms":parmslist})) ;
 
 			}

@@ -131,6 +131,8 @@
 		<p/>
 		{% if StudyDSProps %}
 			<input type="submit" value="OK" class="w3-button w3-dark-grey w3-round-medium" formaction='EditStudyDS'/>
+		{% elif Class == 'BASIC DATA STRUCTURE' %}
+			<input type="submit" value="Define Parameters" class="w3-button w3-dark-grey w3-round-medium"/>
 		{% else %}
 			<input type="submit" value="Define Main Source" class="w3-button w3-dark-grey w3-round-medium"/>
 		{% endif %}

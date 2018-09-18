@@ -65,6 +65,11 @@
 			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Add Predecessor"/><br/><br/>
 			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Add Model variable" name="add_model" formaction="NewModel" /><br/><br/>
 			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" name="RSType_Button" value="Add Custom variable" formaction="NewSource" /><br/><br/>
+
+			{% if Class == "BASIC DATA STRUCTURE" %}
+			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Edit Parameters" formaction="QueryParameters" /><br/><br/>
+			{% endif %}
+
 			<input type="submit" class="w3-button w3-dark-grey w3-round-medium" value="Finish"/><br/><br/>
 		</div>
 	</div>

@@ -6,13 +6,15 @@
 	<script>
 		$(document).ready(function(){
 			// When adding the variable for the first time, ask if VLM will be necessary
-			{% if Action == "Add" and not CondExist %}
+			{% if Action == "Add" and not CondExist and DSName != "ADSL" %}
 				$('#R11').append("<p>Is metadata for this variable defined in subsets?</p><input type='radio' name='vlm' value='Y'/> Yes<br><input type='radio' name='vlm' value='N'/> No<br><br><input type='Button' id='vlmbutton' value='Submit' class='w3-button w3-dark-grey w3-round-large'>")
 			// Otherwise if editing a current variable defined by VLM, then display the conditions
 			{% elif CondExist and FromVar %}
 				LoadVLMConditions() ;
 
 			{% elif CondExist %}
+				$('#Cond').val("{{ChosenCondition}}");
+				$('#WCOID').val("{{VLMD.VLMOID}}");
 				LoadMD('VLM') ;
 			// Otherwise if editing variable level metadata 
 			{% else %}
@@ -110,7 +112,6 @@
 				}
 
 				if ($('#VarDataType2').val()){
-					alert ('VARDATATYPE2: '+$('#VarDataType2').val());
 					$('#VarDataType').val($('#VarDataType2').val());
 				}
 
@@ -151,7 +152,7 @@
 		<input type="hidden" name="Study"  value="{{Study}}"/>
 		<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 		<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
-		<input type="hidden" name="ReturnTo" value="{{ReturnTo}}"/>
+		<input type="hidden" name="ReturnTo" value="{{ReturnTo}}" id="ReturnTo"/>
 		<input type="hidden" name="VarSource" value="{{VarSource}}"/>
 		<input type="hidden" name="Class" value="{{Class}}"/>
 		<input type="hidden" name="CTStdYN" value="{{CTStdYN}}"/>
@@ -168,6 +169,9 @@
 		<input type="hidden" name="VarOrderNumber" id='VarOrderNumber' value="{{VarMD.OrderNumber}}"/>
 		<input type="hidden" name="VarDataType" id='VarDataType' value="{{VarMD.DataType}}"/>
 		<input type="hidden" name="VarMandatory" id='VarMandatory' value="{{VarMD.Mandatory}}"/>
+		<input type="hidden" name="VarOrigin" id='VarOrigin' value="{{VarMD.Origin}}"/>
+		<input type="hidden" name="VarSASLength" id='VarSASLength' value="{{VarMD.SASLength}}"/>
+		<input type="hidden" name="VarNameSub" value="{{VarNameSub}}"/>
 	</div>
 
 	<div class="w3-cell-row" id="R1">
@@ -178,25 +182,26 @@
 
 	<div id="M1" class="w3-container w3-left w3-large"></div>
 
+	<div id="M2" class="w3-container w3-left w3-large"></div>
+
 	<div id="hidesrc"></div>
 
-	<p id='I1'></p>
+	
 
-	<div id='C1' class='w3-cell-row'>
+	<div id='C1' class='w3-cell-row' style='width:100%'>
+		<p id='I1'></p>
 		<div id='C11' class='w3-cell' style='width:75%'></div>
 		<div id='C12' class='w3-cell' style='width:25%'></div>
 	</div>
 
-	<p id='I2'></p>
-
 	<div id='C2' class='w3-cell-row'>
+		<p id='I2'></p>
 		<div id='C21' class='w3-cell' style='width:75%'></div>
 		<div id='C22' class='w3-cell' style='width:25%'></div>
 	</div>
 
-	<p id="I3"></p>
-
 	<div id='C3' class='w3-cell-row'>
+		<p id="I3"></p>
 		<div id='C31' class='w3-cell' style='width:75%'></div>
 		<div id='C32' class='w3-cell' style='width:25%'></div>
 	</div>
@@ -228,18 +233,25 @@
 		{% endif %}
 
 
+		var DTOptionString;
 		{% if RSType == "OTHER" or PredStdYN == "N" and Action == "Add" %}
-			$('#R11').append('<label>Variable Label</label><br><input type="text" maxlength="40" size="40" id="VarLabel2" value="{{VarMD.Label}}"/><br/><br/><label>SAS Type</label><br><select id="VarSASType2"><option selected disabled/><option value="Char">Char</option><option value="Num">Num</option></select><br><br/>');
+			$('#R11').append('<label>Variable Label</label><br><input type="text" maxlength="40" size="40" id="VarLabel2" name="VarLabel2" value="{{VarMD.Label}}"/><br/><br/><label>SAS Type</label><br><select id="VarSASType2" onchange="ChangeTypes()" name="VarSASType2"><option selected disabled/><option value="Char">Char</option><option value="Num">Num</option></select><br><br/>');
 			var SASType = "{{VarMD.SASType}}";
 			if (SASType){
 				$('option[value='+SASType+']').prop('selected',true);
+				if (SASType == 'Char'){
+					DTOptionString='<option value= "text" id="ot">text</option><option value="date" id="od">date</option><option value="datetime" id="odt">datetime</option>';
+				}
 			}
 
 		{% else %}
 			$('#R11').append('<p>Variable Label: {{VarMD.Label}}</p><p>Variable SAS Type: {{VarMD.SASType}}</p>');
+			{% if VarMD.SASType == "Char" %}
+				DTOptionString='<option value= "text">text</option><option value="date">date</option><option value="datetime">datetime</option>';
+			{% endif %}
 		{% endif %}
 
-		$('#R11').append('<label>Order in data set</label><br><input type="number" id="VarOrderNumber2" min="1" max="500" value="{{VarMD.OrderNumber}}"/><br><br/><label>Data Type</label><br><select id="VarDataType2"><option selected disabled></option><option value= "text">text</option><option value="integer">integer</option><option value="float">float</option><option value="date">date</option><option value="datetime">datetime</option></select><br><br><hr>');
+		$('#R11').append('<label>Order in data set</label><br><input type="number" id="VarOrderNumber2" name="VarOrderNumber2" min="1" max="500" value="{{VarMD.OrderNumber}}"/><br><br/><label>Data Type</label><br><select id="VarDataType2" name="VarDataType2"><option selected disabled id="nochoice"></option><option value="integer">integer</option><option value="float">float</option>'+DTOptionString+'</select><br><br><hr>');
 
 		var DataType = "{{VarMD.DataType}}";
 		if (DataType) {
@@ -252,24 +264,28 @@
 
 		$('#wc1list').prop('disabled',true);
 
-
+		// Build a table that shows all currently existing conditions defined for this variable
 		{% if Action == 'Edit' %}
 
 			$('#R12').append('<p>Conditions already defined for {{VarMD.Name}}</p><table border="1" style="background-color:white" id="tblR12"><tr><th>Condition</th><th>Edit Metadata</th><th>Remove Metadata</th></tr>')
 
-			$.getJSON('http://localhost:8000/StandardDeveloper1/GetPotentialWhereConditions',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':"{{VarMD.Name}}"},function(data){
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyVarConditions',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':"{{VarMD.Name}}"},function(data){
+				var hideconds={}
 				$.each(data,function(data){
-					$('#tblR12').append('<tr><td>'+this['Condition'])+'</td><td><input type="submit" class="w3-button w3-dark-grey w3-round-large" formaction="QSVMD" name="vlmedit_'+str(this['WCOID'])+'" value="Edit"/></td><td><input type="submit" class="w3-button w3-dark-grey w3-round-large" name="vlmrmv_'+str(this['WCOID'])+'" value="Remove"/></td></tr>'
+					$('#tblR12').append('<tr><td>'+this['Condition']+'</td><td class="w3-center"><input type="submit" class="w3-button w3-dark-grey w3-round-large " formaction="QSVMD" name="vlmedit_'+this['WCOID']+'" value="Edit"></input></td><td class="w3-center"><input type="submit" class="w3-button w3-dark-grey w3-round-large" name="vlmrmv_'+this['WCOID']+'" value="Remove"/></td></tr>')
+					hideconds['wc'+this['WCOID']]=this['Condition']
 				})
+				var hcstring=JSON.stringify(hideconds);
+				$('#hidemisc').append("<input type='hidden' name='AllConds' value='"+hcstring+"'/>");
 			})
 
 		{% else %}
 
 			$('#R12').append('<p>Conditions already defined for {{VarMD.Name}}</p><table border="1" style="background-color:white" id="tblR12"><tr><th>Condition</th></tr>')
 
-			$.getJSON('http://localhost:8000/StandardDeveloper1/GetPotentialWhereConditions',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':"{{VarMD.Name}}"},function(data){
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyVarConditions',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':"{{VarMD.Name}}"},function(data){
 				$.each(data,function(data){
-					$('#tblR12').append('<tr><td>'+this['Condition'])+'</td></tr>'
+					$('#tblR12').append('<tr><td>'+this['Condition']+'</td></tr>')
 				})
 			})
 		{% endif %}
@@ -304,20 +320,33 @@
 		$('#R11').append('<p><input type="button" id="CompleteCondition" value="Ok" class="w3-button w3-dark-grey w3-round-large"/></p>')
 	}
 
+	function ChangeTypes(){
+		var SASType=$('#VarSASType2 :selected').text()
+		if (SASType == 'Char') {
+			$('#VarDataType2').append('<option value= "text" id="ot">text</option><option value="date" id="od">date</option><option value="datetime" id="odt">datetime</option>');
+		}
+		else {
+			$('#ot').remove();
+			$('#od').remove();
+			$('#odt').remove();
+		}
+	}
+
 	function LoadMD(Level){
 		var VarName=$('#VarName').val() ;
 		$('#R11').empty();
+		$('#R12').empty();
 
 		if (Level == 'Var') {
 
-			{% if Action == "Add" and RSType == "OTHER" or Action == "Add" and PredStdYN == "N" %}
-				$('#R11').append('<label>Variable Name</label><br><input type="text" maxlength="8" size="8" name="VarName"/><br><br/>');
+			{% if Action == "Add" and RSType == "OTHER" or Action == "Add" and PredStdYN == "N" or VarNameSub %}
+				$('#R11').append('<label>Variable Name</label><br><input type="text" maxlength="8" size="8" name="VarName" value="{{VarMD.Name}}"/><br><br/>');
 			{% else %}
 				$('#R11').append('<p>Variable Name: {{VarMD.Name}}</p><input type="hidden" name="VarName" value="{{VarMD.Name}}"/>');
 			{% endif %}
 
 
-			{% if RSType == "OTHER" or PredStdYN == "N" and Action == "Add" %}
+			{% if RSType == "OTHER" or PredStdYN == "N" and Action == "Add" or VarLabelSub %}
 				$('#R11').append('<label>Variable Label</label><br><input type="text" maxlength="40" size="40" name="VarLabel" value="{{VarMD.Label}}"/><input type="hidden" name="BeforeVarLabel" value="{{VarMD.Label}}"/><br><label>SAS Type</label><br><select name="VarSASType"><option value="Char">Char</option><option value="Num">Num</option></select><br><br/><input type="hidden" name="BeforeVarSASType" value="{{VarMD.VarSASType}}"/>');
 				var SASType = "{{VarMD.SASType}}";
 				if (SASType){
@@ -424,18 +453,48 @@
 		{% endif %}
 
 
-
 		$('#M1').append('<p/>') ;
 
-		var SBString = "<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Save Variable' ";
-		
-		{% if Action == 'Edit' %}
-			SBString += 'formaction="ESV" ' ;
-		{% endif %}
+		// Here we add a section for defining methods for "derived" records for variables otherwise not defined by VLM
+		// Derived here is defined by either DTYPE records or parameters based on more than one source parameters/tests
+		// Then see what has already been defined
+		if (Level == 'Var') {
+			// Start by querying the database for all DTYPE records
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetDerivedRows',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':VarName},function(data){
 
-		SBString += "/>&nbsp;" ;
+				$.each(JSON.parse(data),function(){
+					var drvname = this['paramcd'] ;
+					if (this['dtype']) {
+						drvname += '_'+this['dtype']
+					}
+
+					$('#M2').append('<p>Select a way to populate this variable for the following records: PARAMCD='+this['paramcd']+', DTYPE='+this['dtype']+'</p><input type="radio" name="DT_'+drvname+'" value="null">Null</input><br/><input type="radio" name="DT_'+drvname+'" value="retain">Retain value of parent record</input><br/><input type="radio" name="DT_'+drvname+'" value="other">Other (specify)</input>&nbsp;<textarea name="DTO_'+drvname+'" rows="3" cols="25"></textarea>')
+
+					// If a relationship has already been created, check the right radio button and if applicable, fill in the textarea box
+					if (this['_merge'] == 'both') {
+						$('input[name=DT_'+drvname+'][value='+this['type']+']').prop('checked',true);
+						if (this['Type'] == 'other') {
+							$('textarea[name=DTO_'+drvname+']').val(this['DTYPEMethodDescription']);
+						}
+					}
+				})
+			})
+		}
+
+
+		// Create the submit buttons
+		// If the user got here by choosing to edit an already-defined condition, then clicking submit should take them to the Edit view
+		// On the other hand, if the user is defining a new condition, then they should go to NewVar as if defining a new variable
+
+		var EditFormString ;
+		if ($('#WCOID').val()){
+			EditFormString="formaction='ESV' " ;
+		}
+		
+		var SBString = "<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Save Variable' "+EditFormString+"/>&nbsp; ";
+		
 		if (Level == 'VLM') {
-			SBString += "<input type='submit' class='w3-button w3-dark-grey w3-round-large' name='SaveSubset' value='Save Subset'/>&nbsp;" ;
+			SBString += "<input type='submit' class='w3-button w3-dark-grey w3-round-large' name='SaveSubset' value='Save Subset' "+EditFormString+"/>&nbsp; " ;
 		}
 
 		SBString += "<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Cancel'/>" ;
@@ -445,9 +504,10 @@
 
 	function methodchoice(m23){
 		$(document).ready(function(){
+
 			// Get currently existing sources
 			$('#C11').html('<table border="1" style="background-color:white" id="tblSRC"><tr id="tr"><th>Dataset</th><th>Description</th><th>Join</th><th>Keep Source</th></tr>');
-			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudySources',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':"{{VarMD.Name}}"},function(data){
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudySources',{'Study':"{{Study}}",'DSName':"{{DSName}}",'VarName':"{{VarMD.Name}}",'VLMOID':"{{VLMD.VLMOID}}"},function(data){
 				$.each(data,function(){
 					if (this['VarIn'] == true){
 						var chkstring='checked';
@@ -599,8 +659,8 @@
 		freebox.rows='20';
 		freebox.id='free';
 		freebox.name='free';
-		{% if MethodMD.Description3 %}
-			freebox.value="{{MethodMD.Description3}}";
+		{% if MethodType == 3 %}
+			freebox.value="{{MethodMD.0.Description3}}";
 			r2.checked=true;
 			freebox.disabled=false;
 		{% else %}
@@ -684,6 +744,7 @@
 	function BuildCT(tagnbr) {
 		document.getElementById('I'+tagnbr).innerHTML = "{{InstructionCT}}";  // Insert CT instruction
 		var C = document.getElementById('C'+tagnbr); // Get the row container 
+		var Cx1 = document.getElementById('C'+tagnbr+'1') ;
 
 		// If defining new CT, add a row of buttons to help get started
 
@@ -729,8 +790,8 @@
 				{% endif %}
 			{% endif %}
 
-			document.getElementById('fid').insertBefore(buttonrow,C); // Insert the button row into the beginning of the container
-			document.getElementById('fid').insertBefore(document.createElement('br'),C);
+			C.insertBefore(buttonrow,Cx1); // Insert the button row into the beginning of the container
+			C.insertBefore(document.createElement('br'),Cx1);
 
 		{% if CTTable %} // if CT is already associated with the variable, display it in a table
 			BuildCTTable("{{DecodeYN}}",tagnbr,"{{CTTable.Name}}","{{CTTable.DataType}}","{{CTTable.AliasCL}}","{{CTExt}}");

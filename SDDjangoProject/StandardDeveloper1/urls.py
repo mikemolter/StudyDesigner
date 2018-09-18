@@ -28,6 +28,9 @@ urlpatterns = [
     url('GetPotentialWhereConditions',views.GetPotentialWhereConditions),
     url('GetStudyVarConditions',views.GetStudyVarConditions),
     url('GetParmList',views.GetParmList),
+    url('GetDerivedRows',views.GetDerivedRows),
+    url('EditParameters',views.EditParameters),
+    url('QueryParameters',views.QueryParameters),
 
     url('ModifyaDataset',views.modds),
     url('Predecessors',views.predlist),
