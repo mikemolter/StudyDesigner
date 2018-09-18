@@ -5,7 +5,7 @@
 
 # Enter neo4j information here
 neousername="neo4j"
-neopassword="letsgowings"
+neopassword=""
 neopath="localhost:7474/db/data/"
 
 sdtmCTVersion='2018-06-29'
@@ -25,8 +25,8 @@ wbs = openpyxl.load_workbook(wbsdtm)
 cts = wbs.get_sheet_by_name(sheetsdtm)
 wba = openpyxl.load_workbook(wbadam)
 cta = wba.get_sheet_by_name(sheetadam)
-#ct  = [{'wb':cts,'version':sdtmCTVersion,'model':"SDTM"},{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
-ct  = [{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
+ct  = [{'wb':cts,'version':sdtmCTVersion,'model':"SDTM"},{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
+#ct  = [{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
 
 # graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
 graph=Graph('http://'+neousername+':'+neopassword+'@'+neopath)
