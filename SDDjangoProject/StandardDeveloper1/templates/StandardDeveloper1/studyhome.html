@@ -10,8 +10,8 @@
 	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
 
 	<div id="buttons" class="w3-bars w3-center">
-		<input type="submit" value="Generate Define.xml (2.0)" class="w3-button w3-dark-grey w3-round-large"/>
-		<input type="submit" value="Generate Excel Programming Spec" class="w3-button w3-dark-grey w3-round-large"/>
+		<input type="submit" value="Generate Define.xml (2.0)" class="w3-button w3-dark-grey w3-round-large" name="make_define"/>
+		<input type="submit" value="Generate Excel Programming Spec" class="w3-button w3-dark-grey w3-round-large" formaction="QueryStudy" name="make_spec"/>
 	</div>
 
 	<div class="w3-cell-row">
@@ -67,7 +67,7 @@
 					</tr>
 				{% endfor %}
 			</table>
-			<p/>
+			<p>{{Message}}</p>
 		</div>
 	</div>
 </form>

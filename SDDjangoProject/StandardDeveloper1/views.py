@@ -213,10 +213,9 @@ def AddParms(request):
 				stmt=stmt+WithClause(withlist)+'create (igd)-[:ItemRef {Mandatory:"Yes",SourceRef:"'+DSName+'",MethodOID:'+str(MethodOID)+'}]->(id:ItemDef {Name:"'+xk.upper()+'",\
 					Label:"Parameter Category '+WhichCat+'",Origin:"'+x['Origin']+'",SASType:"'+x['SASType']+'",DataType:"'+x['DataType']+'",SASLength:"'+x['SASLength']+'"})-\
 					[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter Category '+WhichCat+'"}) '+WithClause(withlist)+', id, cl \
-					create (id)-[:MethodRef]->(mt:MethodDef {OID:'+str(MethodOID)+',Description:"See Parameter Page"}) '
+					create (id)-[:MethodRef]->(:MethodDef {OID:'+str(MethodOID)+',Description:"See Parameter Page"}) '
 
 				withlist.append('cl')
-				withlist.append('mt')
 				withlist.append('id')
 
 				# Create the BASEDON relationship
@@ -270,12 +269,11 @@ def AddParms(request):
 
 				# 		stmt=stmt+'})<-[:ContainsConditions]-(mt) '
 
-				withlist.remove('mt')
 				withlist.remove('cl')
 
 		else:
 			MethodOID=MethodOID+1
-			stmt=stmt+WithClause(withlist)+'create (igd)-[:ItemRef {Mandatory:"Yes",SourceRef:"'+DSName+'"}]->(id:ItemDef {Name:"'+x['Name']+'",\
+			stmt=stmt+WithClause(withlist)+'create (igd)-[:ItemRef {Mandatory:"Yes",SourceRef:"'+DSName+'",MethodOID:'+str(MethodOID)+'}]->(id:ItemDef {Name:"'+x['Name']+'",\
 				Label:"'+x['Label']+'",Origin:"'+x['Origin']+'",SASType:"'+x['SASType']+'",DataType:"'+x['DataType']+'",SASLength:"'+x['SASLength']+'"}) '
 
 			if x['Name'] == 'DTYPE' and len(ParmsList) == 1:
@@ -289,6 +287,9 @@ def AddParms(request):
 				for x1,y1 in ParmsList[0]['dtypes'].iteritems():
 					stmt=stmt+WithClause(withlist)+'create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+x1+'",Decode:"'+y1+'"}) '
 				withlist.remove('cl')
+
+				# Create the method 
+				stmt=stmt+WithClause(withlist)+'create (id)-[:MethodRef]->(:MethodDef {OID:'+str(MethodOID)+',Description:"See Parameter Page"}) '
 
 				# Create the BASEDON relationship
 				stmt=stmt+WithClause(withlist)+'match (ms)-[:ItemRef]->(idms:ItemDef {Name:"DTYPE"}) '+WithClause(withlist)+',idms create (id)-[:BasedOn]->(idms) '
@@ -307,6 +308,9 @@ def AddParms(request):
 				# Create the BASEDON relationship
 				withlist.append('id')
 				stmt=stmt+WithClause(withlist)+'match (ms)-[:ItemRef]->(idms:ItemDef {Name:"DTYPE"}) '+WithClause(withlist)+',idms create (id)-[:BasedOn]->(idms) '
+
+				# Create the method 
+				stmt=stmt+WithClause(withlist)+'create (id)-[:MethodRef]->(:MethodDef {OID:'+str(MethodOID)+',Description:"See Parameter Page"}) '
 				withlist.remove('id')
 
 				# For each codelist, determine which PARAMCDs are associated with it, create the ItemDef, CodeList, and Where clause
@@ -353,7 +357,6 @@ def AddParms(request):
 					stmt=stmt+WithClause(withlist)+'match (igd)--(id:ItemDef {Name:"PARAMCD"}) create (rc)-[:Range2Item]->(id) '
 					withlist.remove('rc')
 
-
 			else:
 				# Create the CodeList
 				stmt=stmt+'-[:CodeListRef]->(cl:CodeList {Extensible:"Yes", '
@@ -370,9 +373,8 @@ def AddParms(request):
 				withlist.append('cl')
 				withlist.append('id')
 
-				# Create the method (not necessary for PARAMCD)
+				# Create the method 
 				stmt=stmt+WithClause(withlist)+'create (id)-[:MethodRef]->(mt:MethodDef {OID:'+str(MethodOID)+',Description:"See Parameter Page"}) '
-				withlist.append('mt')
 
 				# Add Sources
 				if x['Name'] == 'PARAMCD':
@@ -429,7 +431,6 @@ def AddParms(request):
 
 				withlist.remove('cl')
 				withlist.remove('id')
-				withlist.remove('mt')
 
 	# Create ParameterAttribute relationships from parameter nodes (codelist items of PARAMCD) to their corresponding attributes (e.g. PARCATx, PARAMN, DTYPE)
 	for x in ParmsList:
@@ -451,7 +452,7 @@ def AddParms(request):
 				stmt=stmt+'with study,igd,pcd match (igd)--(:ItemDef {Name:"PARAMN"})--(:CodeList)--(cli:CodeListItem {CodedValue:"'+x['paramn']+'"})\
 					with study,igd,pcd,cli create (pcd)-[:ParameterAttribute {Type:"PARAMN"}]->(cli) '
 
-	print 'STMT: '+stmt
+	print 'ADDPARMS STMT: '+stmt
 	tx=graph.cypher.begin()
 	tx.append(stmt)
 	tx.commit()
@@ -489,6 +490,17 @@ def QueryStudy(request):
 		StandardVersion=request.GET['StandardVersion']
 		Study=request.GET['Study']
 
+	if "make_spec" in request.GET:
+		GenerateADaMSpec(Study)
+		message="Spec.xlsx generated"
+
+	elif "make_define" in request.GET:
+		GenerateDefine()
+		message="Define.xml generated"
+
+	else:
+		message=""
+
 	# Get Standard data sets
 	StandardDSRL=QStandardDS(StandardName,StandardVersion)
 
@@ -509,7 +521,128 @@ def QueryStudy(request):
 			Class=Class+x2[0:1]+x2[1:].lower()+' '
 		ClassList.append(Class.strip())
 
-	return render(request,'StandardDeveloper1/studyhome.html',{'AddDatasets':StandardList,'StudyDatasets':StudyDSRL,'Study':Study,'StandardName':StandardName,'StandardVersion':StandardVersion,'ClassList':ClassList})
+	return render(request,'StandardDeveloper1/studyhome.html',{'AddDatasets':StandardList,'StudyDatasets':StudyDSRL,'Study':Study,'StandardName':StandardName,'StandardVersion':StandardVersion,'ClassList':ClassList,'Message':message})
+
+def GenerateADaMSpec(Study):
+	# writer = pd.ExcelWriter('ADaMSpec_'+Study+'.xlsx')
+
+	# Generate Dataset-level spec
+	datasetsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:BasedOn]->(:ItemGroupDef)-[:BasedOn]->(c:ItemGroupDef)<-[:ItemGroupRef]-(:Model) return igd.Name as Name,igd.Label as Label,c.Name as Class \
+			union match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:BasedOn]->(c:ItemGroupDef)<-[:ItemGroupRef]-(:Model) return igd.Name as Name,igd.Label as Label,c.Name as Class')
+	datasetsDF=pd.DataFrame(datasetsRL.records,columns=datasetsRL.columns)
+
+	print 'DATASETSDF: '
+	print datasetsDF 
+
+	# Get variable-level metadata
+	variablesRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)--(m:MethodDef) where ir.MethodOID=m.OID \
+		optional match (m)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where m.OID=it1.MethodOID optional match (m)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where m.OID=it2.MethodOID \
+		with igd.Name as DSName,id.Name as VarName,id.Label as Label,id.SASType as Type,id.SASLength as Length,ir.Order as VarOrder,case when m.Description is not null then m.Description \
+		when mc1.Order=1 then "If "+mc1.If+" then "+mt.Then when mc1.Order=99999 then "; Else "+mt.Then when mc1.Order is not null then "; else if "+mc1.If+" then "+mt.Then \
+		when mc2.Order=1 then "If "+mc2.If+" then "+cli.CodedValue when mc2.Order=99999 then " else "+cli.CodedValue else "; else if "+mc2.If+" then "+cli.CodedValue end as instruction,\
+		case when mc1.Order is not null then mc1.Order else  mc2.Order end as OrderNew order by DSName,VarOrder,VarName,OrderNew with DSName,VarOrder,VarName,Label,Type,Length,collect(instruction) as icoll \
+		return DSName,VarName,Label,Type,Length,reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarOrder,VarName')
+	variablesDF=pd.DataFrame(variablesRL.records,columns=variablesRL.columns)
+
+	# Get VLM
+	VLMRL=graph.cypher.execute('match (:Study {Name:"sep1802"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:ItemRef]->(id0:ItemDef)--(:ValueListDef)-[ir:ItemRef]->(id:ItemDef)--(:WhereClauseDef)--(rc:RangeCheck)--(cv:CheckValue) \
+		with igd,id0,id,rc,ir,reduce(s="", x in collect(cv.Value)|s+" "+x) as Values match (rc)-[:Range2Item]->(id1:ItemDef) with igd,id0,id,id1,rc,ir,Values match (id)--(m:MethodDef) where ir.MethodOID=m.OID \
+		optional match (m)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where m.OID=it1.MethodOID optional match (m)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where m.OID=it2.MethodOID \
+		with igd.Name as DSName,id0.Name as VarName,id.Name as VLMName,collect(id1.Name+" "+rc.Operator+" "+Values) as condition, \
+		case when m.Description is not null then m.Description when mc1.Order=1 then "If "+mc1.If+" then "+mt.Then when mc1.Order=99999 then "; Else "+mt.Then when mc1.Order is not null then "; else if "+mc1.If+" then "+mt.Then \
+		when mc2.Order=1 then "If "+mc2.If+" then "+cli.CodedValue when mc2.Order=99999 then " else "+cli.CodedValue else "; else if "+mc2.If+" then "+cli.CodedValue end as instruction,\
+		case when mc1.Order is not null then mc1.Order else  mc2.Order end as OrderNew order by DSName,VarName,OrderNew with DSName,VarName,VLMName,condition,collect(instruction) as icoll \
+		return DSName,VarName,VLMName,reduce(s=head(condition), x in tail(condition)|s+" and "+x) as Condition,reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarName')
+	VLMDF=pd.DataFrame(VLMRL.records,columns=VLMRL.columns)
+
+	# Get parameter information
+	parms1RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[ps:ParmSource]->(src:Source) \
+		optional match (cli)-[:ParameterAttribute {Type:"PARAMN"}]->(pn:CodeListItem) with igd.Name as DSNAME,cli.CodedValue as PARAMCD,cli.Decode as PARAM,pn.CodedValue as PARAMN,collect(src.Name+" ("+ps.Test+")") as sources \
+		return DSNAME,PARAMCD,PARAM,PARAMN,reduce(s=head(sources),x in tail(sources)|s+", "+x) as SOURCE')
+	parms1DF=pd.DataFrame(parms1RL.records,columns=parms1RL.columns)
+
+	# Get DTYPEs for each parameter
+	dtypesRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"DTYPE"})--(:ValueListDef)--(id:ItemDef)--(:WhereClauseDef)--(:RangeCheck)--(cv:CheckValue) match (id)--(:CodeList)--(cli:CodeListItem)\
+		 with igd.Name as DSNAME,cv.Value as PARAMCD,collect(cli.CodedValue) as dtypes return DSNAME,PARAMCD,reduce(s=head(dtypes), x in tail(dtypes)|s+", "+x) as DTYPE')
+	dtypesDF=pd.DataFrame(dtypesRL.records,columns=dtypesRL.columns)
+
+	parmsDF=pd.merge(parms1DF,dtypesDF,how='left',on=['DSNAME','PARAMCD'])
+
+
+	# Put each PARCAT in its own column
+	# This will be accomplished by determining which PARCATs there are, and then iteratively querying for each one
+	parcatsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute]->(:CodeListItem) \
+		where substring(pa.Type,0,6)="PARCAT" return distinct pa.Type as PARCAT order by pa.Type')
+
+	for x in parcatsRL:
+		parcatRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute {Type:"'+x[0]+'"}]->(pc:CodeListItem) return \
+			igd.Name as DSNAME,cli.CodedValue as PARAMCD,pc.CodedValue as '+x[0])
+		parcatDF=pd.DataFrame(parcatRL.records,columns=parcatRL.columns)
+		parmsDF=pd.merge(parmsDF,parcatDF,how='left',on=['DSNAME','PARAMCD'])
+
+	# Write spec
+	with pd.ExcelWriter('ADaMSpec_'+Study+'.xlsx') as writer:
+		datasetsDF.to_excel(writer,sheet_name='Datasets',index=False)
+		VarHeaders=['Dataset','Variable','Variable Label','Type','Length','Main Programming']
+		variablesDF[variablesDF['DSName'] == 'ADSL'].to_excel(writer,sheet_name='ADSL',index=False,header=VarHeaders)
+
+		# Now add non-ADSL main spec pages
+		# Determine how many DerivedMethodRef DTYPE/PARAMCD combinations there are.  Then make each a column by iterating through the list, query for each combination, merge with variablesRL
+		DmethodsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef]-(dmd:DerivedMethodDef) return distinct igd.Name as DSNAME,dmr.PARAMCD as PARAMCD,dmr.DTYPE as DTYPE')
+		DmethodsDF=pd.DataFrame(DmethodsRL.records,columns=DmethodsRL.columns)
+
+		for x,y in datasetsDF[datasetsDF['Name'] != 'ADSL'].iterrows():
+			MoreVarHeaders=list(VarHeaders)
+			DmethodsDSDF=DmethodsDF[DmethodsDF['DSNAME'] == y['Name']]
+			variablesDSDF=variablesDF[variablesDF['DSName'] == y['Name']]
+			for x1,y1 in DmethodsDSDF.iterrows():
+				if not pd.isnull(y1['DTYPE']):
+					DmethodRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef {PARAMCD:"'+y1['PARAMCD']+'",DTYPE:"'+y1['DTYPE']+'"}]-(dmd:DerivedMethodDef) \
+						where igd.Name=dmr.DS return igd.Name as DSName,id.Name as VarName,case when dmd.Description is null then dmd.Type else dmd.Description end as '+y1['PARAMCD']+'_'+y1['DTYPE'])
+					MoreVarHeaders.append('PARAMCD='+y1['PARAMCD']+', DTYPE='+y1['DTYPE'])
+				else:
+					DmethodRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef {PARAMCD:"'+y1['PARAMCD']+'"}]-(dmd:DerivedMethodDef) \
+						where igd.Name=dmr.DS and not exists(dmr.DTYPE) return dmr.DS as DSName,id.Name as VarName,case when dmd.Description is null then dmd.Type else dmd.Description end as '+y1['PARAMCD'])
+					MoreVarHeaders.append('PARAMCD='+y1['PARAMCD'])
+
+				DmethodDF=pd.DataFrame(DmethodRL.records,columns=DmethodRL.columns)
+				variablesDSDF=pd.merge(variablesDSDF,DmethodDF,how='left',on=['DSName','VarName'])
+
+			variablesDSDF.to_excel(writer,sheet_name=y['Name'],index=False,header=MoreVarHeaders)
+		
+			# Now print the Parameters Page
+			if y['Class'] == 'BASIC DATA STRUCTURE':
+				# subset to just the current data set
+				DSDF=parmsDF[parmsDF['DSNAME'] == y['Name']]
+				# Determine if PARAMN exists in this data set
+				PARAMNExist=1-pd.isnull(DSDF.iloc[0]['PARAMN'])
+				# Determine if any parameter has a DTYPE. 
+				DTYPEExist=False
+				for x1,y1 in DSDF.iterrows():
+					if not pd.isnull(y1['DTYPE']):
+						DTYPEExist=True
+				# What to sort by
+				if PARAMNExist:
+					SortVar='PARAMN'
+				else:
+					SortVar='PARAMCD'
+				# Columns to include
+				cols=['PARAMCD','PARAM']
+				if PARAMNExist:
+					cols.append('PARAMN')
+				for x1 in parcatsRL:
+					if not pd.isnull(DSDF.iloc[0][x1[0]]):
+						cols.append(x1[0])
+						print cols
+				cols.append('SOURCE')
+				if DTYPEExist:
+					cols.append('DTYPE')
+				DSDF=DSDF[cols].sort_values(by=SortVar)
+
+				DSDF.to_excel(writer,sheet_name=y['Name']+' Parameters',index=False)
+
+				# and now print the VLM page
+				VLMDF[['DSName','VarName','Condition','Programming']].to_excel(writer,sheet_name=y['Name']+' Value Level',index=False,header=['Dataset','Variable','Condition','Programming'])
 
 def QueryStudyDS(request):
 	StandardName=request.GET['StandardName']
@@ -1459,8 +1592,8 @@ def NewVar(request):
 					,ID1.SASLength="'+str(VarSASLength)+'",IR1.Mandatory="'+VarMandatory+'" '
 
 		else:
-			stmt=stmt+WithClause(withlist)+'create (IGD)-[IR1:ItemRef {Order:'+VarOrderNumber+',Mandatory:"'+VMandatory+'",SourceRef:"'+DSName+'"}]->(ID1:ItemDef {Name:"'+VarName+'",Label:"'+VarLabel+'",SASType:"'+VarSASType+'",\
-				DataType:"'+VarDataType+'",SASLength:"'+str(VLength)+'"})-[VLR:ValueListRef]->(VLD:ValueListDef) '
+			stmt=stmt+WithClause(withlist)+'create (IGD)-[IR1:ItemRef {Order:'+VarOrderNumber+',Mandatory:"'+VMandatory+'",SourceRef:"'+DSName+'",MethodOID:'+str(MethodOID)+'}]->(ID1:ItemDef {Name:"'+VarName+'",Label:"'+VarLabel+'",SASType:"'+VarSASType+'",\
+				DataType:"'+VarDataType+'",SASLength:"'+str(VLength)+'"})-[VLR:ValueListRef]->(VLD:ValueListDef), (ID1)-[:MethodRef]->(:MethodDef {OID:'+str(MethodOID)+',Description:"See Value Level"}) '
 
 		withlist.append('IR1')
 		withlist.append('ID1')
