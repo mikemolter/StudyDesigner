@@ -1,55 +1,68 @@
 <link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
 
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+<!-- 	<script>
+		$(document).ready(function(){
+			var ptxt='Join Source Data Set: ' ;
+			SrcObject=JSON.parse($('[name="Sources"]').val()) ;
+			SrcList=SrcObject['sources'];
+			ptxt += SrcList[0]['Dataset']
+			if (SrcList[0]['Subset']) {
+				ptxt += ' where '+SrcList[0]['Subset'] ;
+			}
+			$('#sourceinfo').text(ptxt);
+		})
+	</script> -->
+</head>
+
+<body>
 <div class="w3-container w3-center w3-large">
 	<p><b>STUDY: {{Study}}<br/></b></p>
 </div>
 
 <div class="w3-container w3-teal">
 
-	<p>
-	{{Instruction}}
-	</p>
-
 	<form method="post" action='SetMDVar' class="w3-container w3-teal" style="height:100%">
 	{% csrf_token %}
 
 	<input type="hidden" name="DSName" value="{{DSName}}"/>
 	<input type="hidden" name="Class" value="{{Class}}"/>
-	<input type="hidden" name="RSType" value="{{RSType}}"/>
-	<input type="hidden" name="ReturnTo" value="{{ReturnTo}}"/>
+	<input type="hidden" name="ReturnTo" value="mergepredotherlist"/>
 	<input type="hidden" name="Study" value="{{Study}}"/>
 	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
-	<input type="hidden" name="SourceName" value="{{SourceName}}"/>
-	<input type="hidden" name="SourceDescription" value="{{SourceDescription}}"/>
-	<input type="hidden" name="SourceJoin" value="{{SourceJoin}}"/>
-	<input type="hidden" name="SourceOrder" value="{{SourceOrder}}"/>
-	<input type="hidden" name="VarSource" value=""/>
+	<input type="hidden" name="Sources" value="{{Sources}}"/>
+	<input type="hidden" name="VarDefType" value="{{VarDefType}}"/>
 
-	{% if RSType == "MERGE" %}
-		<p>Source Name: {{SourceName}}<br/>Source Description: {{SourceDescription}}</p>
+	{% if VarDefType == "PRED" %}
+		<p id="sourceinfo"></p>
 	{% endif %}
 
 		<div id='submitbuttons' class="w3-bar w3-center">
-			{% if RSType == "MERGE" %}
-				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define a Predecessor' name="add_pred"/>
-				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish and define another Merge data set' formaction="NewMerge"/>
+			{% if VarDefType == "PRED" %}
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define another Predecessor' name="add_pred"/>
+				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish and define another Join Source data set' formaction="Record2Join"/>
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' formaction='NewModel' value='Finish and define Model Variables' name="add_model"/>
-			{% elif RSType == "OTHER" %}
+			{% elif VarDefType == "OTHER" %}
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Define a Custom Variable' name="add_other"/>
 				<input type='submit' class='w3-button w3-dark-grey w3-round-large' value='Finish {{DSName}}' formaction="QueryStudy" formmethod="get"/><br/><br/>
 			{% endif %}
 		</div>
 
-		{% if RSType == "MERGE" %}
-			<p class="w3-center">{{Study}} {{DSName}} Predecessor Variables from {{SourceName}}</p>
-		{% endif %}
+	{% if VarDefType == "PRED" %}
+		<p><h1>Predecessor variables</h1></p>
+	{% else %}
+		<p><h1>Non-Predecessor variables</h1></p>
+	{% endif %}
 
 		<table border="1 solid" class="w3-table-all w3-hoverable">
 			<thead>
 				<tr>
 					<th>Variable</th>
 					<th>Label</th>
+					<th>Source</th>
 					<th class="w3-center">Remove</th>
 					<th class="w3-center">Edit</th>
 				</tr>
@@ -60,6 +73,13 @@
  					<tr>
 						<td>{{x.Name}}</td>
 						<td>{{x.Label}}</td>
+						<td>
+						{% if x.RecordDatasets %}
+							{{x.RecordDatasets|join:", "}}
+						{% if x.JoinDatasets %}
+							{{x.JoinDatasets|join:", "}}
+						{% endif %}
+						</td>
 						<td class='w3-center'>
 							<input type="submit" value="Remove" class="w3-button w3-dark-grey w3-round-medium" name="rmv_{{x.Name}}"/>
 						</td>
@@ -70,5 +90,8 @@
  			{% endfor %}
 			</tbody>
 		</table>
+	</form>
 </div>
+</body>
 
+</

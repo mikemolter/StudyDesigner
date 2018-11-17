@@ -124,6 +124,55 @@
 				LoadMD('VLM');
 			})
 
+			$('form').submit(function() {
+				// Before submission, sources will compiled and added to the SourcesOut hidden variable.
+				var SrcOutLst=[] ;
+				var SrcOutDic={} ;
+
+				{% if ReturnTo == 'mainpredlist' %}
+					// When going back to mainpredlist, sources have already been created, but we need to pass back the name of the variable mapped into the predecessor, associated with its data set.
+					//.This will be done with a dictionary sent to SourcesOut, with one key, and the value being a list with one dictionary whose keys are data set names and values are variable names.
+					// This allows us to define a method for record source predecessors.
+					var SrcObj=JSON.parse($('[name="Sources"]').val()) ;
+					var SrcLst=SrcObj['sources'] ;
+					for (x in SrcLst) {
+						var ds=SrcLst[x]['Dataset'] ;
+						var item=$('#rsvar_'+ds).val() ;
+						SrcOutDic[ds]=item ;
+					}
+					SrcOutLst.push(SrcOutDic) ;
+
+				{% elif VarDefType == 'PRED' %}
+					// When defining predecessors from a Join data set, pass back source information along with the name of the variable in a dictionary
+					var SrcObj=JSON.parse($('[name="Sources"]').val()) ;
+					var SrcLst=SrcObj['sources'] ;
+					var SrcOutDic=SrcLst[0]
+					SrcOutDic['Variable']=$('#joinvar').val() ;
+					SrcOutLst.push(SrcOutDic) ;
+
+				{% else %}
+					var t=document.getElementById('joinsource') ;
+					var rows=t.rows ;
+					for (r=1;r<rows.length;r++) {
+						chosen=rows[r].cells[3].children[0].checked ;
+						if (chosen) {
+							SrcOutLst.push({'Model':rows[r].cells[0].innerHTML,'Dataset':rows[r].cells[1].innerHTML,'Subset':rows[r].cells[2].innerHTML,'JCondition':rows[r].cells[3]})
+						}
+					}
+
+					if ($('select[name=adamds]:selected').val() != $('select[name=adamds]:disabled').val() ) {
+						SrcOutLst.push({'Model':'ADaM','Dataset':$('select[name=adamds]:selected').val(),'Subset':$('#subset').val(),'JCondition':$('#join').val()}) ;
+					}
+
+					if ($('#sdtmds').val() ) {
+						SrcOutLst.push({'Model':'SDTM','Dataset':$('#sdtmds').val(),'Subset':$('#subset').val(),'JCondition':$('#join').val()}) ;
+					}
+
+				{% endif %}
+
+				$('[name=SourcesOut]').val(JSON.stringify({'sourceout':SrcOutLst})) ;
+			})
+
 
 		});
 	</script>
@@ -144,11 +193,9 @@
 
 	<div id='hidemisc'>
 		<input type="hidden" name="DSName" value="{{DSName}}"/>
-		<input type="hidden" name="RSType" value="{{RSType}}"/>
-		<input type="hidden" name="SourceName" value="{{SourceName}}"/>
-		<input type="hidden" name="SourceDescription" value="{{SourceDescription}}"/>
-		<input type="hidden" name="SourceOrder" value="{{SourceOrder}}"/>
-		<input type="hidden" name="SourceJoin" value="{{SourceJoin}}"/>
+		<input type="hidden" name="VarDefType" value="{{VarDefType}}"/>
+		<input type="hidden" name="Sources" value="{{Sources}}"/>
+		<input type="hidden" name="SourcesOut"/>
 		<input type="hidden" name="Study"  value="{{Study}}"/>
 		<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 		<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
@@ -186,22 +233,22 @@
 
 	<div id="hidesrc"></div>
 
-	
+	<div id='C0' class='w3-cell-row'>
+		<p id='C0P'></p>
+		<div class='w3-bar' id='CBR'></div>
+	</div>
 
 	<div id='C1' class='w3-cell-row' style='width:100%'>
-		<p id='I1'></p>
 		<div id='C11' class='w3-cell' style='width:75%'></div>
 		<div id='C12' class='w3-cell' style='width:25%'></div>
 	</div>
 
 	<div id='C2' class='w3-cell-row'>
-		<p id='I2'></p>
 		<div id='C21' class='w3-cell' style='width:75%'></div>
 		<div id='C22' class='w3-cell' style='width:25%'></div>
 	</div>
 
 	<div id='C3' class='w3-cell-row'>
-		<p id="I3"></p>
 		<div id='C31' class='w3-cell' style='width:75%'></div>
 		<div id='C32' class='w3-cell' style='width:25%'></div>
 	</div>
@@ -339,14 +386,14 @@
 
 		if (Level == 'Var') {
 
-			{% if Action == "Add" and RSType == "OTHER" or Action == "Add" and PredStdYN == "N" or VarNameSub %}
+			{% if Action == "Add" and VarDefType == "OTHER" or Action == "Add" and PredStdYN == "N" or VarNameSub %}
 				$('#R11').append('<label>Variable Name</label><br><input type="text" maxlength="8" size="8" name="VarName" value="{{VarMD.Name}}"/><br><br/>');
 			{% else %}
 				$('#R11').append('<p>Variable Name: {{VarMD.Name}}</p><input type="hidden" name="VarName" value="{{VarMD.Name}}"/>');
 			{% endif %}
 
 
-			{% if RSType == "OTHER" or PredStdYN == "N" and Action == "Add" or VarLabelSub %}
+			{% if VarDefType == "OTHER" or PredStdYN == "N" and Action == "Add" or VarLabelSub %}
 				$('#R11').append('<label>Variable Label</label><br><input type="text" maxlength="40" size="40" name="VarLabel" value="{{VarMD.Label}}"/><input type="hidden" name="BeforeVarLabel" value="{{VarMD.Label}}"/><br><label>SAS Type</label><br><select name="VarSASType"><option value="Char">Char</option><option value="Num">Num</option></select><br><br/><input type="hidden" name="BeforeVarSASType" value="{{VarMD.VarSASType}}"/>');
 				var SASType = "{{VarMD.SASType}}";
 				if (SASType){
@@ -375,8 +422,8 @@
 			var OriginString='<label>Origin</label><br><select name="VarOrigin"><option value="Assigned">Assigned</option><option value="Derived">Derived</option><option value="Predecessor">Predecessor</option></select><br><input type="hidden" name="BeforeVarOrigin" value="{{VarMD.Origin}}"/>' ;
 			var Origin = "{{VarMD.Origin}}";
 
-			{% if RSType == "MAIN" or RSType == "MERGE" %}
-				$('#R11').append('<p>Variable Origin: Predecessor ({{SourceName}})</p><input type="hidden" name="VarOrigin" value="Predecessor"/><input type="hidden" name="src_{{SourceOrder}}"/>') ;
+			{% if ReturnTo == 'mainpredlist' or VarDefType == 'PRED' %}
+				$('#R11').append('<p>Variable Origin: Predecessor</p><input type="hidden" name="VarOrigin" value="Predecessor"/><input type="hidden" name="src_{{SourceOrder}}"/>') ;
 
 			{% else %}
 				$('#R12').append(OriginString) ;
@@ -424,14 +471,23 @@
 			}
 		}
 
-		{% if RSType != 'MAIN' and RSType != 'MERGE' %}
+		{% if VarDefType != 'PRED' and ReturnTo != 'mainpredlist' %}
 
-			var functioncall = "methodchoice('Y')" ;
-			$('#M1').append('<p> Select an approach to defining programming instructions</p><input type="radio" class="methodchoice w3-radio" name="methods" value="m1" id="m1">Define a programming instruction for each allowable value</input><br/><input type="radio" class="methodchoice w3-radio" name="methods" value="m2" onclick="'+functioncall+'">Define programming instructions separate from allowable values</input><br/>') ;
+			$('#M1').append('<p>Identify the source data set(s) to be merged from which this variable is derived by a) selecting a predefined source, b) selecting an ADaM data set from the dropdown or c) entering the SDTM data set.  </p><table border="1" style="background-color:white" id="joinsource"><tr><th>Model</th><th>Dataset</th><th>Subset</th><th>Join Condition</th><th>Include</th></tr></table><br><br><select id="adamds"<option disabled selected>ADaM data set</option></select><br><br><input type="text" id="sdtmds" placeholder="SDTM data set"/><br><br><textarea id="subset" cols="20" rows="3" placeholder="Subset description (optional)"></textarea><br><br><textarea id="join" cols="20" rows="3" placeholder="Specify Join Conditions"></textarea><br><br><input type="text" id="jvar"/>') ;
 
-			var functioncall = "methodchoice('N')" ;
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetJoinSources',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+				$.each(JSON.parse(data),function(){
+					$("#joinsource").append('<tr><td>'+this['Model']+'</td><td>'+this['Dataset']+'</td><td>'+this['Subset']+'</td><td>'+this['JCondition']+'</td><td><input type="checkbox"> </input></td></tr>');
+				});
+			});
+
+
+			var functioncall = "Method23('Y')" ;
+			$('#M2').append('<p> Select an approach to defining programming instructions</p><input type="radio" class="methodchoice w3-radio" name="methods" value="m1" id="m1">Define a programming instruction for each allowable value</input><br/><input type="radio" class="methodchoice w3-radio" name="methods" value="m2" onclick="'+functioncall+'">Define programming instructions separate from allowable values</input><br/>') ;
+
+			var functioncall = "Method23('N')" ;
 			{% if not CTTable %}
-				$('#M1').append('<input type="radio" class="methodchoice w3-radio" name="methods" value="m3" onclick="'+functioncall+'">Define programming instruction and no allowable values</input>') ;
+				$('#M2').append('<input type="radio" class="methodchoice w3-radio" name="methods" value="m3" onclick="'+functioncall+'">Define programming instruction and no allowable values</input>') ;
 
 			{% else %}
 				var WhichMethodApproach = "{{MethodType}}" ;
@@ -444,10 +500,32 @@
 			{% endif %}
 
 			{% if Action == "Edit" %}
-				methodchoice('Y') ;
+				Method23('Y') ;
 			{% endif %}
 
 		{% else %}
+			var SrcObj=JSON.parse($('[name="Sources"]').val()) ;
+			var SrcLst=SrcObj['sources'] ;
+
+			{% if ReturnTo == 'mainpredlist' %}
+				$('#M1').append('<p>For each of the following record sources, provide the name of the source variable being copied into the predecessor.</p>') ;
+			{% else %}
+				$('#M1').append('<p>Provide the name of the source variable being copied into the predecessor.</p>') ;
+			{% endif %}
+
+			for (x in SrcLst) {
+				var txt=SrcLst[x]['Dataset'] ;
+				if (SrcLst[x]['Subset']) {
+					txt += ' where '+SrcLst[x]['Subset'] ;
+				}
+
+				{% if ReturnTo == 'mainpredlist' %}
+					$('#M1').append('<p>'+txt+'&nbsp;<input type="text" id="rsvar_'+SrcLst[x]['Dataset']+'"/></p>') ;
+				{% else %}
+					$('#M1').append('<p>'+txt+'&nbsp;<input type="text" id="joinvar"/></p>') ;
+				{% endif %}
+			}
+
 			BuildCT('1') ;
 
 		{% endif %}
@@ -742,15 +820,15 @@
 	}
 
 	function BuildCT(tagnbr) {
-		document.getElementById('I'+tagnbr).innerHTML = "{{InstructionCT}}";  // Insert CT instruction
+		document.getElementById('C0P').innerHTML = "{{InstructionCT}}";  // Insert CT instruction
 		var C = document.getElementById('C'+tagnbr); // Get the row container 
 		var Cx1 = document.getElementById('C'+tagnbr+'1') ;
 
 		// If defining new CT, add a row of buttons to help get started
 
-			var buttonrow = document.createElement("div"); // Create the button row 
-			buttonrow.setAttribute("class","w3-bar w3-center");
-			buttonrow.id = 'br1';
+			var buttonrow = document.getElementById("CBR"); // Create the button row 
+			// buttonrow.setAttribute("class","w3-bar w3-center");
+			// buttonrow.id = 'br1';
 
 			var button1 = document.createElement("input");  // Create the first button
 			button1.setAttribute("type","button");
@@ -790,7 +868,8 @@
 				{% endif %}
 			{% endif %}
 
-			C.insertBefore(buttonrow,Cx1); // Insert the button row into the beginning of the container
+			// C.insertBefore(buttonrow,Cx1); // Insert the button row into the beginning of the container
+			C.insertBefore(document.createElement('br'),Cx1);
 			C.insertBefore(document.createElement('br'),Cx1);
 
 		{% if CTTable %} // if CT is already associated with the variable, display it in a table

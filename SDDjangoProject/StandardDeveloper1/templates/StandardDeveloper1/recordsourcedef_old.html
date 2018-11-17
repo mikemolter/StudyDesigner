@@ -1,0 +1,122 @@
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+	<script>
+		$(document).ready(function(){
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetRecordSources',{'Study':"{{Study}}"},function(data){
+				$.each(JSON.parse(data),function(){
+					$("#tbl1").append('<tr><td>'+this['Model']+'</td><td>'+this['Dataset']+'</td><td>'+this['Subset']+'</td><td><input type="checkbox"> </input></td></tr>');
+				});
+			});
+
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyDatasets',{'Study':"{{Study}}",'DSName':"{{IGDName}}"},function(data){
+				$.each(JSON.parse(data),function(){
+					$("#adamds").append('<option>'+this['Dataset']+'</option>');
+				});
+			});
+
+			var srclist=[]
+
+			$('form').submit(function() {
+				var t=document.getElementById('tbl1') ;
+				var rows=t.rows ;
+				for (r=1;r<rows.length;r++) {
+					chosen=rows[r].cells[3].children[0].checked ;
+					if (chosen) {
+						srclist.push({'Model':rows[r].cells[0].innerHTML,'Dataset':rows[r].cells[1].innerHTML,'Subset':rows[r].cells[2].innerHTML})
+					}
+				}
+				var srcstring=JSON.stringify({'sources':srclist});
+				$('[name="sources"]').val(srcstring);
+			})
+
+			// When a button is clicked to add a new source
+			$('[id^="add"]').click(function(){
+				var model=$(this).attr('id').substr(3);
+
+				if (model == "ADaM") {
+					var ds=$('#adamds') ;
+					var sub=$('#adamsubset') ;
+				}
+
+				else {
+					var ds=$('#sdtmds') ;
+					var sub=$('#sdtmsubset') ;
+				}
+
+				// Insert new source into table
+				// How. many rows in the existing table
+				$("#tbl1").append('<tr><td>SDTM</td><td>'+$(ds).val()+'</td><td>'+$(sub).val()+'</td><td class="w3-center"><input type="checkbox" class="tblsrc" checked></input></td></tr>') ;
+
+				// Clear out text boxes
+				$(ds).val(null) ;
+				$(ds).attr('placeholder',model+' data set') ;
+				$(sub).val(null);
+				$(sub).attr('placeholder',model+' subset description (optional)')
+				// Add dictionary to the JSON string
+			})
+
+		})
+	</script>
+</head>
+
+
+<body>
+
+<div class="w3-container w3-center w3-large">
+	<p><b>STUDY: {{Study}}<br/></b></p>
+	<p><b>Source Information for {{IGDName}}</b></p>
+</div>
+
+<div class="w3-container w3-teal">
+	<h1>Record Source Definitions</h1>
+	<p>{{Instruction}}. To define a new data set, we begin by defining the record source data sets -- data sets from which records (observations) originated. <br>Identify by the applicable method below the source(s) of {{IGDName}}.<br>Then click the button to begin defining predecessors (i.e. variables copied from these sources).
+	</p>
+
+	<form method="post" action="RecordSource" style="height:100%">
+		{% csrf_token %}
+		<div id="inputs">
+
+			<input type="hidden" name="Study" value="{{Study}}"/>
+			<input type="hidden" name="DSName" value="{{IGDName}}"/>
+			<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+			<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+			<input type="hidden" name="Class" value="{{Class}}"/>
+			<input type="hidden" name="sources"/>
+
+			<!-- Create the table of study-available sources -->
+			<p>Select one or more current record source data sets</p>
+			<table border="1" style="background-color:white" id="tbl1">
+				<tr><th>Model</th><th>Dataset</th><th>Subset</th><th>Include</th></tr>
+			</table>
+
+			<p>Define a new ADaM record source data set</p>
+			<select id="adamds">
+				<option disabled selected>ADaM data set</option>
+			</select><br><br>
+
+			<textarea id="adamsubset" cols=20 rows=3 placeholder="ADaM subset description (optional)"></textarea><br><br>
+
+			<input type="button" id="addADaM" class="w3-button w3-dark-grey w3-round-large " value="Add ADaM record source"></input>
+
+			<!-- For now we just let users free-text in the SDTM information -->
+			<p>Define a new SDTM record source data set</p>
+			<input type="text" id="sdtmds" placeholder="SDTM data set"/>&nbsp; &nbsp; 
+			<textarea id="sdtmsubset" cols=20 rows=3 placeholder="SDTM subset description (optional)"></textarea><br><br>
+
+			<input type="button" id="addSDTM" class="w3-button w3-dark-grey w3-round-large " value="Add SDTM record source"></input><br><br>
+
+		</div>
+
+		<div id="buttons" class="w3-bar">
+			{% if Action == "Add" %}
+				<input type="submit" name="defpreds" value="Define Predecessors" class="w3-button w3-dark-grey w3-round-large"/>
+			{% elif Action == "Edit" %}
+				<input type="submit" name="ok" value="OK" formaction="editsourceds" class="w3-button w3-dark-grey w3-round-large"/>
+			{% endif %}
+		</div>
+	</form>
+</div>
+</body>

@@ -1,0 +1,42 @@
+{% extends "StandardDeveloper1/sourcedef.html" %}
+
+{% block GetSources %}
+	$('form').submit(function() {
+		if ($('#adamds').val()){
+			srclist.push({'Model':'ADaM','Dataset':$('#adamds').val(),'Subset':$('#adamsubset').val(),'JCondition':$('#adamjoin').val()}) ;
+		}
+		else if ($('#sdtmds').val()) {
+			srclist.push({'Model':'SDTM','Dataset':$('#sdtmds').val(),'Subset':$('#sdtmsubset').val(),'JCondition':$('#sdtmjoin').val()}) ;
+		}
+		var srcstring=JSON.stringify({'sources':srclist});
+		$('[name="Sources"]').val(srcstring);
+	})
+{% endblock %}
+
+{% block Explanation %}
+	<h1>Join Source Definition</h1>
+	
+	<p>To define any new data set, we also need to define its <i>Join Source</i> data sets. A Join Source is a data set from which variables are merged. <br>Identify by any of the methods below a Join Source(s).
+	</p>
+
+{% endblock %}
+
+{% block P2 %}
+Define a new ADaM Join Source data set
+{% endblock %}
+
+{% block NextSteps %}
+Once you are finished defining this Join Source below, click the button to begin defining predecessors from this Join Source.
+{% endblock %}
+
+{% block P3 %}
+Define a new SDTM Join Source data set
+{% endblock %}
+
+{% block EndSourceADAM %}
+<textarea id="adamjoin" cols="20" rows="3" placeholder="ADaM join condition"></textarea>
+{% endblock %}
+
+{% block EndSourceSDTM %}
+<textarea id="sdtmjoin" cols="20" rows="3" placeholder="SDTM join condition"></textarea><br><br>
+{% endblock %}

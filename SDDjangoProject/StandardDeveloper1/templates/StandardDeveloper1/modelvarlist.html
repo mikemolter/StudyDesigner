@@ -10,14 +10,9 @@
 <form method="post" action='SetMDVar' class="w3-container w3-teal" style="height:100%">
 {% csrf_token %}
 	<input type="hidden" name="DSName" value="{{DSName}}"/>
-	<input type="hidden" name="RSType" value="{{RSType}}"/>
 	<input type="hidden" name="Study" value="{{Study}}"/>
 	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
-	<input type="hidden" name="SourceName"/>
-	<input type="hidden" name="SourceDescription"/>
-	<input type="hidden" name="SourceJoin"/>
-	<input type="hidden" name="SourceOrder"/>
 	<input type="hidden" name="Class" value="{{Class}}"/>
 	<input type="hidden" name="ReturnTo" value="{{ReturnTo}}"/>
 
@@ -160,15 +155,17 @@
 				</thead>
 				<tbody>
 				{% for x in StudyVarsRL %}
-					<tr>
-						<td>{{x.Name}}</td>
-						<td class='w3-center'>
-							<input type="submit" value="Remove" class="w3-button w3-dark-grey w3-round-medium" name="rmv_{{x.Name}}"/>
-						</td>
-						<td>
-							<input type="submit" value="Edit" class="w3-button w3-dark-grey w3-round-medium" name="edit_{{x.Name}}"/>
-						</td>
-					</tr>
+					{% if x.Origin != 'Predecessor' %}
+						<tr>
+							<td>{{x.Name}}</td>
+							<td class='w3-center'>
+								<input type="submit" value="Remove" class="w3-button w3-dark-grey w3-round-medium" name="rmv_{{x.Name}}"/>
+							</td>
+							<td>
+								<input type="submit" value="Edit" class="w3-button w3-dark-grey w3-round-medium" name="edit_{{x.Name}}"/>
+							</td>
+						</tr>
+					{% endif %}
 				{% endfor %}
 				</tbody>
 			</table>
