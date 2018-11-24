@@ -1,0 +1,10 @@
+{% extends "StandardDeveloper1/studyhome.html" %}
+
+{% block Instruction %}
+Welcome to the home page for {{Study}}.  This page will offer an overview of your study, and allow you the opportunity to edit study-level metadata such as the study description, dictionaries, and documents.  It is also from here that you will be able to generate metadata documents such as programming specifications and define.xml.  You will find yourself back at this page when you have completed the definition of your study as well as a first draft of the definitions of variables for the data set.  At that point, you will find below a table of all study-defined data sets from which you may begin the process of editing.  For now, you'll start the process by clicking the button below to get started on ADSL.
+{% endblock %}
+
+{% block adslbutton %}
+<button type="button" id="adslbutton" class="btn btn-success" style="float:right;">Proceed to ADSL</button>
+{% endblock %}
+

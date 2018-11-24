@@ -1,0 +1,64 @@
+{% extends "StandardDeveloper1/studyhome.html" %}
+
+{% block Instruction %}
+Below is a current summary of your study-level metadata.  Scroll down to view study data sets.
+{% endblock %}
+
+{% block menus %}
+<hr>
+<h3>Data set summary</h3>
+<p>Click a button below to add a new data set.  Click an icon in the Action column of the table to edit or remove a data set from the study.</p>
+<div class="btn-group btn-group-justified">
+	<div class="btn-group">
+		<button type="button" class="btn btn-success">Add BDS</button>
+	</div>
+	<div class="btn-group">
+		<button type="button" class="btn btn-success">Add Occurrence</button>
+	</div>
+	<div class="btn-group">
+		<button type="button" class="btn btn-success">Add Other ADaM</button>
+	</div>
+</div>
+{% endblock %}
+
+{% block table %}
+	<div class='im-centered'>
+		<table data-toggle="table" id="dsmdtable" data-id-field="name" data-url="http://localhost:8000/StandardDeveloper1/GetStudyDSMD" data-query-params="StudySourceParms">
+		    <thead>
+		    <tr>
+		       <th data-field="Dataset">Dataset</th>
+		        <th data-field="Label">Label</th>
+		        <th data-field="Class">Class</th>
+		        <th data-field="RecordSources">Record Sources</th>
+		        <th data-field="Structure">Structure</th>
+		        <th data-field="Repeating">Multiple records per subject?</th>
+		        <th data-field="Reference">Reference data?</th>
+		        <th data-field="removeedit" data-formatter="GlyphsRemoveEdit" data-align="center">Dataset Action</th>
+		        <th data-field="editvar" data-formatter="GlyphsEditOnly" data-align="center">Edit Variable</th>
+        	</tr>
+		    </thead>
+		</table>
+	</div>
+{% endblock %}
+
+{% block GetStudyInfo %}
+	$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardDSwoStudy',{Study:"{{Study}}",StandardName:"{{StandardName}}",StandardVersion:"{{StandardVersion}}"},function(data) {
+		$.each(data,function () {
+			$('.btn-group-justified').prepend('<div class="btn-group"><button type="button" class="btn btn-success">'+this['Name']+'</button></div>') ;
+		})
+	}) ;
+
+{% endblock %}
+
+{% block Outputs %}
+<hr>
+<h3>Generate Study outputs</h3>
+<div class="row">
+	<div class='col-xs-6'>
+		<button class="btn btn-success" id='spec'>Generate Programming Spec</button>
+	</div>
+	<div class='col-xs-6'>
+		<button class="btn btn-success" id='define'>Generate Define.xml (2.0)</button>
+	</div>
+</div>
+{% endblock %}

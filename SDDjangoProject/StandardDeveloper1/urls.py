@@ -47,10 +47,16 @@ urlpatterns = [
     url('GetStudyCodelistsByCode',views.GetStudyCodelistsByCode),
     url('GetAllStudyCL',views.GetAllStudyCL),
     url('CompareCT',views.CompareCT),
+    url('GetStudyInfo',views.GetStudyInfo),
+    url('GetDicts',views.GetDicts),
+    url('GetDocs',views.GetDocs),
+     url('GetStandardDSwoStudy',views.GetStandardDSwoStudy),
+    url('GetStandardDS',views.GetStandardDS),
+    url('GetStudyDSMD',views.GetStudyDSMD),
+    url('GetStudyDS',views.GetStudyDS),
+    url('Back2Study',views.Back2Study),
+    url('EditDS',views.EditDS),
 
-    url('ModifyaDataset',views.modds),
-    url('Predecessors',views.predlist),
-    url('Merge',views.merge),
-    url('Model',views.model)
+    url('ModifyaDataset',views.modds)
 ]
 

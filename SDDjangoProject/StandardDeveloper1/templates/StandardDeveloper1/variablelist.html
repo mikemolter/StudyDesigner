@@ -20,7 +20,7 @@
 <!-- Latest compiled and minified Locales -->
 <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table-locale-all.js"></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/locale/bootstrap-table-en-US.js"></script>
-
+<script type="text/javascript" src="{% static 'StandardDeveloper1/Utilities.js' %}"></script>
 <script>
 	
 	$(document).ready(function(){
@@ -376,7 +376,7 @@
 		$('#myModal').on('change','#cstct1',function() {
 			// Determine which non-predecessor method choice was made
 			var methodchoice=$('#cstct1 :selected').val().substr(6,1) ;
-			$('#hide').append('<input type="hidden" name="methodchoice" value="'+methodchoice +'"/>') ;
+			$('#hidemodal').append('<input type="hidden" name="methodchoice" value="'+methodchoice +'"/>') ;
 
 			if (methodchoice == 'a' || methodchoice == 'b') {
 				$('#nopredchoice').remove() ;
@@ -587,7 +587,6 @@
 			}
 			$('#mb').empty() ;
 			DisplayMethodbChoice() ;
-			//$('#'+id).attr('id','mt1b') ;
 			$('.btn').attr('id','mt1b') ;
 		})
 
@@ -822,7 +821,7 @@ a {
 
 <body style="font-family: 'Lora', serif;">
 
-<form method="post" action='NewVar' id="parentform">
+<form method="post" action='Back2Study' id="parentform">
 {% csrf_token %}
 
 <div id="hide">
@@ -859,7 +858,10 @@ a {
 		       <th data-field="VarName">Name</th>
 		        <th data-field="Label">Label</th>
 		        <th data-field="SASType">SAS Type</th>
-		        <th data-field="removeedit" data-formatter="AddGlyphs" data-align="center">Remove/Edit</th>
+		        <th data-field="SASLength">SAS Length</th>
+		        <th data-field="DataType">Data Type</th>
+		        <th data-field="Origin">Origin</th>
+		        <th data-field="removeedit" data-formatter="GlyphsRemoveEdit" data-align="center">Action</th>
         	</tr>
 		    </thead>
 		</table>
@@ -1204,10 +1206,6 @@ a {
 		return {disabled:true} ;
 	}
 
-	function AddGlyphs() {
-		return '<i class="glyphicon glyphicon-trash"></i><i class="glyphicon glyphicon-pencil"></i>'
-	}
-
 	function ExtCT(DecodeYN) {
 		$('#mb').append('<p>To add terms to your list, enter the value in the box below (and if applicable, the decode), and then click the Add Term button.</p><div class="container" id="newtermcontainer"><div class="form-group"><textarea cols="35" rows="2" id="code" placeholder="Enter term here"></textarea></div>') ;
 
@@ -1365,11 +1363,11 @@ a {
 	}
 
 
-	function DisplayVarMD(Study,StandardName,StandardVersion,IGDName,VarNameIn,MDSource,PredYN) {
+	function DisplayVarMD(Study,StandardName,StandardVersion,IGDName,VarNameIn,MDSource) {
 		// MDSource can be Model, Standard, or Study, and determines where to go get the metadata from
 		// If the user chose to define a new custom variable, then MDSource is null
 		// If MDSource is Study, need to determine if the variable is custom or not (CustomYN)
-		// CustomYN and PredYN determine what is read-only 
+		// CustomYN determines what is read-only 
 
 		var VarName='',VarLabel='',VarSASType='',VarSASLength='',VarOrderNumber='',VarMandatory='',VarDataType='',VarOrigin='' ;
 		var CustomYN=$('[name=CustomYN]').val() ;
@@ -1451,21 +1449,7 @@ a {
 			$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+$('[name=ChosenVarName]').val()+'"></div>') ;
 			$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarLabel"></div>') ;
 			$('#SASTypeRow').append('<div class="col-xs-8 form-group"><select name="VarSASType"><option selected disabled></option><option value="Char">Char</option><option value="Num">Num</option></select></div>') ;
-			// if (PredYN) {
-			// 	var mddic={'Origin':'Predecessor'} ;
-			// 	$('[name=MD]').val(JSON.stringify({'md':[mddic]})) ;
-			// }
 		}
-
-		// if (PredYN) {
-		// 	$('#OriginRow').append('<div class="col-xs-8 form-group">Predecessor</div>') ;
-		// }
-
-		// else {
-		// 	$('#OriginRow').append('<div class="col-xs-8 form-group"><select name="VarOrigin"><option selected disabled></option><option value="Assigned">Assigned</option><option value="Derived">Derived</option></select></div>')
-		// }
-
-
 	}
 </script>
 

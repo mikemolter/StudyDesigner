@@ -1,73 +1,325 @@
-<link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
 
-<div class="w3-container w3-center w3-large">
-	<p><b>STUDY: {{Study}}</b></p>
+{% load static %}
+<head>
+   <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato|Lora" rel="stylesheet">
+    <!-- JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.css">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.js"></script>
+
+<!-- Latest compiled and minified Locales -->
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table-locale-all.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/locale/bootstrap-table-en-US.js"></script>
+<script type="text/javascript" src="{% static 'StandardDeveloper1/DatasetMD.js' %}"></script>
+<script type="text/javascript" src="{% static 'StandardDeveloper1/Utilities.js' %}"></script>
+
+<script>
+	
+	$(document).ready(function(){
+
+		{% block GetStudyInfo %}{% endblock %}
+
+		// Get Study info and plug it into the template below
+		$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyInfo',{Study:"{{Study}}"},function(data) {
+			$('#protocol').html('Protocol Name: <br>'+data[0]['ProtocolName']) ;
+			$('#studydesc').html('Study Description: <br>'+data[0]['Description']) ;
+		}) ;
+
+		$('#docs').bootstrapTable({
+			url:'http://localhost:8000/StandardDeveloper1/GetDocs',
+			queryParams:{Study:"{{Study}}"},
+			columns:[{
+				field:'Name',
+				title:'Name'
+			},{
+				field:'File',
+				title:'File'
+			}]
+		}) ;
+
+		$('#dicts').bootstrapTable({
+			url:'http://localhost:8000/StandardDeveloper1/GetDicts',
+			queryParams:{Study:"{{Study}}"},
+			columns:[{
+				field:'Name',
+				title:'Name'
+			},{
+				field:'Description',
+				title:'Description'
+			},{
+				field:'Version',
+				title:'Version'
+			}]
+		}) ;
+
+		$('#adslbutton').click(function() {
+			// Begin the definition of ADSL
+			$('#mh4').text('ADSL metadata') ;
+			$('[name=IGDSource]').val('Standard') ;
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardDS',{'DSName':'ADSL','StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
+				$('#mh4').text(data[0]['Name']+' metadata');
+				var MDDic={'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':true} ;
+				$('[name=MD]').val(JSON.stringify(MDDic)) ;
+
+				$('#mb').append('<p>For other data sets, some of the below metadata properties will be editable, but CDISC sets them in stone for ADSL.  Review them and click Next to begin defining record sources.</p>');
+				DisplayDatasetMD(MDDic) ;
+				$('#myModal').modal('show') ;
+			})
+		})
+
+		// When a new, non-ADSL data set is to be defined
+		$('.container').on('click','.btn-group-justified',function(){
+			// Determine which standard data set was chosen or general data set class was chosen
+			var selection=$(this).text() ;
+
+			// If a general data set structure was chosen, then simply pass the CLASS value to the MD dictionary as well as to the DisplayDatasetMD function, but no data query is needed.
+			if (['Add BDS','Add Occurrence','Add Other ADaM'].includes(selection)) {
+				$('#mh4').text('Dataset metadata');
+				$('[name=IGDSource]').val('Model');
+				var ClassDic={'Add BDS':'BASIC DATA STRUCTURE','Add Occurrence':'OCCURRENCE DATA STRUCTURE','Add Other ADaM':'ADAM OTHER DATA STRUCTURE'} ;
+				var MDDic={'Class':ClassDic[selection],'StandardTF':false,'Purpose':'Analysis'} ;
+				$('[name=MD]').val(JSON.stringify(MDDic)) ;
+				DisplayDatasetMD(MDDic) ;
+				$('#myModal').modal('show') ;
+			}
+
+			// Otherwise, if a specific data set was chosen from the standard, then query it
+			// Note that MDDIC is what is being passed to the function, but only part of that is being saved to MD
+			else {
+				$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardDS',{'DSName':selection,'StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
+					$('#mh4').text(data[0]['Name']+' metadata');
+					var MDDic={'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':true} ;
+					$('[name=MD]').JSON.stringify({'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'StandardTF':true,'Purpose':'Analysis'}) ;
+					DisplayDatasetMD(MDDic) ;
+					$('#myModal').modal('show') ;
+				})
+				$('[name=IGDSource]').val('Standard') ;
+			}
+
+			$('#myModal').modal('show') ;
+		})
+
+		// When editing a study data set
+		$('.container').on('click','#pencilwithtrash',function(){
+			$('[value=Next]').attr('id','ToRecordSourceFromEditDSMD') ;
+			// Determine which study data set was chosen
+			var rowindex=$(this).closest('tr').data('index'); 
+			var chosends=$('#dsmdtable').bootstrapTable('getData')[rowindex]['Dataset'] ;
+
+			// Query the study
+			$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyDS',{'DSName':chosends,'Study':$('[name=Study]').val()},function(data) {
+				$('#mh4').text(data[0]['Dataset']+' metadata');
+				var MDDic={'Name':data[0]['Dataset'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':data[0]['StandardTF']} ;
+
+				if (data[0]['StandardTF']) {
+					$('[name=MD]').val(JSON.stringify({'Name':data[0]['Dataset'],'Label':data[0]['Label'],'Class':data[0]['Class'],'StandardTF':true,'Purpose':'Analysis'})) ;
+				}
+				else {
+					$('[name=MD]').val(JSON.stringify({'Class':ClassDic[selection],'StandardTF':false,'Purpose':'Analysis'}))
+				}
+
+				DisplayDatasetMD(MDDic) ;
+				$('#myModal').modal('show') ;
+			})
+		})
+	})
+
+</script>
+   <!-- CSS -->
+<!--     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato|Lora" rel="stylesheet">
+ -->    <!-- JS -->
+<!--     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+ -->
+
+     <style>
+div.navdiv {
+    width: 100%;
+}
+
+div.maindiv {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.table {width: 75%; }
+
+img.resize{
+    max-width:99%;
+}
+
+.hidden{
+  display:none;
+  visibility:hidden;
+}
+.im-centered {
+      min-height: 50%;  /* Fallback for vh unit */
+      min-height: 35vh; /* You might also want to use
+                            'height' property instead.
+
+                            Note that for percentage values of
+                            'height' or 'min-height' properties,
+                            the 'height' of the parent element
+                            should be specified explicitly.
+
+                            In this case the parent of '.vertical-center'
+                            is the <body> element */
+
+/* Make it a flex container */
+display: -webkit-box;
+display: -moz-box;
+display: -ms-flexbox;
+display: -webkit-flex;
+display: flex;
+
+/* Align the bootstrap's container vertically */
+-webkit-box-align : center;
+-webkit-align-items : center;
+   -moz-box-align : center;
+   -ms-flex-align : center;
+      align-items : center;
+
+/* In legacy web browsers such as Firefox 9
+ we need to specify the width of the flex container */
+width: 100%;
+
+/* Also 'margin: 0 auto' doesn't have any effect on flex items in such web browsers
+ hence the bootstrap's container won't be aligned to the center anymore.
+
+ Therefore, we should use the following declarations to get it centered again */
+     -webkit-box-pack : center;
+        -moz-box-pack : center;
+        -ms-flex-pack : center;
+-webkit-justify-content : left;
+      justify-content : left;
+      }
+
+body { padding-top: 90px; }
+
+.btn-primary{
+        background-color:#006A3B;
+        border-color: #006A3B;
+    }
+
+img.resize{
+    width:75px;
+    height:75px;
+}
+
+img.resize2{
+    width: 150px;
+}
+
+.v-center {
+  min-height:200px;
+  display: flex;
+  justify-content:center;
+  flex-flow: column wrap;
+}
+
+.btn-success {
+    color: #fff;
+    background-color: #4cae4c;
+    border-color: #5cb85c;
+}
+
+a {
+    color: #969696;
+    text-decoration: none;
+}
+    </style>
+
+</head>
+
+<body style="font-family: 'Lora', serif;">
+
+{% csrf_token %}
+
+<div id="hide">
+	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+	<input type="hidden" name="Study" value="{{Study}}"/>
+	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
 </div>
 
-<form action='QueryStandardDSMD' class="w3-container w3-teal" style="height:100%">
-	<input type="hidden" name="Study" value="{{Study}}"/>
-	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
-	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+<div class="navbar navbar-default navbar-fixed-top" style="background-color:#ffffff;">
+    <a class="navbar-brand" href="#" style="color:#969696;">CLINICAL STUDY DESIGNER SUITE</a>
+    <ul class="nav navbar-nav navbar-right">
+        <a href="https://www.wrightave.com" target="_blank"><li style="padding-top:12px;padding-right:27px;"><img class="resize2" src="{% static 'StandardDeveloper1/image.png' %}"></li></a>
+    </ul>
+</div>
 
-	<div id="buttons" class="w3-bars w3-center">
-		<input type="submit" value="Generate Define.xml (2.0)" class="w3-button w3-dark-grey w3-round-large" name="make_define"/>
-		<input type="submit" value="Generate Excel Programming Spec" class="w3-button w3-dark-grey w3-round-large" formaction="QueryStudy" name="make_spec"/>
-	</div>
 
-	<div class="w3-cell-row">
-		<div class="w3-cell" style="width:45%">
-			<p class="w3-center">Datasets to add to {{Study}}</p>
-			<table border="1 solid" class="w3-table-all w3-hoverable">
-				<tr>
-					<th>Dataset</th>
-					<th class="w3-center">Add</th>
-				</tr>
-				{% for x in AddDatasets %}
-					<tr>
-						<!-- <td>{{x.name}}</td> -->
-						<td>{{x}}</td>
-						<td class='w3-center'>
-							<input type="submit" name="add_{{ x }}" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
-						</td>
-					</tr>
-				{% endfor %}
 
-				{% for x in ClassList %}
-					<tr>
-						<td>General {{x}}</td>
-						<td class="w3-center">
-							<input type="submit" name="{{x}}" value="Add" class="w3-button w3-dark-grey w3-round-large"/>
-						</td>
-					</tr>
-				{% endfor %}
-			</table>
-		</div>
+<div class="container">
+	<h2>Study: {{Study}}</h2>
+	<p>{% block Instruction %}{% endblock %}</p>
+	{% block Outputs %}{% endblock %}
+	<hr>
+	<h3>Study-Level metadata summary</h3>
+	<p id="protocol"></p>
+	<button type="button" class="btn btn-success">Edit Protocol Name</button>
+	<hr>
+	<p>Dictionaries</p>
+	<table id="dicts"></table>
+	<button type="button" class="btn btn-success">Edit Dictionaries</button>
+	<hr>
+	<p>Documents</p>
+	<table id="docs"></table>
+	<button type="button" class="btn btn-success">Edit Documents</button>
+	<hr>
+	<p id="studydesc"></p>
+	<button type="button" class="btn btn-success">Edit Description</button>
+	{% block menus %}{% endblock %}
+	{% block table %}{% endblock %}
+	{% block adslbutton %}{% endblock %}
+</div>
 
-		<div class="w3-cell" style="width:10%">
-			<p></p>
-		</div>
+<div id="myModal" class="modal fade" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<form id="modalForm" action='NewDS' method="post" >
+				{% csrf_token %}
+				<div id="hidemodal">
+					<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+					<input type="hidden" name="Study" value="{{Study}}"/>
+					<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+					<input type="hidden" name="IGDSource"/>
+					<input type="hidden" name="MD"/>
+					<input type="hidden" name="RecordSources"/>
+					<input type="hidden" name="StandardTF"/>
+				</div>
+			    <div class="modal-header" id="mh">
+			    	<button type="button" class="close" data-dismiss="modal">&times;</button>
+			    	<h4 class="modal-title" id="mh4"></h4>
+			    </div>
 
-		<div class="w3-cell w3-center" style="width:45%">
-			<p class="w3-center">{{Study}} Datasets</p>
-			<table border="1 solid" class="w3-table-all w3-hoverable">
-				<tr>
-					<th>Dataset</th>
-					<th class="w3-center">Remove</th>
-					<th class="w3-center">Edit</th>
-				</tr>
-				{% for x in StudyDatasets %}
-					<tr>
-						<td>{{x.dsname}}</td>
-						<td class='w3-center'>
-							<input type="submit" name="remove_{{ x.dsname }}" value="Remove" class="w3-button w3-dark-grey w3-round-large"/>
-						</td>
-						<td class='w3-center'>
-							<input type="submit" name="edit_{{ x.dsname }}" value="Edit" class="w3-button w3-dark-grey w3-round-large" formaction="QSDS"/>
-						</td>
-					</tr>
-				{% endfor %}
-			</table>
-			<p>{{Message}}</p>
+			    <div class="modal-body" id="mb">
+			    </div>
+
+	            <div class="modal-footer" id="mf">
+	            	<input type="button" class="btn btn-success" value="Next" id="ToRecordSourceFromAddDSMD">
+	            </div>
+        	</form>
 		</div>
 	</div>
-</form>
+</div>
+
+
+<script>
+
+
+</script>
+
+</body>

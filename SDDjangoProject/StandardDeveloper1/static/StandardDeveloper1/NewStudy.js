@@ -3,7 +3,6 @@
 $(document).ready(function(){
 	$('#myModal1').on('change','[name=ModelName]',function(){
 		var selectedVal = $('input[name=ModelName]:checked').val();
-		alert('SELECTEDVAL: '+selectedVal) ;
 
 		$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandards',{'Model':selectedVal},function(data){
 			$.each(data,function() {

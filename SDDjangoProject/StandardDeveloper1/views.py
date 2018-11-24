@@ -21,26 +21,68 @@ def index(request):
 
 
 def NewStudy(request):
-	study=request.GET["newstudyname"]
-	parentstandard=request.GET['standards'][0:4]
-	parentversion=request.GET['standards'][4:]
+	StudyName=request.GET["StudyName"]
+	StudyDescription=request.GET['StudyDescription']
+	ProtocolName=request.GET['ProtocolName']
+	parentstandard=request.GET['ModelName']
+	parentversion=request.GET['ModelVersion']
+	Documents=json.loads(request.GET['Documents'])
+	Dictionaries=json.loads(request.GET['ExtDicts'])
 	# Create a node for the new study and attach it to the standard to which the parent is attached
 	# Also create a copy of the standard ADSL and attach it to the study
 
 	if parentstandard == 'ADAM':
+		stmt= 'match (a:Standard {Name:"'+parentstandard+'",Version:"'+parentversion+'"})--(b:ItemGroupDef {Name:"ADSL"}) create (a)<-[:BasedOn]-(c:Study {Name:"'+StudyName+'",Description:"'+StudyDescription+'",\
+			ProtocolName:"'+ProtocolName+'"}) with b,c create (d)-[:BasedOn]->(b) '
+
+		if Documents:
+			stmt=stmt+'with c create (c)-[:ContainsDocs]->(docs:Documents) '
+			for x in Documents:
+				if x['name'] == 'Annotated Case Report Form':
+					doctype='acrf'
+				else:
+					doctype='suppdoc'
+
+				stmt=stmt+'with c,docs create (docs)-[:ContainDoc]->(:Document {Type:"'+doctype+'",Name:"'+x['name']+'",File:"'+x['file']+'"}) '
+
+		if Dictionaries:
+			stmt=stmt+'with c create (c)-[:ContainsDictionaries]->(dicts:Dictionaries) '
+			for x in Dictionaries:
+				stmt=stmt+'with c,dicts create (dicts)-[:ContainDict]->(:Dictionary {Name:"'+x['name']+'",Description:"'+x['description']+'",Version:"'+x['version']+'"}) '
+
+		print 'NEWSTUDY STMT: '+stmt ;
+
 		tx = graph.cypher.begin()
-		tx.append(' match (a:Standard {Name:"'+parentstandard+'",Version:"'+parentversion+'"})--(b:ItemGroupDef {Name:"ADSL"}) create (a)<-[:BasedOn]-(c:Study {Name:"'+study+'"})\
-			-[:ItemGroupRef]->(d:ItemGroupDef),(d)-[:BasedOn]->(b) set d=b')
+		tx.append(stmt)
 		tx.commit()
 
-		Instruction="We begin a new study by defining what every new study needs - an ADSL data set.  "
-		# Instruction=Instruction+"Provide the subset of SDTM.DM you will use to create ADSL.  Leave it blank if there is no subset.  "
-		# Instruction=Instruction+"Then click the button to begin defining predecessors from DM. "
+		return render(request,'StandardDeveloper1/FirstStudyHome.html',{'Study':StudyName,'StandardName':parentstandard,'StandardVersion':parentversion})
 
-		# return render(request,'StandardDeveloper1/predsource.html', \
-		# 	{'RSType':'MAIN','Action':'Add','NewStudy':'Y','Study':study,'Instruction':Instruction,'IGDName':'ADSL','StandardName':parentstandard,'StandardVersion':parentversion,'Class':'SUBJECT LEVEL ANALYSIS DATASET'})
-		return render(request,'StandardDeveloper1/recordsourcedef.html', \
-			{'Action':'Add','Study':study,'Instruction':Instruction,'IGDName':'ADSL','StandardName':parentstandard,'StandardVersion':parentversion,'Class':'SUBJECT LEVEL ANALYSIS DATASET','IGDSource':'Standard'})
+def Back2Study(request):
+	StudyName=request.POST["Study"]
+	StandardName=request.POST['StandardName']
+	StandardVersion=request.POST['StandardVersion']
+	return render(request,'StandardDeveloper1/SubsequentStudyHome.html',{'Study':StudyName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+
+def GetStudyInfo(request):
+	Study=request.GET['Study']
+	RL=graph.cypher.execute('match (a:Study {Name:"'+Study+'"}) return a.Description as Description,a.ProtocolName as ProtocolName')
+	DF=pd.DataFrame(RL.records,columns=RL.columns)
+	return HttpResponse(DF.to_json(orient='records'),content_type='application/json')
+
+def GetDicts(request):
+	Study=request.GET['Study']
+	RL=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})--(:Dictionaries)--(dict:Dictionary) return dict.Name as Name,dict.Description as Description,dict.Version as Version')
+	DF=pd.DataFrame(RL.records,columns=RL.columns)
+	return HttpResponse(DF.to_json(orient='records'),content_type='application/json')
+
+def GetDocs(request):
+	Study=request.GET['Study']
+	RL=graph.cypher.execute('match (a:Study {Name:"'+Study+'"})--(:Documents)--(doc:Document) return doc.Name as Name,doc.File as File')
+	DF=pd.DataFrame(RL.records,columns=RL.columns)
+	return HttpResponse(DF.to_json(orient='records'),content_type='application/json')
+
+
 
 def NewMerge(request):
 	Study=request.POST['Study']
@@ -90,33 +132,77 @@ def NewDS(request):
 	Study=request.POST["Study"]
 	StandardName=request.POST["StandardName"]
 	StandardVersion=request.POST["StandardVersion"]
-	StandardYN=request.POST['StandardYN']
-	DSName=request.POST["DSName"]
-	Label=request.POST["Label"]
-	Class=request.POST["Class"]
-	Structure=request.POST["Structure"]
-	Repeat=request.POST["Repeat"]
-	Reference=request.POST["Reference"]
+	IGDSource=request.POST['IGDSource']
+	MDDic=json.loads(request.POST['MD'])
+	RecordSourceList=json.loads(request.POST['RecordSources'])
 
-	if StandardYN == 'Y':
-		stmt='match (a:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(end:ItemGroupDef \
+	DSName=MDDic['Name']
+	Class=MDDic['Class']
+
+	if IGDSource == 'Standard':
+		stmt='match (study:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(end:ItemGroupDef \
 			{Name:"'+DSName+'"})'
 	else:
 		stmt='match (a:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(end:ItemGroupDef {Name:"'+Class+'"})'
 
+	stmt=stmt+' create (study)-[:ItemGroupRef]->(igd:ItemGroupDef {Name:"'+DSName+'",Label:"'+MDDic['Label']+'",Repeating:"'+MDDic['Repeating']+'",Structure:"'+MDDic['Structure']+'",IsReferenceData:"'+MDDic['Reference']+'"}) \
+		-[:BasedOn]->(end) '
+
+	for x in RecordSourceList:
+		model=x['model']
+		if model == 'ADAM':
+			# Connect to already existing nodes
+			 stmt=stmt+'with study,igd match (study)--(igdR:ItemGroupDef {Name:"'+x['dataset']+'"}) merge (igd)-[:RecordSource {Subset:"'+x['subset']+'"}]->(igdR) '
+		else:
+			# For now, we're just creating a new SDTM ItemGroupDef node to connect to
+			stmt=stmt+'with study,igd merge (igd)-[:RecordSource {Subset:"'+x['subset']+'"}]->(:ItemGroupDef {Name:"'+x['dataset']+'"}) '
+
+
+	print "NEWDS STMT: "+stmt
 	tx=graph.cypher.begin()
-	tx.append(stmt+' create (a)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'",Label:"'+Label+'",Repeating:"'+Repeat+'",Structure:"'+Structure+'",IsReferenceData:"'+Reference+'"}) \
-		-[:BasedOn]->(end)')
+	tx.append(stmt)
 	tx.commit()
 
 	if Class == 'BASIC DATA STRUCTURE':
-		return render(request,'StandardDeveloper1/ParameterDefs.html',{'Action':'Add','Study':Study,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+		pass
 
 	else:
-		# return render(request,'StandardDeveloper1/predsource.html', \
-		# 	{'RSType':'MAIN','Action':'Add','NewStudy':'N','Study':Study,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class})
-		return render(request,'StandardDeveloper1/sourcedef.html', \
-			{'VarDefType':'MAIN','Action':'Add','Study':Study,'IGDName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class})
+		# Determine the variable groups to be presented individually
+		VGList=VarGroupList(DSName,Class)
+
+		return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource})
+
+def RecordSource(request):
+	DSName=request.POST['DSName']
+	Study=request.POST['Study']
+	StandardName=request.POST['StandardName']
+	StandardVersion=request.POST['StandardVersion']
+	Class=request.POST['Class']
+	IGDSource=request.POST['IGDSource']
+	Action=request.POST['Action']
+
+	# Store record sources in the database
+	Sources=json.loads(request.POST['Sources'])
+	SourcesList=Sources['sources']
+	stmt='match (study:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"}) '
+	for x in SourcesList:
+		model=x['Model']
+		if model == 'ADaM':
+			# Connect to already existing nodes
+			 stmt=stmt+'with study,igd match (study)--(igdR:ItemGroupDef {Name:"'+x['Dataset']+'"}) merge (igd)-[:RecordSource {Subset:"'+x['Subset']+'"}]->(igdR) '
+		else:
+			# For now, we're just creating a new SDTM ItemGroupDef node to connect to
+			stmt=stmt+'with study,igd merge (igd)-[:RecordSource {Subset:"'+x['Subset']+'"}]->(:ItemGroupDef {Name:"'+x['Dataset']+'"}) '
+	
+	print "STMT: "+stmt
+	tx=graph.cypher.begin()
+	tx.append(stmt)
+	tx.commit()
+
+	# Determine the variable groups to be presented individually
+	VGList=VarGroupList(DSName,Class)
+
+	return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource,'Action':Action})
 
 def QueryParameters(request):
 	Study=request.POST["Study"]
@@ -656,6 +742,56 @@ def QueryStudyDS(request):
 
 	return render(request,'StandardDeveloper1/datasethome.html',{'MDDS':MDDS,'Variables':Variables,'Class':Class,'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion})
 
+def EditDS(request):
+	MDDic=json.loads(request.POST['MD'])
+	RSList=json.loads(request.POST['RecordSources'])
+	Study=request.POST['Study']
+	StandardName=request.POST['StandardName']
+	StandardVersion=request.POST['StandardVersion']
+
+
+	OldRSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+MDDic['Name']+'"})-[rs:RecordSource]->(igdr:ItemGroupDef) \
+		with igdr,rs match (x)--(igdr) return igdr.Name as dataset,rs.Subset as subset,count(x) as count')
+	OldRSDF=pd.DataFrame(OldRSRL.records,columns=OldRSRL.columns)
+
+	NewRSDF=pd.DataFrame(RSList)
+
+	RSDF=pd.merge(OldRSDF,NewRSDF,how='outer',on=['dataset','subset'],indicator=True)
+	RSChange=False
+	for x,y in RSDF.iterrows():
+		if y['_merge'] != 'both':
+			RSChange=True
+
+	if RSChange == True:
+		stmt='match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+MDDic['Name']+'"}) '
+		for x,y in RSDF.iterrows():
+			if y['_merge'] == 'left_only':
+				stmt=stmt+'with igd match (igd)-[rs:RecordSource {Subset:"'+y['subset']+'"}]->(igdr:ItemGroupDef {Name:"'+y['dataset']+'"}) '
+				if y['count'] == 1:
+					stmt=stmt+'detach delete igdr '
+				else:
+					stmt=stmt+'delete rs '
+
+			elif y['_merge'] == 'right_only':
+				if y['model'] == 'SDTM':
+					stmt=stmt+'with igd create (igd)-[:RecordSource {Subset:"'+y['subset']+'"}]->(:ItemGroupDef {Name:"'+y['dataset']+'"}) '
+				else:
+					stmt=stmt+'with igd match (:Study)-[:ItemGroupRef]->(igda:ItemGroupDef {Name:"'+y['dataset']+'"}) create (igd)-[:RecordSource {Subset:"'+y['subset']+'"}]->(igda) '
+
+	tx=graph.cypher.begin()
+	tx.append(stmt)
+	tx.commit()
+
+	return render(request,'StandardDeveloper1/SubsequentStudyHome.html',{'Study':Study,'StandardName':StandardName,'StandardVersion':StandardVersion})
+
+
+
+	# stmt='match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+MDDic['Name']+'"})-[rs:RecordSource]->(igdr:ItemGroupDef) set igd.Name="'+MDDic['Name']+'",\
+	# 	igd.Label="'+MDDic['Label']+'",igd.IsReferenceData="'+MDDic['Reference']+'",igd.Repeating="'+MDDic['Repeating']+'",igd.Structure="'+MDDic['Structure']+'" \
+	# 	'
+
+
+
 def ESDS(request):
 	StandardName=request.POST['StandardName']
 	StandardVersion=request.POST['StandardVersion']
@@ -791,49 +927,6 @@ def NewSource(request):
 
 	return render(request,'StandardDeveloper1/'+form+'.html', PMPDict)
 
-def RecordSource(request):
-	DSName=request.POST['DSName']
-	Study=request.POST['Study']
-	StandardName=request.POST['StandardName']
-	StandardVersion=request.POST['StandardVersion']
-	Class=request.POST['Class']
-	IGDSource=request.POST['IGDSource']
-	Action=request.POST['Action']
-
-	# Store record sources in the database
-	Sources=json.loads(request.POST['Sources'])
-	SourcesList=Sources['sources']
-	stmt='match (study:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"}) '
-	for x in SourcesList:
-		model=x['Model']
-		if model == 'ADaM':
-			# Connect to already existing nodes
-			 stmt=stmt+'with study,igd match (study)--(igdR:ItemGroupDef {Name:"'+x['Dataset']+'"}) merge (igd)-[:RecordSource {Subset:"'+x['Subset']+'"}]->(igdR) '
-		else:
-			# For now, we're just creating a new SDTM ItemGroupDef node to connect to
-			stmt=stmt+'with study,igd merge (igd)-[:RecordSource {Subset:"'+x['Subset']+'"}]->(:ItemGroupDef {Name:"'+x['Dataset']+'"}) '
-	
-	print "STMT: "+stmt
-	tx=graph.cypher.begin()
-	tx.append(stmt)
-	tx.commit()
-
-	# Determine the variable groups to be presented individually
-	VGList=VarGroupList(DSName,Class)
-
-	# Prepare for rendering
-
-	#Get list of predecessors to display 
-	#PMPDict=PrepMainPredList(StandardName,StandardVersion,Study,DSName,Class,VarSource)
-
-	# PMPDict['Class']=Class
-	# PMPDict['StandardName']=StandardName
-	# PMPDict['StandardVersion']=StandardVersion
-	# PMPDict['Study']=Study
-	# PMPDict['DSName']=DSName
-	# PMPDict['VarGroupList']=VarGroupList
-
-	return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource,'Action':Action})
 
 def VarGroupList(DSName,Class):
 	if DSName == 'ADSL':
@@ -1610,6 +1703,7 @@ def NewVar(request):
 	# Create the ItemDef
 	stmt='match (study:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"}) create (igd)-[ir:ItemRef {Mandatory:"'+MD['Mandatory']+'", OrderNumber:'+str(MD['OrderNumber'])+', MethodOID:'+str(MethodOID)+'}]->\
 		(id:ItemDef {Name:"'+MD['Name']+'",Label:"'+MD['Label']+'",SASType:"'+MD['SASType']+'",SASLength:'+str(MD['SASLength'])+',DataType:"'+MD['DataType']+'",Origin:"'+MD['Origin']+'"}) '
+	
 	withlist=['study,igd,id']
 
 	# Create links back to sources
@@ -1680,6 +1774,31 @@ def NewVar(request):
 					ItemCodeString=''
 				stmt=stmt+'with '+', '.join(withlist)+' create (cl)-[:ContainsCodeListItem]->(:CodeListItem {'+DecodeString+ItemCodeString+'CodedValue:"'+x['CodedValue']+'"}) '
 			withlist.remove('cl')
+
+	# Create method
+	MethodType=Method['MethodType']
+	stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:MethodRef]->(md:MethodDef {OID:'+str(MethodOID)
+	if MethodType == 'FreeText':
+		stmt=stmt+',Description:"'+Method['MethodValue']+'"}) '
+	else:
+		stmt=stmt+'}) '
+		# When a method is defined by conditions
+		MethodChoice=request.POST['methodchoice']
+		# Determine if conditions were defined with CT (a) 
+		if MethodChoice in ['b','c']:
+			ConditionList=Method['MethodValue']
+			withlist.append('md')
+			for x,y in enumerate(ConditionList):
+				stmt=stmt+'with '+', '.join(withlist)+' create (md)-[:ContainsConditions]->(:MethodCondition {Order:'
+				if y['IfElse'] == 'Else':
+					stmt=stmt+'99999,ElseFL:"Y"}) '
+				else:
+					stmt=stmt+str(x)+',ElseFL:"N",If:"'+y['Condition']+'"}) '
+				stmt=stmt+'-[:IfThen {MethodOID:'+str(MethodOID)+'}]->(:MethodThen {Then:"'+y['Result']+'"}) '
+
+		elif MethodChoice == 'a':
+			pass
+
 
 	print 'NEWVAR STMT: '+stmt 
 	tx=graph.cypher.begin()
@@ -3052,21 +3171,73 @@ def GetDerivedRows(request):
 
 	return JsonResponse(mergeresultsdf.to_json(orient='records'),safe=False)
 
+def GetStandardDS(request):
+	# Get dataset metadata properties for a given standard data set
+	DSName=request.GET['DSName']
+	StandardName=request.GET['StandardName']
+	StandardVersion=request.GET['StandardVersion']
+
+	stmt='match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"})-[:BasedOn]->(igdm:ItemGroupDef) \
+		return igd.Name as Name,igd.Label as Label,igd.Structure as Structure,igd.Repeating as Repeating,igd.Reference as Reference,igd.Purpose as Purpose,igdm.Name as Class'
+
+	RL=graph.cypher.execute(stmt)
+
+	df=pd.DataFrame(RL.records,columns=RL.columns)
+	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
+
+
 def GetStudyDatasets(request):
 	Study=request.GET['Study']
-	DSName=request.GET['DSName']
-	DSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupRef) where igd.Name <> "'+DSName+'" return igd.Name as Dataset')
+	DSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupRef) return igd.Name as Dataset')
 	DSDF=pd.DataFrame(DSRL.records,columns=DSRL.columns)
-	return JsonResponse(DSDF.to_json(orient='records'),safe=False)
+	return HttpResponse(DSDF.to_json(orient='records'),content_type='application/json')
+
+def GetStudyDSMD(request):
+	# Get data set metadata for all data sets.  Includes CLASS and record sources.  One record returned, with records sources separated by commas
+	Study=request.GET['Study']
+	stmt='match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)-[:RecordSource]->(igdr:ItemGroupDef) optional match (igd)-[:BasedOn]->(igdm:ItemGroupDef)<-[:ItemGroupRef]-(:Model) \
+		optional match (igd)-[:BasedOn]->(:ItemGroupDef)-[:BasedOn]->(igds:ItemGroupDef)<-[:ItemGroupRef]-(:Model) \
+		with igd.Name as Dataset,igd.Label as Label,igd.Structure as Structure,igd.Repeating as Repeating,igd.IsReferenceData as Reference,igdm.Name as ClassFromModel,igds.Name as ClassFromStd, \
+		reduce(acc=head(collect(igdr.Name)), x in tail(collect(igdr.Name))|acc+", "+x) as RecordSources return Dataset,Label,Structure,Repeating,Reference,\
+		case when ClassFromModel is null then ClassFromStd else ClassFromModel end as Class,RecordSources'
+
+	DSRL=graph.cypher.execute(stmt)
+	DSDF=pd.DataFrame(DSRL.records,columns=DSRL.columns)
+
+	return HttpResponse(DSDF.to_json(orient='records'),content_type='application/json')
+
+def GetStudyDS(request):
+	# Get data set metadata for a specific data set. Includes CLASS and a boolean that indicates whether it comes from a standard data set or not, but no record sources
+	Study=request.GET['Study']
+	DSName=request.GET['DSName']
+
+	stmt='match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"}) optional match (igd)-[:BasedOn]->(igdm:ItemGroupDef)<-[:ItemGroupRef]-(:Model) \
+		optional match (igd)-[:BasedOn]->(:ItemGroupDef)-[:BasedOn]->(igds:ItemGroupDef)<-[:ItemGroupRef]-(:Model) \
+		with igd,igdm.Name as ClassFromModel,igds.Name as ClassFromStd \
+		return igd.Name as Dataset,igd.Label as Label,igd.Structure as Structure,igd.Repeating as Repeating,igd.IsReferenceData as Reference,\
+		case when ClassFromModel is null then ClassFromStd else ClassFromModel end as Class, \
+		exists((igd)-[:BasedOn]->(:ItemGroupDef)<-[:ItemGroupRef]-(:Standard)) as StandardTF'
+
+	RL=graph.cypher.execute(stmt)
+
+	df=pd.DataFrame(RL.records,columns=RL.columns)
+	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
 
 def GetRecordSources(request):
+	# Get record sources for all data sets - one record per record source
 	Study=request.GET['Study']
-	#Study='oct1835'
+	DSName=request.GET['DSName']
 	# For now, SDTM is differentiated from ADaM by assuming that any data set connected through BasedOn to another must be ADaM
-	RSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)-[rs:RecordSource]->(igd:ItemGroupDef) \
-		return distinct igd.Name as Dataset,rs.Subset as Subset,case when exists((igd)-[:BasedOn]->(:ItemGrouDef)) then "ADAM" else "SDTM" end as Model')
+	RSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)-[rs:RecordSource]->(igdr:ItemGroupDef) \
+		return distinct igdr.Name as dataset,rs.Subset as subset,case when exists((igdr)-[:BasedOn]->(:ItemGrouDef)) then "ADAM" else "SDTM" end as model, \
+		"'+DSName+'" in collect(igd.Name) as state')
+
 	RSDF=pd.DataFrame(RSRL.records,columns=RSRL.columns)
-	return JsonResponse(RSDF.to_json(orient='records'),safe=False)
+
+	print 'GetRecordSources DF: '
+	print RSDF
+
+	return HttpResponse(RSDF.to_json(orient='records'),content_type='application/json')
 
 
 def GetJoinSources(request):
@@ -3116,6 +3287,20 @@ def GetStandardVarswoStudy(request):
 
 	return JsonResponse(mrg2.to_json(orient='records'),safe=False)
 
+def GetStandardDSwoStudy(request):
+	Study=request.GET['Study']
+	StandardName=request.GET['StandardName']
+	StandardVersion=request.GET['StandardVersion']
+
+	StandardDS=graph.cypher.execute('match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})--(igd:ItemGroupDef) return igd.Name as Name')
+	StudyDS=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef) return igd.Name as Name')
+
+	StandardDSDF=pd.DataFrame(StandardDS.records,columns=StandardDS.columns)
+	StudyDSDF=pd.DataFrame(StudyDS.records,columns=StudyDS.columns)
+
+	mrg=pd.merge(StandardDSDF,StudyDSDF,how='left',on='Name',indicator=True)
+	mrg2=mrg[mrg['_merge'] == 'left_only']
+	return HttpResponse(mrg2.to_json(orient='records'),content_type='application/json')
 
 def GetAllVarGroups(request):
 	DSName=request.GET['DSName']
@@ -3151,7 +3336,7 @@ def GetStandardVar(request):
 		stmt='match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})'
 
 	elif StandardType == 'Model':
-		'match (a:Model {name:"'+StandardName+'",version:"'+StandardVersion+'"})'
+		stmt='match (a:Model {name:"'+StandardName+'",version:"'+StandardVersion+'"})'
 
 	stmt=stmt+'-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+IGDName+'"})-[r:ItemRef]->(c:ItemDef {Name:"'+VarName+'"}) \
 			optional match (c)-[:CodeListRef]->(cl:CodeList)--(cli:CodeListItem) return c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.MaxLength as SASLength, \
@@ -3170,7 +3355,7 @@ def GetStudyVar(request):
 	Study=request.GET['Study']
 	VLMOID=request.GET['VLMOID']
 
-	# This function returns ItemDef metadata.  If VLMOID is specified, it will return VLM for the condition specified by this OID.
+	# This function returns ItemDef metadata for a single variable.  If VLMOID is specified, it will return VLM for the condition specified by this OID.
 	# When no VLMOID is given, then variable-level metadata is returned, as well as a boolean (VLM) that indicates whether or not this variable is defined with VLM.
 	stmt='match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]-> '
 	if VLMOID:
@@ -3193,29 +3378,20 @@ def GetStudyVar(request):
 
 
 def GetADaMStudyVars(request):
+	# All variable metadata for a chosen data set in the study - does not include sources, methods, CT, or ItemRef properties
 	Study=request.GET['Study']
 	DSName=request.GET['DSName']
-	RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(id:ItemDef) return id.Name as VarName,id.Label as Label,id.SASType as SASType')
+	RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(id:ItemDef) return id.Name as VarName,id.Label as Label,id.SASType as SASType,id.SASLength as SASLength,id.DataType as DataType,\
+		id.Origin as Origin')
 	df=pd.DataFrame(RL.records,columns=RL.columns)
 	return HttpResponse(df.to_json(orient='records'))
 
 def GetADaMStudyDS(request):
+	# List of all study data sets for the study
 	Study=request.GET['Study']
 	RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef) return igd.Name as DSName')
 	df=pd.DataFrame(RL.records,columns=RL.columns)
 	return HttpResponse(df.to_json(orient='records'))
-
-# def GetStudyVarMD(request):
-# 	""" This function returns a record list of all study variables """
-# 	Study=request.GET['Study']
-# 	DSName=request.GET['DSName']
-
-# 	statement='match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+DSName+'"})-[r:ItemRef]->(c:ItemDef) '
-# 	if filter:
-# 		statement=statement+'where '+filter
-# 	statement=statement+'optional match (c)-[rsr:RecordSource]->(igdr:ItemGroupDef) optional match (c)-[jsr:JoinSource]->(igdj:ItemGroupDef) return c.Name as Name,c.Label as Label,r.Order,\
-# 		collect(igdr.Name) as RecordDatasets,collect(igdj.Name) as JoinDatasets order by r.Order'
-# 	return graph.cypher.execute(statement)
 
 
 
@@ -3353,147 +3529,5 @@ def modds(request):
 			return render(request,'StandardDeveloper1/datasets.html',{'Standard':standard,'AddDatasets':parentdatasetsLIST, \
 				'StandardDatasets':standarddatasetsRL,'Message':'Standard '+standard+' has been saved to '+filename})
 
-def predlist(request):
-	tx=graph.cypher.begin()
-	# Get the dataset-level metadata, create a dataset node, attach it to the study, and get predecessors to display from the standard
-	if 'frommdds' in request.POST:
-		statement='match (a:Study {Name:"'+study+'"}) create (a)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+request.POST["DSName"]+'",Label:"'+request.POST["DSLabel"]+'",Structure:"'+request.POST['DSStructure']+'",\
-			DSClass:"'+request.POST['DSClass']+'",Repeating:"'+request.POST['DSRepeat']+'",Reference:"'+request.POST['DSIsRef']+'",Purpose:"'+request.POST["DSPurpose"]+'"})-[:ContainsRecords]->(:RecordSourceContainer {Type:"ORIGINAL"}) \
-			-[:ContainsRecordType]->(:RecordSource {Type:"Main",Name:"'+request.POST['DSPredecessor']+'",Description:"'+request.POST['DSSubset']+'",Order:0})'
-	# Get variable-level metadata, attach to the data set
-	elif 'frommdvar' in request.POST:
-		statement='match (a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})-->(:RecordSourceContainer)-->(b1:RecordSource {Type:"'+request.POST['RSType']+'"}) with b,b1 \
-			merge (c:ItemDef {Name:"'+request.POST['VarName']+'",Label:"'+request.POST['VarLabel']+'",SASType:"'+request.POST['VarSASType']+'",\
-			Origin:"'+request.POST['VarOrigin']+'",DataType:"'+request.POST['VarDataType']+'",CodeList:"'+request.POST['VarCodeList']+'",MaxLength:"'+request.POST['VarSASLength']+'",\
-			Core:"'+request.POST['VarCore']+'",Predecessor:"'+request.POST['DSPredecessor']+'"}) on create set c.OID="ID.'+request.POST['DSName']+'.'+request.POST['VarName']+'" with b,b1,c \
-			create (b)-[:ItemRef {OrderNumber:'+request.POST['VarOrderNumber']+',Mandatory:"'+request.POST['VarMandatory']+'"}]->(c)-[:MethodRef]->\
-			(d:Method {Description:"Set to '+request.POST['DSPredecessor']+'.'+request.POST['VarName']+'"})-[:MethodSource]->(b1)'
 
-	print 'PREDLIST STATEMENT: '
-	print statement
-	tx.append(statement)
-	tx.commit()
-	stdpredvars=graph.cypher.execute('match (a:Standard {name:"'+parentstandard+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST['DSName']+'"})-[:ItemRef]->(c:ItemDef {Origin:"Predecessor"}) return distinct c.Name as Name')
-	stdpredvarsLIST=[]
-	for x in stdpredvars:
-		stdpredvarsLIST.append(x[0])
-	studypredvars=graph.cypher.execute('match (a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST['DSName']+'"})-[:ItemRef]->(c:ItemDef {Origin:"Predecessor"})-->(:Method)-->(:RecordSource {Type:"Main"}) return distinct c.Name as Name,c.Label as Label')
-	for x in studypredvars:
-		if x[0] in stdpredvarsLIST:
-			stdpredvarsLIST.remove(x[0])
-	return render(request,'StandardDeveloper1/varlist.html',{'StdVarList':stdpredvarsLIST,'StudyVarList':studypredvars,'VarType':'Predecessor','Study':study,'DSName':request.POST['DSName'],'SourceDS':request.POST['DSPredecessor'],'RSType':'Main'})
-
-
-
-
-def merge(request):
-	path='(a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})'
-	path2=':RecordSourceContainer'
-	path3=':RecordSource {Type:"Merge",Order:'+request.POST['MergeOrder']+'}'
-	addprops='{Type:"Merge",Order:'+request.POST['MergeOrder']+', Name:"'+request.POST['DSPredecessor']+'", Description:"'+request.POST['DSSubset']+'", JoinCondition:"'+request.POST['DSJoinCond']+'"}'
-	pathex=graph.cypher.execute('match '+path+' return exists((b)-->('+path2+')) as path2,exists((b)-->('+path2+')-->('+path3+')) as path3')
-	if pathex[0][1]:
-		statement='match '+path+'-->('+path2+')-->(d'+path3+') set d.Name="'+request.POST['DSPredecessor']+'",d.Description="'+request.POST['DSSubset']+'",d.JoinCondition="'+request.POST['DSJoinCond']+'"'
-	elif pathex[0][0]:
-		statement='match '+path+'-->(c'+path2+') create (c)-[:ContainsRecordType]->(:RecordSource '+addprops+')'
-	else:
-		statement='match '+path+' create (b)-[:ContainsRecords]->(c'+path2+')-[:ContainsRecordType]->(:RecordSource '+addprops+')'
-	print 'STATEMENT: '
-	print statement 
-	tx=graph.cypher.begin()
-	tx.append(statement)
-	tx.commit()
-
-	for k,v in request.POST.iteritems():
-		if k == 'frommerge':
-			return render(request,'StandardDeveloper1/mdvar.html',{'SourceDS':request.POST['DSPredecessor'],'Form':'Merge','readonly':'N','VarType':'Predecessor','Study':study,'DSName':request.POST["DSName"],'RSType':'Merge','MergeOrder':request.POST['MergeOrder'],'DSSubset':request.POST['DSSubset'],'DSJoin':request.POST['DSJoinCond']})
-		elif k == 'frommdvar':
-			tx=graph.cypher.begin()
-			mergeorder=request.POST['MergeOrder']
-			statement='match (a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})-->(:RecordSourceContainer)-->(b1:RecordSource {Type:"Merge",Order:'+str(mergeorder)+'}) with b,b1 \
-				merge (c:ItemDef {Name:"'+request.POST['VarName']+'",Label:"'+request.POST['VarLabel']+'",SASType:"'+request.POST['VarSASType']+'",\
-				Origin:"'+request.POST['VarOrigin']+'",DataType:"'+request.POST['VarDataType']+'",CodeList:"'+request.POST['VarCodeList']+'",MaxLength:"'+request.POST['VarSASLength']+'",\
-				Core:"'+request.POST['VarCore']+'",Predecessor:"'+request.POST['DSPredecessor']+'"}) on create set c.OID="ID.'+request.POST['DSName']+'.'+request.POST['VarName']+'" with b,b1,c \
-				create (b)-[:ItemRef {OrderNumber:'+request.POST['VarOrderNumber']+',Mandatory:"'+request.POST['VarMandatory']+'"}]->(c)-[:MethodRef]->\
-				(d:Method {Description:"Set to '+request.POST['DSPredecessor']+'.'+request.POST['VarName']+'"})-[:MethodSource]->(b1)'
-			print 'MERGE STATEMENT: '
-			print statement 
-			tx.append(statement)
-			tx.commit()
-			studypredvars=graph.cypher.execute('match (a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST['DSName']+'"})-[:ItemRef]->(c:ItemDef {Origin:"Predecessor"})-->(:Method)-->(:RecordSource {Type:"Merge",Order:'+str(request.POST['MergeOrder'])+'}) return c.Name as Name,c.Label as Label')
-			return render(request,'StandardDeveloper1/merge.html',{'MergeOrder':mergeorder,'DSName':request.POST["DSName"],'StudyVarList':studypredvars,'DSPredecessor':request.POST['DSPredecessor'],'DSSubset':request.POST['DSSubset'],'DSJoinCond':request.POST['DSJoinCond'],'Study':study})
-		elif k == 'merge':
-			mergeorder=int(request.POST['MergeOrder'])+1 
-			return render(request,'StandardDeveloper1/merge.html',{'MergeOrder':mergeorder,'DSName':request.POST["DSName"],'Study':study})
-
-def model(request):
-	if 'frommdvar' in request.POST:
-		path='(a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})'
-		path2=':RecordSourceContainer'
-		path3=':RecordSource {Type:"'+request.POST['RSType']+'"}'
-		addprops='{Type:"Merge",Order:'+request.POST['MergeOrder']+', Name:"'+request.POST['DSPredecessor']+'", Description:"'+request.POST['DSSubset']+'", JoinCondition:"'+request.POST['DSJoinCond']+'"}'
-		pathex=graph.cypher.execute('match '+path+' return exists((b)-->('+path2+')) as path2,exists((b)-->('+path2+')-->('+path3+')) as path3')
-		if pathex[0][1]:
-			statement='match '+path+'-->('+path2+')-->(d'+path3+') with b,d '
-		elif pathex[0][0]:
-			statement='match '+path+'-->(c'+path2+') create (c)-[:ContainsRecordType]->(d'+path3+') with b,d '
-		else:
-			statement='match '+path+' create (b)-[:ContainsRecords]->(c'+path2+')-[:ContainsRecordType]->(d'+path3+') with b,d '
-
-		statement=statement+'merge (c:ItemDef {Name:"'+request.POST['VarName']+'",Label:"'+request.POST['VarLabel']+'",SASType:"'+request.POST['VarSASType']+'",\
-		Origin:"'+request.POST['VarOrigin']+'",DataType:"'+request.POST['VarDataType']+'",CodeList:"'+request.POST['VarCodeList']+'",MaxLength:"'+request.POST['VarSASLength']+'",\
-		Core:"'+request.POST['VarCore']+'"}) on create set c.OID="ID.'+request.POST['DSName']+'.'+request.POST['VarName']+'" with b,d,c \
-		create (b)-[:ItemRef {OrderNumber:'+request.POST['VarOrderNumber']+',Mandatory:"'+request.POST['VarMandatory']+'"}]->(c)-[:MethodRef]->\
-		(:Method {Description:"Set to '+request.POST['DSPredecessor']+'.'+request.POST['VarName']+'"})-[:MethodSource]->(d)'
-
-		print 'STATEMENT: '
-		print statement 
-		tx=graph.cypher.begin()
-		tx.append(statement)
-		tx.commit()
-
-	# Get standard variables
-	stdvars=graph.cypher.execute('match (a:Standard {name:"'+parentstandard+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})\
-		-[:ItemRef]->(c:ItemDef) return distinct c.Name')
-	stdvarsLIST=[]
-	for x in stdvars:
-		stdvarsLIST.append(x[0])
-	# Get model variables
-	modelvars=graph.cypher.execute('match (a:Standard {name:"'+parentstandard+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST["DSName"]+'"})\
-		-[:BasedOn]->(c:ItemGroupDef)-[:ItemRef]->(d:ItemDef) return distinct d.Name')
-	modelvarsLIST=[]
-	for x in modelvars:
-		if x not in stdvarsLIST:
-			modelvarsLIST.append(x[0])
-	# Get study variables
-	studyvars=graph.cypher.execute('match (a:Study {Name:"'+study+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+request.POST['DSName']+'"})-[:ItemRef]->(c:ItemDef)-->(:Method)-->(d:RecordSource) \
-		where d.Type="Model" or d.Type="Other" return distinct c.Name as Name,c.Label as Label')
-	studyvarsLIST=[]
-	for x in studyvars:
-		studyvarsLIST.append(x[0])
-		if x[0] in modelvarsLIST:
-			modelvarsLIST.remove(x[0])
-		if x[0] in stdvarsLIST:
-			stdvarsLIST.remove(x[0])
-	if stdvarsLIST and modelvarsLIST:
-		width=30
-	else:
-		width=45
-	return render(request,'StandardDeveloper1/modelvarlist.html',{'StandardVars':stdvarsLIST,'ModelVars':modelvarsLIST,'StudyVars':studyvarsLIST,'Study':study,'DSName':request.POST['DSName'],'width':width})
-
-def getStandardDS():
-	global parentdatasetsLIST
-	global standarddatasetsRL
-
-	standarddatasetsLIST=[]
-	standarddatasetsRL=graph.cypher.execute('match (a:Standard {name:"'+standard+'"})-[:ItemGroupRef]->(b:ItemGroupDef)-[:BasedOn]->(c:ItemGroupDef) \
-		return b.Name as Name,b.Label as Label,b.Repeating as Repeating,b.Structure as Structure,b.IsReferenceData as IsReferenceData,c.Name as Class')
-	for x in standarddatasetsRL:
-		standarddatasetsLIST.append(x[0])
-
-	parentdatasetsRL=graph.cypher.execute('match (a:Standard {name:"'+parentstandard+'"})-[:ItemGroupRef]->(c:ItemGroupDef) return c.Name as name')
-	parentdatasetsLIST=[]
-	for x in parentdatasetsRL:
-		if x[0] not in standarddatasetsLIST:
-			parentdatasetsLIST.append(x[0])
 
