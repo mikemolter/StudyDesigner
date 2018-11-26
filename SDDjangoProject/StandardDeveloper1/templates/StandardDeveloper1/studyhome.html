@@ -78,7 +78,7 @@
 		})
 
 		// When a new, non-ADSL data set is to be defined
-		$('.container').on('click','.btn-group-justified',function(){
+		$('.container').on('click','[id^=ADD_]',function(){
 			// Determine which standard data set was chosen or general data set class was chosen
 			var selection=$(this).text() ;
 
@@ -87,7 +87,7 @@
 				$('#mh4').text('Dataset metadata');
 				$('[name=IGDSource]').val('Model');
 				var ClassDic={'Add BDS':'BASIC DATA STRUCTURE','Add Occurrence':'OCCURRENCE DATA STRUCTURE','Add Other ADaM':'ADAM OTHER DATA STRUCTURE'} ;
-				var MDDic={'Class':ClassDic[selection],'StandardTF':false,'Purpose':'Analysis'} ;
+				var MDDic={'Name':'','Label':'','Class':ClassDic[selection],'StandardTF':false,'Purpose':'Analysis'} ;
 				$('[name=MD]').val(JSON.stringify(MDDic)) ;
 				DisplayDatasetMD(MDDic) ;
 				$('#myModal').modal('show') ;
@@ -98,8 +98,9 @@
 			else {
 				$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardDS',{'DSName':selection,'StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
 					$('#mh4').text(data[0]['Name']+' metadata');
+					alert('NAME: '+data[0]['Name']+', LABEL: '+data[0]['Label']+', CLASS: '+data[0]['Class']) ;
 					var MDDic={'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':true} ;
-					$('[name=MD]').JSON.stringify({'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'StandardTF':true,'Purpose':'Analysis'}) ;
+					$('[name=MD]').val(JSON.stringify({'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'StandardTF':true,'Purpose':'Analysis'})) ;
 					DisplayDatasetMD(MDDic) ;
 					$('#myModal').modal('show') ;
 				})

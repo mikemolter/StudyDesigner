@@ -3180,9 +3180,12 @@ def GetStandardDS(request):
 	stmt='match (a:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"})-[:BasedOn]->(igdm:ItemGroupDef) \
 		return igd.Name as Name,igd.Label as Label,igd.Structure as Structure,igd.Repeating as Repeating,igd.Reference as Reference,igd.Purpose as Purpose,igdm.Name as Class'
 
+	print 'GETSTANDARDDS STMT: '+stmt 
 	RL=graph.cypher.execute(stmt)
 
 	df=pd.DataFrame(RL.records,columns=RL.columns)
+	print 'GETSTANDARDDS DF: '
+	print df
 	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
 
 

@@ -49,7 +49,8 @@ function DisplayDatasetMD(MDDic) {
 
 	if (MDDic['StandardTF'] == false) {
 		$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="DSName" value="'+MDDic['Name']+'"></div>') ;
-		$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="DSLabel" value="'+MDDic['Label']+'"></div>') ;
+		//$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="DSLabel" value="'+MDDic['Label']+'"></div>') ;
+		$('#LabelRow').append('<div class="col-xs-8 form-group"><textarea name="DSLabel" value="'+MDDic['Label']+'" cols="30" rows="2"></textarea></div>') ;
 	}
 
 	else {
@@ -62,10 +63,17 @@ function DisplayDatasetMD(MDDic) {
 		$('#RepeatingRow').append('<div class="col-xs-8 form-group">'+MDDic['Repeating']+'</div>') ;
 		$('#ReferenceRow').append('<div class="col-xs-8 form-group">'+MDDic['Reference']+'</div>') ;
 	}
+
+	else {
+		$('#StructureRow').append('<div class="col-xs-8 form-group"><textarea name="DSStructure" cols="30" rows="2"></textarea></div>') ;
+		$('#RepeatingRow').append('<div class="col-xs-8 form-group"><select name="DSRepeating"><option value="Yes" selected>Yes</option><option value="No">No</option></select></div>') ;
+		$('#ReferenceRow').append('<div class="col-xs-8 form-group"><select name="DSReference"><option value="Yes">Yes</option><option value="No" selected>No</option></select></div>') ;
+	}
 }
 
 
 function DisplayRecordSources() {
+
 	$('#mb').append("<p>We now begin to consider the sources from where a programmer will read data.  Study Designer defines a <strong>Record Source</strong> of a data set as \
 		a data set from where records are retrieved.  Think of a data set's record source(s) as the data set(s) named on the initial SET statement.  For an ADaM \
 		data set, record sources can come from SDTM or ADaM.  Use the below fields to define record sources for this data set.  Click Add Record Source to add \
@@ -82,6 +90,7 @@ function DisplayRecordSources() {
 	});
 
 	var mddic=JSON.parse($('[name=MD]').val()) ;
+	$('#mh4').text(mddic['Name']+' metadata');
 
 	$('#sourcetable').bootstrapTable({
 		url:'http://localhost:8000/StandardDeveloper1/GetRecordSources',

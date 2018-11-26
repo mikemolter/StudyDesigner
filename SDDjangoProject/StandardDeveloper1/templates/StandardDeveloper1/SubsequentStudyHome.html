@@ -10,13 +10,13 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 <p>Click a button below to add a new data set.  Click an icon in the Action column of the table to edit or remove a data set from the study.</p>
 <div class="btn-group btn-group-justified">
 	<div class="btn-group">
-		<button type="button" class="btn btn-success">Add BDS</button>
+		<button type="button" class="btn btn-success" id="ADD_BDS">Add BDS</button>
 	</div>
 	<div class="btn-group">
-		<button type="button" class="btn btn-success">Add Occurrence</button>
+		<button type="button" class="btn btn-success" id="ADD_OCCUR">Add Occurrence</button>
 	</div>
 	<div class="btn-group">
-		<button type="button" class="btn btn-success">Add Other ADaM</button>
+		<button type="button" class="btn btn-success" id="ADD_OTHER">Add Other ADaM</button>
 	</div>
 </div>
 {% endblock %}
@@ -44,7 +44,7 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 {% block GetStudyInfo %}
 	$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardDSwoStudy',{Study:"{{Study}}",StandardName:"{{StandardName}}",StandardVersion:"{{StandardVersion}}"},function(data) {
 		$.each(data,function () {
-			$('.btn-group-justified').prepend('<div class="btn-group"><button type="button" class="btn btn-success">'+this['Name']+'</button></div>') ;
+			$('.btn-group-justified').prepend('<div class="btn-group"><button type="button" class="btn btn-success" id="ADD_'+this['Name']+'">'+this['Name']+'</button></div>') ;
 		})
 	}) ;
 
