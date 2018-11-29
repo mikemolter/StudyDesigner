@@ -89,6 +89,9 @@
 				var ClassDic={'Add BDS':'BASIC DATA STRUCTURE','Add Occurrence':'OCCURRENCE DATA STRUCTURE','Add Other ADaM':'ADAM OTHER DATA STRUCTURE'} ;
 				var MDDic={'Name':'','Label':'','Class':ClassDic[selection],'StandardTF':false,'Purpose':'Analysis'} ;
 				$('[name=MD]').val(JSON.stringify(MDDic)) ;
+				$('#mb').empty(); 
+				$('#mf').empty();
+				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToRecordSourceFromAddDSMD">') ;
 				DisplayDatasetMD(MDDic) ;
 				$('#myModal').modal('show') ;
 			}
@@ -132,6 +135,14 @@
 				DisplayDatasetMD(MDDic) ;
 				$('#myModal').modal('show') ;
 			})
+		})
+
+		$('#spec').click(function() {
+			$('#mb').empty() ;
+			$('#mb').append('<p>Please provide a name for the programming spec file (without the file extension)</p><input type="text" size="20" autofocus name="specfilename" value="ProgrammingSpec" >.xlsx')
+			$('#mf').empty() ;
+			$('#mf').append('<input type="submit" class="btn btn-success" value="Generate Spec" formaction="GenerateADaMSpec">')
+			$('#myModal').modal('show')
 		})
 	})
 
@@ -296,10 +307,14 @@ a {
 					<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 					<input type="hidden" name="Study" value="{{Study}}"/>
 					<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+					<input type="hidden" name="ModelName" value="{{ModelName}}"/>
+					<input type="hidden" name="ModelVersion" value="{{ModelVersion}}"/>
 					<input type="hidden" name="IGDSource"/>
 					<input type="hidden" name="MD"/>
 					<input type="hidden" name="RecordSources"/>
 					<input type="hidden" name="StandardTF"/>
+					<input type="hidden" name="Parcats"/>
+					<input type="hidden" name="Parmdefs"/>
 				</div>
 			    <div class="modal-header" id="mh">
 			    	<button type="button" class="close" data-dismiss="modal">&times;</button>

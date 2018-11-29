@@ -56,6 +56,7 @@ urlpatterns = [
     url('GetStudyDS',views.GetStudyDS),
     url('Back2Study',views.Back2Study),
     url('EditDS',views.EditDS),
+    url('GenerateADaMSpec',views.GenerateADaMSpec),
 
     url('ModifyaDataset',views.modds)
 ]

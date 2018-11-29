@@ -51,7 +51,7 @@
 			}
 
 			// Show the modal that asks if the variable will be defined with VLM
-			$('#myModal').modal('show') ;
+			//$('#myModal').modal('show') ;
 		})
 
 		// If a new custom variable is being defined
@@ -102,7 +102,7 @@
 
 			$('#mb').empty() ;
 			// If coming from VLM question ... 
-			if (id.substr(0,9) == 'FromVLMYN') {
+			if (id.substr(9,9) == 'FromVLMYN') {
 				// Determine which choice was selected
 				var VLM=$("input[name=vlmYN]:checked").val() ;
 
@@ -265,7 +265,7 @@
 					}
 
 					// Store the method in hidden variable
-					$('[name=Method').val(JSON.stringify({MethodType:"FreeText",MethodValue:method})); 
+					$('[name=Method]').val(JSON.stringify({MethodType:"FreeText",MethodValue:method})); 
 
 					SourceDic['Vars'] = VarList ;
 				}
@@ -275,6 +275,7 @@
 					SourceDic['Datasets'] = $('#adamds').val() ;
 					SourceDic['Subsets'] = $('#adamsubset').val() ;
 					SourceDic['JConditions'] = $('#adamjoin').val() ;
+					$('[name=Method]').val(JSON.stringify({MethodType:"FreeText",MethodValue:'Copy '+$('#adamds').val()+'.'+$('#adamvar').val()})); 
 				}
 
 				else if (predsource == 'c3') {
@@ -282,6 +283,7 @@
 					SourceDic['Datasets'] = $('#sdtmds').val() ;
 					SourceDic['Subsets'] = $('#sdtmsubset').val() ;
 					SourceDic['JConditions'] = $('#sdtmjoin').val() ;
+					$('[name=Method]').val(JSON.stringify({MethodType:"FreeText",MethodValue:'Copy '+$('#sdtmds').val()+'.'+$('#sdtmvar').val()})); 
 				}
 
 				$('[name=Sources]').val(JSON.stringify([SourceDic])) ;
@@ -314,7 +316,7 @@
 			}
 
 			else if (IGDSource == 'Model') {
-				DisplayVarMD("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{Class}}",VarName,"Model")
+				DisplayVarMD("{{Study}}","{{ModelName}}","{{ModelVersion}}","{{Class}}",VarName,"Model")
 			}
 
 			else if (IGDSource == 'Standard') {
@@ -677,7 +679,7 @@
 				$('#navtabul').append('<li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">{{VarGroup}} <span class="caret"></span></a><ul class="dropdown-menu" role="menu" id="dd"></ul></li>')
 
 				$.each(JSON.parse(data),function(){
-					$('#dd').append('<li><a href="#MyModal" data-toggle="modal">'+this['Name']+'</a></li>')
+					$('#dd').append('<li><a href="#myModal" data-toggle="modal">'+this['Name']+'</a></li>')
 				})
 
 				{% if NextVarGroup %}
@@ -828,6 +830,8 @@ a {
 	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 	<input type="hidden" name="Study" value="{{Study}}"/>
 	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+	<input type="hidden" name="ModelName" value="{{ModelName}}"/>
+	<input type="hidden" name="ModelVersion" value="{{ModelVersion}}"/>
 	<input type="hidden" name="DSName" value="{{DSName}}"/>
 	<input type="hidden" name="IGDSource" value="{{IGDSource}}"/>
 	<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
@@ -883,6 +887,8 @@ a {
 					<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
 					<input type="hidden" name="Class" value="{{Class}}"/>
 					<input type="hidden" name="NextVarGroup" value="{{NextVarGroup}}"/>
+					<input type="hidden" name="ModelName" value="{{ModelName}}"/>
+					<input type="hidden" name="ModelVersion" value="{{ModelVersion}}"/>
 					<input type="hidden" name="Action"/>
 					<input type="hidden" name="CustomYN"/>
 					<input type="hidden" name="CTCode"/>

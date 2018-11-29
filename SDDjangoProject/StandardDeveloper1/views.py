@@ -9,6 +9,7 @@ import sys
 from django.http import HttpResponse, JsonResponse
 import json
 import re
+import os
 
 graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
 
@@ -28,12 +29,15 @@ def NewStudy(request):
 	parentversion=request.GET['ModelVersion']
 	Documents=json.loads(request.GET['Documents'])
 	Dictionaries=json.loads(request.GET['ExtDicts'])
+
+	# Extract the model name and version
+	ModelRL=graph.cypher.execute('match (:Standard {Name:"'+parentstandard+'",Version:"'+parentversion+'"})-[:BasedOn]->(m:Model) return m.name as Name,m.version as Version')
+	ModelS=pd.Series(ModelRL[0],index=ModelRL.columns)
 	# Create a node for the new study and attach it to the standard to which the parent is attached
-	# Also create a copy of the standard ADSL and attach it to the study
 
 	if parentstandard == 'ADAM':
-		stmt= 'match (a:Standard {Name:"'+parentstandard+'",Version:"'+parentversion+'"})--(b:ItemGroupDef {Name:"ADSL"}) create (a)<-[:BasedOn]-(c:Study {Name:"'+StudyName+'",Description:"'+StudyDescription+'",\
-			ProtocolName:"'+ProtocolName+'"}) with b,c create (d)-[:BasedOn]->(b) '
+		stmt= 'match (a:Standard {Name:"'+parentstandard+'",Version:"'+parentversion+'"}) create (a)<-[:BasedOn]-(c:Study {Name:"'+StudyName+'",Description:"'+StudyDescription+'",\
+			ProtocolName:"'+ProtocolName+'"}) '
 
 		if Documents:
 			stmt=stmt+'with c create (c)-[:ContainsDocs]->(docs:Documents) '
@@ -56,13 +60,15 @@ def NewStudy(request):
 		tx.append(stmt)
 		tx.commit()
 
-		return render(request,'StandardDeveloper1/FirstStudyHome.html',{'Study':StudyName,'StandardName':parentstandard,'StandardVersion':parentversion})
+		return render(request,'StandardDeveloper1/FirstStudyHome.html',{'Study':StudyName,'StandardName':parentstandard,'StandardVersion':parentversion,'ModelName':ModelS['Name'],'ModelVersion':ModelS['Version']})
 
 def Back2Study(request):
 	StudyName=request.POST["Study"]
 	StandardName=request.POST['StandardName']
 	StandardVersion=request.POST['StandardVersion']
-	return render(request,'StandardDeveloper1/SubsequentStudyHome.html',{'Study':StudyName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+	ModelName=request.POST['ModelName']
+	ModelVersion=request.POST['ModelVersion']
+	return render(request,'StandardDeveloper1/SubsequentStudyHome.html',{'Study':StudyName,'StandardName':StandardName,'StandardVersion':StandardVersion,'ModelName':ModelName,'ModelVersion':ModelVersion})
 
 def GetStudyInfo(request):
 	Study=request.GET['Study']
@@ -132,6 +138,8 @@ def NewDS(request):
 	Study=request.POST["Study"]
 	StandardName=request.POST["StandardName"]
 	StandardVersion=request.POST["StandardVersion"]
+	ModelName=request.POST['ModelName']
+	ModelVersion=request.POST['ModelVersion']
 	IGDSource=request.POST['IGDSource']
 	MDDic=json.loads(request.POST['MD'])
 	RecordSourceList=json.loads(request.POST['RecordSources'])
@@ -143,7 +151,7 @@ def NewDS(request):
 		stmt='match (study:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(end:ItemGroupDef \
 			{Name:"'+DSName+'"})'
 	else:
-		stmt='match (a:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(end:ItemGroupDef {Name:"'+Class+'"})'
+		stmt='match (study:Study {Name:"'+Study+'"})-[:BasedOn]->(:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(end:ItemGroupDef {Name:"'+Class+'"})'
 
 	stmt=stmt+' create (study)-[:ItemGroupRef]->(igd:ItemGroupDef {Name:"'+DSName+'",Label:"'+MDDic['Label']+'",Repeating:"'+MDDic['Repeating']+'",Structure:"'+MDDic['Structure']+'",IsReferenceData:"'+MDDic['Reference']+'"}) \
 		-[:BasedOn]->(end) '
@@ -157,20 +165,275 @@ def NewDS(request):
 			# For now, we're just creating a new SDTM ItemGroupDef node to connect to
 			stmt=stmt+'with study,igd merge (igd)-[:RecordSource {Subset:"'+x['subset']+'"}]->(:ItemGroupDef {Name:"'+x['dataset']+'"}) '
 
+	if Class == 'BASIC DATA STRUCTURE':
+		# Create parameter variables
+
+		# Calculate new Method OID and WhereClause OID
+		maxOIDRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(md1:MethodDef) with max(md1.OID) as max1 \
+			optional match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(md2:MethodDef) return max1,max(md2.OID) \
+			as max2')
+		if maxOIDRL:
+			moids=pd.Series(maxOIDRL[0],index=maxOIDRL.columns)
+			MethodOID=max(moids['max1'],moids['max2'])
+		else:
+			MethodOID=0
+			
+
+		WCOIDmax=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(:ValueListDef)--(:ItemDef)--(w:WhereClauseDef) return max(w.OID) as OID')
+		if WCOIDmax:
+			woids=pd.Series(WCOIDmax[0],index=WCOIDmax.columns)
+			if woids['OID']:
+				WCOID=woids['OID']
+			else:
+				WCOID=0
+		else:
+			WCOID=0
+			
+
+		withlist = ['study','igd']
+
+		stmt=stmt+'with '+', '.join(withlist)+' match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)--(igdm:ItemGroupDef {Name:"BASIC DATA STRUCTURE"}) '
+
+		withlist.append('igdm')
+
+		ParmDefList=json.loads(request.POST['Parmdefs'])
+
+		# Create PARAMCD
+		
+		# Find PARAMCD in the model
+		stmt=stmt+'with '+', '.join(withlist)+' match (igdm)--(idm:ItemDef {Name:"PARAMCD"}) '
+		withlist.append('idm')
+		# See if See Parameter Page method exists in the study
+		PPOIDRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(m:MethodDef {Description:"See Parameter Page"}) return m.OID as PPOID')
+		if PPOIDRL:
+			PPOIDS=pd.Series(PPOIDRL[0],index=PPOIDRL.columns)
+			IRMOID=PPOIDS['PPOID']
+		else:
+			MethodOID=MethodOID+1
+			IRMOID=MethodOID
+
+		# Calculate SASLength
+		Length=0
+		for x,y in enumerate(ParmDefList):
+			Length=max(Length,len(y['paramcd']))
+
+
+		# Create the PARAMCD ItemDef node
+		stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"Yes",MethodOID:'+str(IRMOID)+',OrderNumber:1}]->(id:ItemDef)-\
+			[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter Code "}) set id.Name=idm.Name,id.Label=idm.Label,id.SASType=idm.SASType,\
+			id.SASLength='+str(Length)+',id.DataType=idm.DataType,id.Origin=idm.Origin '
+
+		withlist.append('id')
+		withlist.append('cl')
+
+		# BasedOn
+		stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:BasedOn]->(idm) '
+		withlist.remove('idm')
+
+		# Method
+		if PPOIDRL:
+			stmt=stmt+'with '+', '.join(withlist)+' match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(m:MethodDef {OID:'+str(IRMOID)+'}) with '+', '.join(withlist)+',m limit 1 \
+				create (id)-[:MethodRef]->(m) '
+
+		else:
+			stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:MethodRef]->(m:MethodDef {OID:'+str(IRMOID)+',Description:"See Parameter Page"}) '
+
+		withlist.append('m')
+		withlist.remove('id')
+
+		# Add codelist items
+		for x,y in enumerate(ParmDefList):
+			stmt=stmt+'with '+', '.join(withlist)+' create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+y['paramcd']+'",Decode:"'+y['param']+'"}) '
+		withlist.remove('cl')
+
+
+
+
+
+
+		# Create PARAM
+		
+		# Find PARAM in the model
+		stmt=stmt+'with '+', '.join(withlist)+' match (igdm)--(idm:ItemDef {Name:"PARAM"}) '
+		withlist.append('idm')
+
+		# Calculate SASLength
+		Length=0
+		for x,y in enumerate(ParmDefList):
+			Length=max(Length,len(y['param']))
+
+		# Create the PARAM ItemDef node
+		stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"Yes",MethodOID:'+str(IRMOID)+',OrderNumber:2}]->(id:ItemDef)-\
+			[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter Code "}) set id.Name=idm.Name,id.Label=idm.Label,id.SASType=idm.SASType,\
+			id.SASLength='+str(Length)+',id.DataType=idm.DataType,id.Origin=idm.Origin '
+
+		withlist.append('id')
+		withlist.append('cl')
+
+		# BasedOn
+		stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:BasedOn]->(idm) '
+		withlist.remove('idm')
+
+		# Method
+		stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:MethodRef]->(m) '
+		withlist.remove('id')
+
+		# Add codelist items
+		for x,y in enumerate(ParmDefList):
+			stmt=stmt+'with '+', '.join(withlist)+' create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+y['param']+'"}) '
+		withlist.remove('cl')
+
+
+
+
+
+
+		# Create PARCAT and PARCATN variables if applicable
+		if (request.POST['Parcats']):
+			ParcatList=json.loads(request.POST['Parcats'])
+			# Find PARCATy in the model
+			stmt=stmt+'with '+', '.join(withlist)+' match (igdm)--(idm:ItemDef {Name:"PARCATy"}) '
+			withlist.append('idm')
+
+			for x,y in enumerate(ParcatList):
+				# Create the PARCAT ItemDef nodes
+				stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"Yes",MethodOID:'+str(IRMOID)+',OrderNumber:'+str(x+5)+'}]->(id:ItemDef)-\
+					[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter Category '+str(x+1)+'"}) '
+
+				withlist.append('id')
+				withlist.append('cl')
+
+				# Method
+				stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:MethodRef]->(m) '
+
+				stmt=stmt+'set id.Name="'+y['Name']+'",id.Label="Parameter Category '+str(x+1)+'",id.Comment="'+y['Comment']+'",id.SASLength="'+str(y['SASLength'])+'",id.SASType=idm.SASType,\
+					id.DataType=idm.DataType,id.Origin=idm.Origin '
+
+				# Based on
+				stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:BasedOn]->(idm) '
+				withlist.remove('id')
+
+				# Add codelist items
+				for y1 in y['CT']:
+					stmt=stmt+'with '+', '.join(withlist)+' create (cl)-[:ContainsCodeListItem]->(cli:CodeListItem {CodedValue:"'+y1['term']+'"}) '
+					withlist.append('cli')
+					# Connect PARAMCD codelist items to corresponding PARCAT codelist items
+					for x2 in ParmDefList:
+						if x2['parcats'][x] == y1['term']:
+							stmt=stmt+'with '+', '.join(withlist)+' match (study)--(igd)--(:ItemDef {Name:"PARAMCD"})--(:CodeList)--(pcli:CodeListItem {CodedValue:"'+x2['paramcd']+'"}) \
+								create (pcli)-[:ParameterAttribute {Type:"PARCAT'+str(x+1)+'"}]->(cli) '
+					withlist.remove('cli')
+
+
+				withlist.remove('cl')
+
+				# Create PARCATN
+				if y['ParcatNTF']:
+					stmt=stmt+'with '+', '.join(withlist)+' match (igdm)--(idmn:ItemDef {Name:"PARCATyN"}) '
+					withlist.append('idmn')
+					stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"Yes",MethodOID:'+str(IRMOID)+',OrderNumber:'+str(x+5+len(ParcatList))+'}]->(id:ItemDef)-\
+						[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"integer",Name:"'+DSName+' Parameter Category '+str(x+1)+' (N)"}) with '+', '.join(withlist)+', id, cl \
+						create (id)-[:MethodRef]->(m) set id.Name="'+y['Name']+'N",id.Label="Parameter Category '+str(x+1)+' (N)",id.SASLength="8",id.SASType=idmn.SASType,\
+						id.DataType=idmn.DataType,id.Origin=idmn.Origin  '
+					withlist.append('id')
+					withlist.append('cl')
+
+					# Based on
+					stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:BasedOn]->(idmn) '
+					withlist.remove('id')
+					withlist.remove('idmn')
+
+					# Codelist items
+					for x1,y1 in enumerate(y['CT']):
+						stmt=stmt+'with '+', '.join(withlist)+' create (cl)-[:ContainsCodeListItem]->(:CodeListItem {Decode:"'+y1['term']+'",\
+							CodedValue:'+str(x1+1)+'}) '
+
+					withlist.remove('cl')
+					
+			withlist.remove('idm')
+
+
+		# Create DTYPEs
+
+		# Make a dictionary of parameter codelists, where keys are parm codes, and values are sets that hold DTYPE values
+		# UNIQUECODELISTS is a list of unique lists of dictionaries.  Each list of dictionaries represents a CT for a parameter
+		parmdtypes={}
+		uniquecodelists=[]
+		for x in ParmDefList:
+			if len(x['dtypes']) > 0:
+				dtypelist=x['dtypes']
+				dtypelistsort=sorted(dtypelist,key=lambda k: k['dtypevalue'])
+				parmdtypes[x['paramcd']]=dtypelistsort 
+				if dtypelistsort not in uniquecodelists:
+					uniquecodelists.append(dtypelistsort)
+
+		# If DTYPEs have been provided, then build the query
+		if len(uniquecodelists) > 0:
+			# Find DTYPE in the model
+			stmt=stmt+'with '+', '.join(withlist)+' match (igdm)--(idm:ItemDef {Name:"DTYPE"}) '
+			withlist.append('idm')
+
+			# Create the DTYPE ItemDef node
+			stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"No",MethodOID:'+str(IRMOID)+',OrderNumber:'+str(5+2*len(ParcatList))+'}]->(id:ItemDef)-[:BasedOn]->(idm) \
+				set id.Name=idm.Name,id.Label=idm.Label,id.SASType=idm.SASType,id.DataType=idm.DataType,id.Origin="Assigned"  create \
+				(id)-[:ValueListRef]->(vl:ValueListDef) '
+
+			withlist.remove('idm')
+			withlist.append('vl')
+
+			# Create a value-level ItemDef for each unique codelist in dtypecodelists.  Under each, create a codelist and a where clause
+			for x,y in enumerate(uniquecodelists):
+				# Determine which parameters used the current codelist
+				WhichParms=[]
+				WCOID=WCOID+1
+				for x1,y1 in parmdtypes.iteritems():
+					if y == y1:
+						WhichParms.append(x1)
+				# Determine Length for this ItemDef
+				Length=0
+				for x1 in y:
+					Length=max(Length,len(x1))
+
+				stmt=stmt+'with '+', '.join(withlist)+' create (vl)-[:ItemRef {Mandatory:"No",WCRef:'+str(WCOID)+'}]->(idv:ItemDef {Name:"DTYPE'+str(x+1)+'",Label:"Derivation Type '+str(x+1)+'",DataType:"text",\
+					Length:'+str(Length)+',Origin:"Assigned"}) '
+				withlist.append('idv')
+
+				# Create codelist
+				stmt=stmt+'with '+', '.join(withlist)+' create (idv)-[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"Derivation Type '+str(x+1)+'"}) '
+				withlist.append('cl')
+
+				# Create codelist items
+				for x1 in y:
+					stmt=stmt+'with '+', '.join(withlist)+' create (cl)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+x1['dtypevalue']+'",Decode:"'+x1['dtypedesc']+'"}) '
+				withlist.remove('cl')
+
+				# Create Where Clause
+				if len(WhichParms)>1:
+					operator="in"
+					checkvalue=', '.join(WhichParms)
+				else:
+					operator="eq"
+					checkvalue=WhichParms[0]
+
+				stmt=stmt+'with '+', '.join(withlist)+' create (idv)-[:WhereClauseRef]->(wc:WhereClauseDef {OID:'+str(WCOID)+'}) with '+', '.join(withlist)+',wc match (study)--(igd)--(idpc:ItemDef {Name:"PARAMCD"}) \
+					create (wc)-[:RangeCheck {Operator:"'+operator+'",CheckValue:"'+checkvalue+'"}]->(idpc) '
+				withlist.remove('idv')
+
+
+
+
+
 
 	print "NEWDS STMT: "+stmt
 	tx=graph.cypher.begin()
 	tx.append(stmt)
 	tx.commit()
 
-	if Class == 'BASIC DATA STRUCTURE':
-		pass
+	# Determine the variable groups to be presented individually
+	VGList=VarGroupList(DSName,Class)
 
-	else:
-		# Determine the variable groups to be presented individually
-		VGList=VarGroupList(DSName,Class)
-
-		return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource})
+	return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,\
+		'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource,'ModelName':ModelName,'ModelVersion':ModelVersion})
 
 def RecordSource(request):
 	DSName=request.POST['DSName']
@@ -600,47 +863,65 @@ def QueryStudy(request):
 
 	return render(request,'StandardDeveloper1/studyhome.html',{'AddDatasets':StandardList,'StudyDatasets':StudyDSRL,'Study':Study,'StandardName':StandardName,'StandardVersion':StandardVersion,'ClassList':ClassList,'Message':message})
 
-def GenerateADaMSpec(Study):
-	# writer = pd.ExcelWriter('ADaMSpec_'+Study+'.xlsx')
+def GenerateADaMSpec(request):
+	StudyName=request.POST["Study"]
+	StandardName=request.POST['StandardName']
+	StandardVersion=request.POST['StandardVersion']
+	SpecFileName=request.POST['specfilename']
 
 	# Generate Dataset-level spec
-	datasetsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:BasedOn]->(:ItemGroupDef)-[:BasedOn]->(c:ItemGroupDef)<-[:ItemGroupRef]-(:Model) return igd.Name as Name,igd.Label as Label,c.Name as Class \
-			union match (a:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:BasedOn]->(c:ItemGroupDef)<-[:ItemGroupRef]-(:Model) return igd.Name as Name,igd.Label as Label,c.Name as Class')
+	datasetsRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[rs:RecordSource]->(igdr:ItemGroupDef) \
+		optional match (igd)-[:BasedOn]->(igdm:ItemGroupDef)--(:Model) optional match (igd)-[:BasedOn]->(igds:ItemGroupDef)-[:BasedOn]->(igdmm:ItemGroupDef)--(:Model) \
+		with igd.Name as Name,igd.Label as Label, case when igdm.Name is not null then igdm.Name else igdmm.Name end as Class,\
+		collect(case when rs.Subset <> "" then igdr.Name+" ("+rs.Subset+")" else igdr.Name end) as rsources return Name,Label,Class,\
+		reduce(s="",x in rsources|s+", "+x) as RecordSources')
 	datasetsDF=pd.DataFrame(datasetsRL.records,columns=datasetsRL.columns)
 
 	print 'DATASETSDF: '
 	print datasetsDF 
 
 	# Get variable-level metadata
-	variablesRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)--(m:MethodDef) where ir.MethodOID=m.OID \
-		optional match (m)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where m.OID=it1.MethodOID optional match (m)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where m.OID=it2.MethodOID \
+	stmt='match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)--(m:MethodDef) where ir.MethodOID=m.OID \
+		optional match (id)-[js:JoinSource]->(igdj:ItemGroupDef) \
+		optional match (m)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where m.OID=it1.MethodOID \
+		optional match (m)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where m.OID=it2.MethodOID \
 		with igd.Name as DSName,id.Name as VarName,id.Label as Label,id.SASType as Type,id.SASLength as Length,ir.Order as VarOrder,case when m.Description is not null then m.Description \
 		when mc1.Order=1 then "If "+mc1.If+" then "+mt.Then when mc1.Order=99999 then "; Else "+mt.Then when mc1.Order is not null then "; else if "+mc1.If+" then "+mt.Then \
 		when mc2.Order=1 then "If "+mc2.If+" then "+cli.CodedValue when mc2.Order=99999 then " else "+cli.CodedValue else "; else if "+mc2.If+" then "+cli.CodedValue end as instruction,\
-		case when mc1.Order is not null then mc1.Order else  mc2.Order end as OrderNew order by DSName,VarOrder,VarName,OrderNew with DSName,VarOrder,VarName,Label,Type,Length,collect(instruction) as icoll \
-		return DSName,VarName,Label,Type,Length,reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarOrder,VarName')
+		case when mc1.Order is not null then mc1.Order else  mc2.Order end as OrderNew,collect(igdj.Name) as jsnames \
+		order by DSName,VarOrder,VarName,OrderNew \
+		with DSName,VarOrder,VarName,Label,Type,Length,jsnames,collect(instruction) as icoll \
+		return DSName,VarName,Label,Type,Length,\
+		reduce(s=head(jsnames),x in jsnames|s+", "+x) as JoinSources,\
+		reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarOrder,VarName'
+
+	print 'VARIABLES STMT: '+stmt
+	variablesRL=graph.cypher.execute(stmt)
 	variablesDF=pd.DataFrame(variablesRL.records,columns=variablesRL.columns)
 
 	# Get VLM
-	VLMRL=graph.cypher.execute('match (:Study {Name:"sep1802"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:ItemRef]->(id0:ItemDef)--(:ValueListDef)-[ir:ItemRef]->(id:ItemDef)--(:WhereClauseDef)--(rc:RangeCheck)--(cv:CheckValue) \
+	stmt='match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:ItemRef]->(id0:ItemDef)--(:ValueListDef)-[ir:ItemRef]->(id:ItemDef)--(:WhereClauseDef)--(rc:RangeCheck)--(cv:CheckValue) \
 		with igd,id0,id,rc,ir,reduce(s="", x in collect(cv.Value)|s+" "+x) as Values match (rc)-[:Range2Item]->(id1:ItemDef) with igd,id0,id,id1,rc,ir,Values match (id)--(m:MethodDef) where ir.MethodOID=m.OID \
 		optional match (m)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where m.OID=it1.MethodOID optional match (m)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where m.OID=it2.MethodOID \
 		with igd.Name as DSName,id0.Name as VarName,id.Name as VLMName,collect(id1.Name+" "+rc.Operator+" "+Values) as condition, \
 		case when m.Description is not null then m.Description when mc1.Order=1 then "If "+mc1.If+" then "+mt.Then when mc1.Order=99999 then "; Else "+mt.Then when mc1.Order is not null then "; else if "+mc1.If+" then "+mt.Then \
 		when mc2.Order=1 then "If "+mc2.If+" then "+cli.CodedValue when mc2.Order=99999 then " else "+cli.CodedValue else "; else if "+mc2.If+" then "+cli.CodedValue end as instruction,\
 		case when mc1.Order is not null then mc1.Order else  mc2.Order end as OrderNew order by DSName,VarName,OrderNew with DSName,VarName,VLMName,condition,collect(instruction) as icoll \
-		return DSName,VarName,VLMName,reduce(s=head(condition), x in tail(condition)|s+" and "+x) as Condition,reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarName')
+		return DSName,VarName,VLMName,reduce(s=head(condition), x in tail(condition)|s+" and "+x) as Condition,reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarName'
+
+	print 'VLM STMT: '+stmt
+	VLMRL=graph.cypher.execute(stmt)
 	VLMDF=pd.DataFrame(VLMRL.records,columns=VLMRL.columns)
 
 	# Get parameter information
-	parms1RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[ps:ParmSource]->(src:Source) \
-		optional match (cli)-[:ParameterAttribute {Type:"PARAMN"}]->(pn:CodeListItem) with igd.Name as DSNAME,cli.CodedValue as PARAMCD,cli.Decode as PARAM,pn.CodedValue as PARAMN,collect(src.Name+" ("+ps.Test+")") as sources \
-		return DSNAME,PARAMCD,PARAM,PARAMN,reduce(s=head(sources),x in tail(sources)|s+", "+x) as SOURCE')
+	parms1RL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem) \
+		optional match (cli)-[:ParameterAttribute {Type:"PARAMN"}]->(pn:CodeListItem) with igd.Name as DSNAME,cli.CodedValue as PARAMCD,cli.Decode as PARAM,pn.CodedValue as PARAMN \
+		return DSNAME,PARAMCD,PARAM,PARAMN')
 	parms1DF=pd.DataFrame(parms1RL.records,columns=parms1RL.columns)
 
 	# Get DTYPEs for each parameter
-	dtypesRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"DTYPE"})--(:ValueListDef)--(id:ItemDef)--(:WhereClauseDef)--(:RangeCheck)--(cv:CheckValue) match (id)--(:CodeList)--(cli:CodeListItem)\
-		 with igd.Name as DSNAME,cv.Value as PARAMCD,collect(cli.CodedValue) as dtypes return DSNAME,PARAMCD,reduce(s=head(dtypes), x in tail(dtypes)|s+", "+x) as DTYPE')
+	dtypesRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"DTYPE"})--(:ValueListDef)--(id:ItemDef)--(:WhereClauseDef)-[rc:RangeCheck]->(:ItemDef) match (id)--(:CodeList)--(cli:CodeListItem)\
+		 with igd.Name as DSNAME,rc.CheckValue as PARAMCD,collect(cli.CodedValue) as dtypes return DSNAME,PARAMCD,reduce(s=head(dtypes), x in tail(dtypes)|s+", "+x) as DTYPE')
 	dtypesDF=pd.DataFrame(dtypesRL.records,columns=dtypesRL.columns)
 
 	parmsDF=pd.merge(parms1DF,dtypesDF,how='left',on=['DSNAME','PARAMCD'])
@@ -648,24 +929,24 @@ def GenerateADaMSpec(Study):
 
 	# Put each PARCAT in its own column
 	# This will be accomplished by determining which PARCATs there are, and then iteratively querying for each one
-	parcatsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute]->(:CodeListItem) \
+	parcatsRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute]->(:CodeListItem) \
 		where substring(pa.Type,0,6)="PARCAT" return distinct pa.Type as PARCAT order by pa.Type')
 
 	for x in parcatsRL:
-		parcatRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute {Type:"'+x[0]+'"}]->(pc:CodeListItem) return \
+		parcatRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute {Type:"'+x[0]+'"}]->(pc:CodeListItem) return \
 			igd.Name as DSNAME,cli.CodedValue as PARAMCD,pc.CodedValue as '+x[0])
 		parcatDF=pd.DataFrame(parcatRL.records,columns=parcatRL.columns)
 		parmsDF=pd.merge(parmsDF,parcatDF,how='left',on=['DSNAME','PARAMCD'])
 
 	# Write spec
-	with pd.ExcelWriter('ADaMSpec_'+Study+'.xlsx') as writer:
+	with pd.ExcelWriter(SpecFileName+'.xlsx') as writer:
 		datasetsDF.to_excel(writer,sheet_name='Datasets',index=False)
-		VarHeaders=['Dataset','Variable','Variable Label','Type','Length','Main Programming']
+		VarHeaders=['Dataset','Variable','Variable Label','Type','Length','Sources','Main Programming']
 		variablesDF[variablesDF['DSName'] == 'ADSL'].to_excel(writer,sheet_name='ADSL',index=False,header=VarHeaders)
 
 		# Now add non-ADSL main spec pages
 		# Determine how many DerivedMethodRef DTYPE/PARAMCD combinations there are.  Then make each a column by iterating through the list, query for each combination, merge with variablesRL
-		DmethodsRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef]-(dmd:DerivedMethodDef) return distinct igd.Name as DSNAME,dmr.PARAMCD as PARAMCD,dmr.DTYPE as DTYPE')
+		DmethodsRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef]-(dmd:DerivedMethodDef) return distinct igd.Name as DSNAME,dmr.PARAMCD as PARAMCD,dmr.DTYPE as DTYPE')
 		DmethodsDF=pd.DataFrame(DmethodsRL.records,columns=DmethodsRL.columns)
 
 		for x,y in datasetsDF[datasetsDF['Name'] != 'ADSL'].iterrows():
@@ -674,11 +955,11 @@ def GenerateADaMSpec(Study):
 			variablesDSDF=variablesDF[variablesDF['DSName'] == y['Name']]
 			for x1,y1 in DmethodsDSDF.iterrows():
 				if not pd.isnull(y1['DTYPE']):
-					DmethodRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef {PARAMCD:"'+y1['PARAMCD']+'",DTYPE:"'+y1['DTYPE']+'"}]-(dmd:DerivedMethodDef) \
+					DmethodRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef {PARAMCD:"'+y1['PARAMCD']+'",DTYPE:"'+y1['DTYPE']+'"}]-(dmd:DerivedMethodDef) \
 						where igd.Name=dmr.DS return igd.Name as DSName,id.Name as VarName,case when dmd.Description is null then dmd.Type else dmd.Description end as '+y1['PARAMCD']+'_'+y1['DTYPE'])
 					MoreVarHeaders.append('PARAMCD='+y1['PARAMCD']+', DTYPE='+y1['DTYPE'])
 				else:
-					DmethodRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef {PARAMCD:"'+y1['PARAMCD']+'"}]-(dmd:DerivedMethodDef) \
+					DmethodRL=graph.cypher.execute('match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[ir:ItemRef]->(id:ItemDef)-[dmr:DerivedMethodRef {PARAMCD:"'+y1['PARAMCD']+'"}]-(dmd:DerivedMethodDef) \
 						where igd.Name=dmr.DS and not exists(dmr.DTYPE) return dmr.DS as DSName,id.Name as VarName,case when dmd.Description is null then dmd.Type else dmd.Description end as '+y1['PARAMCD'])
 					MoreVarHeaders.append('PARAMCD='+y1['PARAMCD'])
 
@@ -711,7 +992,6 @@ def GenerateADaMSpec(Study):
 					if not pd.isnull(DSDF.iloc[0][x1[0]]):
 						cols.append(x1[0])
 						print cols
-				cols.append('SOURCE')
 				if DTYPEExist:
 					cols.append('DTYPE')
 				DSDF=DSDF[cols].sort_values(by=SortVar)
@@ -720,6 +1000,12 @@ def GenerateADaMSpec(Study):
 
 				# and now print the VLM page
 				VLMDF[['DSName','VarName','Condition','Programming']].to_excel(writer,sheet_name=y['Name']+' Value Level',index=False,header=['Dataset','Variable','Condition','Programming'])
+
+	#return render(request,'StandardDeveloper1/SubsequentStudyHome.html',{'Study':StudyName,'StandardName':StandardName,'StandardVersion':StandardVersion})
+	with open(SpecFileName+'.xlsx', 'rb') as fh:
+		response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
+		response['Content-Disposition'] = 'inline; filename=' + os.path.basename(SpecFileName+'.xlsx')
+		return response
 
 def QueryStudyDS(request):
 	StandardName=request.GET['StandardName']
@@ -936,7 +1222,7 @@ def VarGroupList(DSName,Class):
 		return ['Identifier Variables','Dictionary Coding Variables for MedDRA','Dictionary Coding Variables for MedDRA']
 
 	elif Class == 'BASIC DATA STRUCTURE':
-		return ['Subject Identifier Variables','Treatment Variables']
+		return ['Subject Identifier Variable','Treatment Variables']
 
 
 def ChangeVarGroup(request):
@@ -1676,6 +1962,8 @@ def NewVar(request):
 	IGDSource=request.POST['IGDSource']
 	VarGroup=request.POST['VarGroup']
 	NextVarGroup=request.POST['NextVarGroup']
+	ModelName=request.POST['ModelName']
+	ModelVersion=request.POST['ModelVersion']
 
 	VGList=VarGroupList(DSName,Class)
 	MD=json.loads(request.POST['MD'])
@@ -1731,9 +2019,14 @@ def NewVar(request):
 			# The following represents the addition of new join sources
 			else:
 				if sourcedic['Models'] == 'SDTM':
-					stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:JoinSource {Subset:"'+sourcedic['Subsets']+'",Join:"'+sourcedic['JConditions']+'"}]->(:ItemGroupDef {Name:"'+sourcedic['Datasets']+'"}) '
+					stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:JoinSource {Subset:"'+sourcedic['Subsets']+'",Join:"'+sourcedic['JConditions']+'"}]->(igdjs:ItemGroupDef {Name:"'+sourcedic['Datasets']+'"}) '
 				else:
-					stmt=stmt+'with '+', '.join(withlist)+' match (study)--(igda:ItemGroupDef {Name:"'+sourcedic['Datasets']+'"}) create (igd)-[:JoinSource {Subset:"'+sourcedic['Subsets']+'",Join:"'+sourcedic['JConditions']+'"}]->(igda) '
+					stmt=stmt+'with '+', '.join(withlist)+' match (study)--(igdjs:ItemGroupDef {Name:"'+sourcedic['Datasets']+'"}) create (igd)-[:JoinSource {Subset:"'+sourcedic['Subsets']+'",Join:"'+sourcedic['JConditions']+'"}]->(igdjs) '
+
+				stmt=stmt+'with '+', '.join(withlist)+',igdjs create (id)-[:JoinSource {TargetDS:"'+DSName+'" '
+				if MD['Origin'] == 'Predecessor':
+					stmt=stmt+',Var:"'+sourcedic['Vars']+'"'
+				stmt=stmt+'}]->(igdjs) '
 
 	# Create CT
 	if CT:
@@ -1805,7 +2098,8 @@ def NewVar(request):
 	tx.append(stmt)
 	tx.commit()
 
-	return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource})
+	return render(request,'StandardDeveloper1/variablelist.html', {'Study':Study,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,\
+		'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource,'ModelName':ModelName,'ModelVersion':ModelVersion})
 
 
 
@@ -2735,7 +3029,7 @@ def QModelCT(modelname,modelversion,classname,varname):
 def QModelVars(modelname,modelversion,classname,filter=''):
 	statement='match (a:Model {name:"'+modelname+'",version:"'+modelversion+'"})-[:ItemGroupRef]->(b:ItemGroupDef {Name:"'+classname+'"})-[r:ItemRef]->(c:ItemDef)'
 	if filter:
-		statement=statement+'where '+filter
+		statement=statement+' where '+filter
 	statement=statement+' return c.Name as Name,c.Group as VarGroup order by r.OrderNumber '
 	ModelVarsRL=graph.cypher.execute(statement)
 	ModelVarsDF=pd.DataFrame(ModelVarsRL.records,columns=ModelVarsRL.columns)
@@ -3191,8 +3485,11 @@ def GetStandardDS(request):
 
 def GetStudyDatasets(request):
 	Study=request.GET['Study']
-	DSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupRef) return igd.Name as Dataset')
+	print "STUDY: "+Study 
+	DSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef) return igd.Name as Dataset')
 	DSDF=pd.DataFrame(DSRL.records,columns=DSRL.columns)
+	print 'GETSTUDYDATASETS DSDF: '
+	print DSDF
 	return HttpResponse(DSDF.to_json(orient='records'),content_type='application/json')
 
 def GetStudyDSMD(request):
@@ -3232,7 +3529,7 @@ def GetRecordSources(request):
 	DSName=request.GET['DSName']
 	# For now, SDTM is differentiated from ADaM by assuming that any data set connected through BasedOn to another must be ADaM
 	RSRL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)-[rs:RecordSource]->(igdr:ItemGroupDef) \
-		return distinct igdr.Name as dataset,rs.Subset as subset,case when exists((igdr)-[:BasedOn]->(:ItemGrouDef)) then "ADAM" else "SDTM" end as model, \
+		return distinct igdr.Name as dataset,rs.Subset as subset,case when exists((igdr)-[:BasedOn]->(:ItemGroupDef)) then "ADAM" else "SDTM" end as model, \
 		"'+DSName+'" in collect(igd.Name) as state')
 
 	RSDF=pd.DataFrame(RSRL.records,columns=RSRL.columns)
@@ -3271,9 +3568,9 @@ def GetStandardVarswoStudy(request):
 		# First get model information
 		ModelInfoRL=graph.cypher.execute('match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(m:Model) return m.name as name,m.version as version')
 		if VarGroup:
-			AllStandardVars=QModelVars(ModelInfo[0][0],ModelInfo[0][1],DSName,filter='c.Group="'+VarGroup+'"')[1]
+			AllStandardVars=QModelVars(ModelInfoRL[0][0],ModelInfoRL[0][1],Class,filter='c.Group="'+VarGroup+'"')[1]
 		else:
-			AllStandardVars=QModelVars(ModelInfo[0][0],ModelInfo[0][1],DSName,filter='')[1]
+			AllStandardVars=QModelVars(ModelInfoRL[0][0],ModelInfoRL[0][1],Class,filter='')[1]
 
 	# Get Study variables
 	StudyVars=QStudyDSVarList(Study,DSName)[1]
@@ -3319,7 +3616,7 @@ def GetAllVarGroups(request):
 
 	elif IGDSource == 'Model':
 		ModelInfoRL=graph.cypher.execute('match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(m:Model) return m.name as name,m.version as version')
-		GroupVars=QModelVars(ModelInfo[0][0],ModelInfo[0][1],DSName,filter='')[1]
+		GroupVars=QModelVars(ModelInfoRL[0][0],ModelInfoRL[0][1],Class,filter='')[1]
 		GroupVars2=pd.DataFrame(GroupVars.VarGroup.unique())
 		GroupVars2.columns=['VarGroup']
 	print 'GETALLVARGROUPS: '
@@ -3384,10 +3681,10 @@ def GetADaMStudyVars(request):
 	# All variable metadata for a chosen data set in the study - does not include sources, methods, CT, or ItemRef properties
 	Study=request.GET['Study']
 	DSName=request.GET['DSName']
-	RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(id:ItemDef) return id.Name as VarName,id.Label as Label,id.SASType as SASType,id.SASLength as SASLength,id.DataType as DataType,\
-		id.Origin as Origin')
+	RL=graph.cypher.execute('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})-[ir:ItemRef]-(id:ItemDef) return id.Name as VarName,id.Label as Label,id.SASType as SASType,id.SASLength as SASLength,id.DataType as DataType,\
+		id.Origin as Origin order by ir.OrderNumber')
 	df=pd.DataFrame(RL.records,columns=RL.columns)
-	return HttpResponse(df.to_json(orient='records'))
+	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
 
 def GetADaMStudyDS(request):
 	# List of all study data sets for the study
