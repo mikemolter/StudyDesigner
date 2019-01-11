@@ -3,25 +3,9 @@
 
 {% load static %}
 <head>
-   <!-- CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="https://fonts.googleapis.com/css?family=Lato|Lora" rel="stylesheet">
-    <!-- JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.css">
-
-<!-- Latest compiled and minified JavaScript -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.js"></script>
-
-<!-- Latest compiled and minified Locales -->
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table-locale-all.js"></script> -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/locale/bootstrap-table-en-US.js"></script>
-<script type="text/javascript" src="{% static 'StandardDeveloper1/Utilities.js' %}"></script>
-<script>
+	{% include 'StandardDeveloper1/head.html' %}
+ 
+ <script>
 	
 	$(document).ready(function(){
 		var chosenvar; 
@@ -33,7 +17,6 @@
 			var DSName = "{{DSName}}" ;
 
 			// Store in a hidden variable
-			//$('#hide').append('<input type="hidden" name="ChosenVarName" value="'+chosenvar+'"/>');
 			$('[name=MD]').val(JSON.stringify({'Name':chosenvar})) ;
 
 			// Put into modal header
@@ -51,7 +34,8 @@
 			}
 
 			// Show the modal that asks if the variable will be defined with VLM
-			//$('#myModal').modal('show') ;
+			$('#myModal').modal() ;
+
 		})
 
 		// If a new custom variable is being defined
@@ -78,36 +62,86 @@
 		// Handler for when a user wants to edit a variable
 
 		// First determine which variable was chosen
-		$('.container').on('click','.glyphicon-pencil',function() {
+		$('.container').on('click','.EditVarFromVar',function() {
 			var rowindex=$(this).closest('tr').data('index'); 
 			var chosenvar=$('#varmdtable').bootstrapTable('getData')[rowindex]['VarName'] ;
+			var VLMTF=$('#varmdtable').bootstrapTable('getData')[rowindex]['VLMTF'] ;
+			var Origin=$('#varmdtable').bootstrapTable('getData')[rowindex]['Origin'] ;
 
+			$('[name=CustomYN]').val($('#varmdtable').bootstrapTable('getData')[rowindex]['CustomTF']) ;
+			$('[name=MD1]').val(JSON.stringify({'Name':chosenvar,'Origin':Origin})) ;
+			$('[name=MD]').val(JSON.stringify({'Name':chosenvar})) ;
 			$('[name=Action]').val('Edit');
-			// Determine if defined with VLM and ask VLM question
-			// Determine if it is a predecessor
-			// Determine if it is a custom variable
-			// Determine if associated with CT
+
+			// Store method information
+			$.getJSON('{{URLPATH}}GetStudyVarMethod',{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':chosenvar,'VLMOID':''},function(data) {
+				$('#hidemodal').append('<input type="hidden" name="methodchoice" value="'+data[0]['methodchoice'] +'"/>') ;
+
+				if (data[0]['Description'] != '') {
+					$('[name=Method1]').val(JSON.stringify({'MethodType':'FreeText','MethodValue':data[0]['Description']})) ;
+				}
+
+				else {
+					var MethodList=[]
+					$.each(data,function() {
+						MethodList.push({'Condition':this['If'],'Result':this['Then']})
+					})
+					$('[name=Method1]').val(JSON.stringify({'MethodType':'Conditions','MethodValue':MethodList})) ;
+				}
+			})
+
+			if (VLMTF) {
+				DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",chosenvar,"Study")
+				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToFinalFromVLM"/>');
+			}
+
+			else {
+				DisplaySource1(Origin) ;
+				$('#mf').append('<input type="button" class="btn btn-success" value="Next"/>');
+				$('[name=Origin]').change() ;
+			}
+
+			// Put into modal header
+			$('#mh4').text('Variable metadata: '+chosenvar) ;
+
+			$('#myModal').modal() ;
 		})
 
 
 		// When the VLM question is answered...
 		$('#myModal').on('click','[id^=ToSource1]',function(){
 			var id=$(this).attr('id') ;
+			var IGDSource=$('[name=IGDSource]').val() ;
+			var CustomYN=$('[name=CustomYN]').val() ;
 
-			if (id == 'FromVLMYNCustom') {
-				//$('#hide').append('<input type="hidden" name="ChosenVarName" value="'+$('#customvarname').val()+'"/>');
+
+			if (id == 'ToSource1FromVLMYNCustom') {
 				$('[name=MD]').JSON.stringify({Name:$('#customvarname').val()}) ;
 				$('#mh4').text('Variable metadata: '+$('#customvarname').val()) ;
 			}
 
-			$('#mb').empty() ;
+			var MDDic=JSON.parse($('[name=MD]').val()) ;
+			var VarName=MDDic['Name']
+
 			// If coming from VLM question ... 
 			if (id.substr(9,9) == 'FromVLMYN') {
 				// Determine which choice was selected
 				var VLM=$("input[name=vlmYN]:checked").val() ;
-
+				$('#mb').empty() ;
 				if (VLM == 'Y'){
-			// 		LoadVLMConditions()
+					if (CustomYN == true) {
+						DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",VarName,"")
+					}
+
+					else if (IGDSource == 'Model') {
+						DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{Class}}",VarName,"Model")
+					}
+
+					else if (IGDSource == 'Standard') {
+						DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",VarName,"Standard")
+					}
+
+					$('#'+id).attr('id','ToFinalFromVLM') ;
 				}
 
 				else {
@@ -116,7 +150,7 @@
 			}
 		})
 
-		// Set the button ID on the Origin question page (Source1) once the question is answered, based on whether Assigned is answered or not
+		// When Origin is chosen, change the ID of the button
 		$('#myModal').on('change','[name=Origin]',function(){
 			if ($('[name=Origin] :selected').text() == 'Assigned') {
 				$('.btn').attr('id','ToVarmdFromSource1') ;
@@ -129,6 +163,7 @@
 		// When the Variable-level Source question is answered...
 		$('#myModal').on('click','[id^=ToSource2]',function(){
 			var id=$(this).attr('id') ;
+			var Action=$('[name=Action').val() ;
 
 			if (id == 'ToSource2FromSource1') {
 				// Determine which Origin choice was selected
@@ -140,60 +175,50 @@
 				//$('#hide').append('<input type="hidden" name="PredYN" value="'+(Pred == "Y")+'"/>') ;
 				$('#mb').empty();
 
+				if (Action == 'Edit') {
+					var MD1Dic=JSON.parse($('[name=MD1]').val()) ;
+					var Var1=MD1Dic['Name'] ;
+					var Origin1=MD1Dic['Origin']
+				}
+
 				// If a predecessor, get source info about predecessor
 				if (Origin == 'Predecessor') {
-					DisplaySourcePredecessor() ;
+					if (Action == 'Add' || Origin1 != 'Predecessor') {
+						DisplaySourcePredecessor() ;
+					}
+					else {
+						DisplaySourcePredecessor(Var=Var1) ;
+						$('#PredTable').on('load-success.bs.table',function(e) {
+							var currentsources=$('#PredTable').bootstrapTable('getSelections') ;
+							$('[name=Sources1]').val(JSON.stringify(currentsources)) ;
+							if (currentsources.length) {
+								$('#c1').prop('checked',true) ;
+							}
+						})
+					}
+
 					$(this).attr('id','ToPredVarFromPredSource') ;
+					
 				}
 
 				else {
-					DisplaySourceDerived() ;
+					if (Action == 'Add' || Origin1 == 'Predecessor') {
+						DisplaySourceDerived() ;
+					}
+					else {
+						DisplaySourceDerived(Var=Var1) ;
+						$('#SourceTable').on('load-success.bs.table',function(e) {
+							var currentsources=$('#SourceTable').bootstrapTable('getSelections') ;
+							$('[name=Sources1]').val(JSON.stringify(currentsources)) ;
+						})
+					}
+
 					$(this).attr('id','ToVarmdFromDerivedSource') ;
 				}
+
 			}
 		})
 
-		// When a user chooses to define a new source
-		$('#mb').on('change','[name=newsource]',function() {
-			// For ADaM, create a dropdown list of data sets.  For SDTM, just create a text box
-			var model=$('[name=newsource]:checked').val() ;
-			$('#radiocontainer').remove() ;
-			if (model == 'adam') {
-				var dstxt='<label>ADaM data set name</label><select id="newsourceds" class-"form-control"></select>' ;
-			}
-			else {
-				var dstxt='<label>SDTM data set name</label><input type="text" id="newsourceds" class="form-control">' ;
-			}
-			$('#mb').append('<div id="inputcontainer"><p>Provide the name of the source dataset along with a description of the subset and how it is merged with the main data set.</p><div class="form-group">'+dstxt+'</div><div class="form-group"><label>Description of dataset subset</label><textarea rows="3" id="newsourcesubset" class="form-control"></textarea></div><div class="form-group"><label>Description of merge</label><textarea rows="3" id="newsourcejoin" class="form-control"></textarea></div><div class="form-group"><button type="button" id="'+model+'newsourcebutton" class="btn-success">Add New Source</button></div></div>')
-		})
-
-		// When a new source button is clicked then add the information to the table
-		$('#mb').on('click','#adamnewsourcebutton,#sdtmnewsourcebutton',function() {
-			var model=$(this).attr('id').substr(0,4);
-			var Display=model.toUpperCase()+'.'+$('#newsourceds').val() ;
-			if ($('#newsourcesubset').val()){
-				Display += ' (where '+$('#newsourcesubset').val()+')' ;
-			}
-
-			$('#SourceTable').bootstrapTable('append',{
-				state:true,
-				Models:model.toUpperCase(),
-				Display:Display,
-				Datasets:$('#newsourceds').val(),
-				JConditions:$('#newsourcejoin').val(),
-				Subsets:$('#newsourcesubset').val()
-			}) ;
-
-			$('#inputcontainer').remove() ;
-
-			$('#mb').append('<div class="container" id="radiocontainer"><div class="radio"><label><input type="radio" name="newsource" value="adam">Define a new ADaM source</label></div><div class="radio"><label><input type="radio" name="newsource" value="sdtm">Define a new SDTM source</label></div></div>') ;
-		})
-
-
-		// Enable the radio buttons in the predecessor source table when the first radio button is selected, then ask for predecessor source variable names
-		$('#myModal').on('click','#c1',function(){
-			$('[name=tableradio]').attr('disabled',false);
-		})
 
 		// When the Next button is clicked from choosing a predecessor source
 		$('#myModal').on('click','[id^=ToPredVar]',function(){
@@ -207,9 +232,10 @@
 				// If user chose a pre-defined source
 				if (predsource == 'c1') {
 					// Determine which row was selected (particularly, if the first row, which has the record sources, was chosen)
-					var SourceDic=$('#PredTable').bootstrapTable('getSelections')[0]
+					var SourceDic=$('#PredTable').bootstrapTable('getSelections')[0] ;
+					var RecordSourceYN=SourceDic['RecordSourceYN'] ;
 					$('#mb').empty() ;
-					DisplayPredVarPreDefined(SourceDic) ;
+					DisplayPredVarPreDefined(SourceDic,RecordSourceYN) ;
 				}
 
 				// Else if user chose to define a new SDTM source
@@ -235,7 +261,7 @@
 		// If/when an ADaM data set is chosen as a new source, then this will populate the variable list 
 		$('#myModal').on('change','#adamds',function() {
 			var selectedadamds = $('#adamds :selected').val() ;
-			$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+			$.getJSON('{{URLPATH}}GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
 				$.each(data,function() {
 					$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#adamvar');
 				})
@@ -316,7 +342,7 @@
 			}
 
 			else if (IGDSource == 'Model') {
-				DisplayVarMD("{{Study}}","{{ModelName}}","{{ModelVersion}}","{{Class}}",VarName,"Model")
+				DisplayVarMD("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{Class}}",VarName,"Model")
 			}
 
 			else if (IGDSource == 'Standard') {
@@ -370,75 +396,33 @@
 					$('#'+id).attr('id','ToListofCodeListsFromCTCustom') ;
 				}
 			}
-		})
 
+			else {
+				var StudyCT=$('[name=CT1]').val();
+				var mddic=JSON.parse($('[name=MD]').val()) ;
+				var methodchoice=$('[name=methodchoice]').val() ;
 
-
-		// When a user wants to define custom CT for a non-predecessor not associated with a standard codelist, give them the option of how to begin that process (e.g. from a global list (methodchoice=a), a study list (b), or from scratch (c))
-		$('#myModal').on('change','#cstct1',function() {
-			// Determine which non-predecessor method choice was made
-			var methodchoice=$('#cstct1 :selected').val().substr(6,1) ;
-			$('#hidemodal').append('<input type="hidden" name="methodchoice" value="'+methodchoice +'"/>') ;
-
-			if (methodchoice == 'a' || methodchoice == 'b') {
-				$('#nopredchoice').remove() ;
-				$('#mb').append('<div class="form-group"><label>Choose how to define a set of allowable values</label><select class="form-control" id="cstct2"><option disabled selected></option><option value="cstct2a">Based on a global list</option><option value="cstct2b">Based on a study list</option><option value="cstct2d">Create a list from scratch</option></select></div>') ;
-			}
-
-			else if (methodchoice == 'c') {
-				$('.btn').attr('id','ToMethodbFromCTCustom') ;
-			}
-		})
-
-		// When a user wants to define custom CT from scratch, give them a checkbox to tick if they want decodes
-		$('#myModal').on('change','#cstct2',function() {
-			if ($('#cstct2').val().substr(6,1) == 'd') {
-				$('#mb').append('<div class="checkbox"><label><input type="checkbox" id="scratchdecodes">Check here to include decodes with your list</label></div>') ;
-			}
-		})
-
-		
-		$('#myModal').on('click','[id^=ToListofCodeLists]',function() {
-			var id=$(this).attr('id') ;
-			var mddic=JSON.parse($('[name=MD]').val()) ;
-			if (id == 'ToListofCodeListsFromCTCustom') {
-				// Determine how user wants to build a codelist (from a global (a), from a study (b), no codelist (c), from scratch (d)
-				var codelistchoice=$('#cstct2').val().substr(6,1) ;
-				$('#hide').append('<input type="hidden" name="codelistchoice" value="'+codelistchoice+'"/>');
-
-				// When a user wants to define custom CT based on another codelist, but for a variable not associated with a standard codelist, build a table of codelists
-				if (codelistchoice == 'a' || codelistchoice == 'b') {
-					$('#mb').empty() ;
-					DisplayListofCodeLists(codelistchoice) ;
-					$('#ToListofCodeListsFromCTCustom').attr('id','ToACodeListFromListofCodeLists') ;
+				if (StandardCL && StudyCT) {
+					if (methodchoice == 'b' || mddic['Origin'] == 'Predecessor') {
+						DisplayACodeList("Get1StudyWStandardCodeList",{Study:$('[name=Study]').val(),CLCode:$('[name=CTCode]').val(),StudyCLName:StudyCT,StandardCLName:StandardCL},$('[name=CTExt]').val() ,$('[name=CTDecodeYN]').val()) ;
+						$('#'+id).attr('id','ToCTSummaryFromACodeList') ;
+						$('[name=CT]').val(JSON.stringify({'Code':$('[name=CTCode]').val(),'Extensible':$('[name=CTExt]').val(),'DataType':mddic['DataType']})) ;
+					}
 				}
 
-				// Build a list from scratch 
-				else if (codelistchoice == 'd') {
-					var mddic=JSON.parse($('[name=MD]').val()) ;
-					//$('#ct1a').attr('id','ct2');
-					$('[name=CT]').val(JSON.stringify({'Extensible':'Yes','DataType':mddic['DataType']})) ;
-					$('#mb').empty() ;
-					DisplayScratchCodeList() ;
-					$('#ToListofCodeListsFromCTCustom').attr('id','ToCTSummaryFromScratchCodeLists') ;
-				}
-
-				// no codelist
-				else if (mddic['Origin'] == 'Predecessor') {
-					// go to last page
-					$('#mb').empty() ;
-					DisplayFinal() ;
+				else if (StudyCT) {
+					DisplayACodeList('Get1StudyCodeList',{Study:$('[name=Study]').val(),CLCode:'',StudyCLName:StudyCT},$('[name=CTExt]').val() ,$('[name=CTDecodeYN]').val())
+					$('#'+id).attr('id','ToCTSummaryFromACodeList') ;
+					$('[name=CT]').val(JSON.stringify({'Code':$('[name=CTCode]').val(),'Extensible':$('[name=CTExt]').val(),'DataType':mddic['DataType']})) ;
 				}
 
 				else {
-					$('#mb').empty() ;
-					DisplayMethodbChoice() ;
-					$('#'+id).attr('id','mt1b') ;
+					DisplayCTCustom() ;
+					$('#'+id).attr('id','ToListofCodeListsFromCTCustom') ;
 				}
+
 			}
 		})
-
-
 
 		// Now that a base codelist has been chosen, display its terms
 		$('#myModal').on('click','[id^=ToACodeList]',function() {
@@ -448,57 +432,54 @@
 			var CodeCL=$('[name=CTCode]').val() ;
 			var mddic=JSON.parse($('[name=MD]').val()) ;
 
-			if (Action == 'Add') {
-				if (id == 'ToACodeListFromCTStandard') {
-					// Use the global list as a base
-					if ($('#stdct2 :selected').val() == 'global') {
-						var url='Get1GlobalCodeList';
-						//var qp=function() {return {CLCode:CodeCL,StandardCLName:StandardCL} ;}
-						var qp={CLCode:CodeCL,StandardCLName:StandardCL} ;
-					}
-
-					// Use any study list that has been defined as a subset of the global list as a base, along with the standard list itself
-					else {
-						var url='Get1StudyWStandardCodeList' ;
-						//var qp=function() {return {CLCode:CodeCL,StudyCLName:$('#stdct2 :selected').text(),StandardCLName:StandardCL};}
-						var qp={CLCode:CodeCL,StudyCLName:$('#stdct2 :selected').text(),StandardCLName:StandardCL}; 
-					}
-
-					if (mddic['Origin'] != 'Predecessor') {
-						var methodchoice = $('#stdct1 :selected').val().substr(6,1); ;
-						$('#hide').append('<input type="hidden" name="methodchoice" value="'+methodchoice +'"/>') ;
-					}
-
-					// Store Codelist-level properties (except Name, we'll save that for later)
-					var Ext = $('[name=CTExt]').val() ;
-					var DecodeYN=($('[name=CTDecodeYN]').val() == 'true') ;
-					$('[name=CT]').val(JSON.stringify({'Code':$('[name=CTCode]').val(),'Extensible':Ext,'DataType':mddic['DataType']})) ;
+			if (id == 'ToACodeListFromCTStandard') {
+				// Use the global list as a base
+				if ($('#stdct2 :selected').val() == 'global') {
+					var url='Get1GlobalCodeList';
+					//var qp=function() {return {CLCode:CodeCL,StandardCLName:StandardCL} ;}
+					var qp={CLCode:CodeCL,StandardCLName:StandardCL} ;
 				}
 
-				else if (id == 'ToACodeListFromListofCodeLists') {
-					var methodchoice=$('[name=methodchoice]').val() ;
-					var codelistchoice=$('[name=codelistchoice]').val(); 
+				// Use any study list that has been defined as a subset of the global list as a base, along with the standard list itself
+				else {
+					var url='Get1StudyWStandardCodeList' ;
+					var qp={CLCode:CodeCL,StudyCLName:$('#stdct2 :selected').text(),StandardCLName:StandardCL}; 
+				}
 
-					// If user chose to create a codelist from an existing global or study codelist, then collect information from that codelist
-					var CodeListDic=$('#CodeListTable').bootstrapTable('getSelections')[0] ;
-					var Ext = CodeListDic['Extensible'] ;
-					var DecodeYN = CodeListDic['DecodeYN'] ;
-					// Store Codelist-level properties (except Name, we'll save that for later)
-					$('[name=CT]').val(JSON.stringify({'Code':CodeListDic['CLCode'],'Extensible':Ext,'DataType':CodeListDic['DataType']})) ;
+				if (mddic['Origin'] != 'Predecessor') {
+					var methodchoice = $('#stdct1 :selected').val().substr(6,1); ;
+					$('#hide').append('<input type="hidden" name="methodchoice" value="'+methodchoice +'"/>') ;
+				}
 
-					// Use a global list as a base
-					if (codelistchoice == 'a') {
-						var url='Get1GlobalCodeList';
-						var qp={CLCode:CodeListDic['CLCode'],StandardCLName:CodeListDic['CodeListName']} ;
-						$('[name=StandardCTName]').val(CodeListDic['CodeListName']);
-						$('[name=CTCode]').val(CodeListDic['CLCode']) ;
-					}
+				// Store Codelist-level properties (except Name, we'll save that for later)
+				var Ext = $('[name=CTExt]').val() ;
+				var DecodeYN=($('[name=CTDecodeYN]').val() == 'true') ;
+				$('[name=CT]').val(JSON.stringify({'Code':$('[name=CTCode]').val(),'Extensible':Ext,'DataType':mddic['DataType']})) ;
+			}
 
-					// Use any study list as a base
-					else if (codelistchoice == 'b') {
-						var url='Get1StudyCodeList';
-						var qp={Study:"{{Study}}",CLCode:CodeListDic['CLCode'],StudyCLName:CodeListDic['CodeListName']} ;
-					}
+			else if (id == 'ToACodeListFromListofCodeLists') {
+				var methodchoice=$('[name=methodchoice]').val() ;
+				var codelistchoice=$('[name=codelistchoice]').val(); 
+
+				// If user chose to create a codelist from an existing global or study codelist, then collect information from that codelist
+				var CodeListDic=$('#CodeListTable').bootstrapTable('getSelections')[0] ;
+				var Ext = CodeListDic['Extensible'] ;
+				var DecodeYN = CodeListDic['DecodeYN'] ;
+				// Store Codelist-level properties (except Name, we'll save that for later)
+				$('[name=CT]').val(JSON.stringify({'Code':CodeListDic['CLCode'],'Extensible':Ext,'DataType':CodeListDic['DataType']})) ;
+
+				// Use a global list as a base
+				if (codelistchoice == 'a') {
+					var url='Get1GlobalCodeList';
+					var qp={CLCode:CodeListDic['CLCode'],StandardCLName:CodeListDic['CodeListName']} ;
+					$('[name=StandardCTName]').val(CodeListDic['CodeListName']);
+					$('[name=CTCode]').val(CodeListDic['CLCode']) ;
+				}
+
+				// Use any study list as a base
+				else if (codelistchoice == 'b') {
+					var url='Get1StudyCodeList';
+					var qp={Study:"{{Study}}",CLCode:CodeListDic['CLCode'],StudyCLName:CodeListDic['CodeListName']} ;
 				}
 			}
 
@@ -522,7 +503,7 @@
 			TermList=JSON.stringify($('#CodeListItemTable').bootstrapTable('getSelections')) ;
 
 			// Determine if the newly defined codelist already exists
-			$.getJSON('http://localhost:8000/StandardDeveloper1/CompareCT',{'Study':$('[name=Study]').val(),'StandardCLName':StandardCL,'StandardCode':StandardCode,'CT':TermList},function(data) {
+			$.getJSON('{{URLPATH}}CompareCT',{'Study':$('[name=Study]').val(),'StandardCLName':StandardCL,'StandardCode':StandardCode,'CT':TermList},function(data) {
 				// Get what is already in the CT hidden variable and add to it
 				var CTDic=JSON.parse($('[name=CT]').val()) ;
 				CTDic['Match']=data['Match'] ;
@@ -578,54 +559,37 @@
 
 
 
-		// Start methods
-		$('#myModal').on('click','[id^=ToMethodb]',function() {
-			var id = $(this).attr('id');
-			// If a codelist name was provided, save it in the CT hidden variable
-			if (id == 'ToMethodbFromNoMatchCT') {
-				var CTDic=JSON.parse($('[name=CT]').val()) ;
-				CTDic['Name']=$('#newCodeListName').val() ;
-				$('[name=CT]').val(JSON.stringify(CTDic)) ;
-			}
-			$('#mb').empty() ;
-			DisplayMethodbChoice() ;
-			$('.btn').attr('id','mt1b') ;
-		})
 
-		// Capture the method choice and call the appropriate function
-		$('#myModal').on('click','#mt1b',function() {
-			var methodb=$('[name=methodbchoice]:checked').val() ;
-			$('#mb').empty() ;
-
-			if (methodb == 'freetext') {
-				//$('#mt1b').attr('id','ToFinalFromFreeMethod');
-				$('.btn').attr('id','ToFinalFromFreeMethod');
-				$('#mb').append('<div class="container"><p>Enter programming instruction in the box below</p><div class="form-group"><textarea cols="65" rows="15" id="free"></textarea></div>') ;
-				
+		$('#myModal').on('click','#ToBDSFinal',function() {
+			var alldata=$('#parmdtypes').bootstrapTable('getData') ;
+			var dtypemethodslist=[] ;
+			for (x=0; x<alldata.length; x++) {
+				dtypemethodslist.push({'wcoid':alldata[x]['OID'],'method':$('[name=OID'+alldata[x]['OID']+']:checked').val(),'description':alldata[x]['Description']})
 			}
-
-			else {
-				DisplayMethodConditions(false) ;
-				$('.btn[value=Next]').attr('id','ToFinalFromCondMethod') ;
-			}
-		})
-
-		// Arrive at final page 
-		$('#myModal').on('click','[id^=ToFinal]',function() {
-			// Capture the id that got us here
-			var id=$(this).attr('id'); 
-			// If arriving here from free text method
-			if (id == 'ToFinalFromFreeMethod') {
-				$('[name=Method]').val(JSON.stringify({'MethodType':'FreeText','MethodValue':$('#free').val()})) ;
-			}
-			// If arriving here from condition method
-			else if (id == 'ToFinalFromCondMethod') {
-				$('[name=Method]').val(JSON.stringify({'MethodType':'Conditions','MethodValue':$('#ConditionTable').bootstrapTable('getData')})) ;
-			}
-
+			$('[name=DTYPEMethods]').val(JSON.stringify(dtypemethodslist)) ;
 			$('#mb').empty() ;
 			DisplayFinal() ;
-			$('[id='+id+']').remove() ;
+			$('[id=ToBDSFinal]').remove() ;
+		})
+
+
+		$('#myModal').on('click','[value=other]',function() {
+			var rowindex=$(this).closest('tr').data('index'); 
+			var rowdata=$('#parmdtypes').bootstrapTable('getData')[rowindex] ;
+			$('[name=rowdata]').val(JSON.stringify(rowdata));
+			$('#mh3').text(rowdata['Condition']) ;
+			if (rowdata['Description']) {
+				$('#desc').text(rowdata['Description']) ;
+			}
+			$('#myModal3').modal('show');
+		})
+
+		$('#donewithdesc').click(function() {
+			var rowdata=JSON.parse($('[name=rowdata]').val()) ;
+			rowdata['Description']=$('#desc').val() ;
+			$('#parmdtypes').bootstrapTable('updateByUniqueId',{id:rowdata['OID'],row:rowdata}) ;
+			//$('[name=OID'+rowdata['OID']+'][value=other]').prop('checked',true) ;
+			$('#myModal3').modal('hide');
 		})
 
 
@@ -675,11 +639,11 @@
 		// Insert one dropdown for the current variable group
 		{% if VarGroup %}
 
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':$('[name=VarGroup]').val()},function(data){
+		$.getJSON('{{URLPATH}}GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':$('[name=VarGroup]').val()},function(data){
 				$('#navtabul').append('<li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">{{VarGroup}} <span class="caret"></span></a><ul class="dropdown-menu" role="menu" id="dd"></ul></li>')
 
-				$.each(JSON.parse(data),function(){
-					$('#dd').append('<li><a href="#myModal" data-toggle="modal">'+this['Name']+'</a></li>')
+				$.each(data,function(){
+					$('#dd').append('<li><a href="#myModal">'+this['Name']+'</a></li>')
 				})
 
 				{% if NextVarGroup %}
@@ -691,7 +655,7 @@
 
 		{% else %}
 		// Create the dropdown for each variable group
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetAllVarGroups',{'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val()},function(data){
+		$.getJSON('{{URLPATH}}GetAllVarGroups',{'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val()},function(data){
 
 			$.each(data,function(){
 				var ddid=this['VarGroup'].replace(/[^a-zA-Z]/g, '');
@@ -702,126 +666,29 @@
 		})
 
 		// Now populate the dropdowns
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':''},function(data){
+		$.getJSON('{{URLPATH}}GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':''},function(data){
 
-			$.each(JSON.parse(data),function(){
+			$.each(data,function(){
 				var ddid=this['VarGroup'].replace(/[^a-zA-Z]/g, '');
 				$('#'+ddid).append('<li><a href="#">'+this['Name']+'</a></li>')
 			})
 		})
 		{% endif %}
-
 	})
+
+
 </script>
-   <!-- CSS -->
-<!--     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="https://fonts.googleapis.com/css?family=Lato|Lora" rel="stylesheet">
- -->    <!-- JS -->
-<!--     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
- -->
 
-     <style>
-div.navdiv {
-    width: 100%;
-}
-
-div.maindiv {
-    padding-left: 15px;
-    padding-right: 15px;
-}
-
-.table {width: 75%; }
-
-img.resize{
-    max-width:99%;
-}
-
-.hidden{
-  display:none;
-  visibility:hidden;
-}
-.im-centered {
-      min-height: 50%;  /* Fallback for vh unit */
-      min-height: 35vh; /* You might also want to use
-                            'height' property instead.
-
-                            Note that for percentage values of
-                            'height' or 'min-height' properties,
-                            the 'height' of the parent element
-                            should be specified explicitly.
-
-                            In this case the parent of '.vertical-center'
-                            is the <body> element */
-
-/* Make it a flex container */
-display: -webkit-box;
-display: -moz-box;
-display: -ms-flexbox;
-display: -webkit-flex;
-display: flex;
-
-/* Align the bootstrap's container vertically */
--webkit-box-align : center;
--webkit-align-items : center;
-   -moz-box-align : center;
-   -ms-flex-align : center;
-      align-items : center;
-
-/* In legacy web browsers such as Firefox 9
- we need to specify the width of the flex container */
-width: 100%;
-
-/* Also 'margin: 0 auto' doesn't have any effect on flex items in such web browsers
- hence the bootstrap's container won't be aligned to the center anymore.
-
- Therefore, we should use the following declarations to get it centered again */
-     -webkit-box-pack : center;
-        -moz-box-pack : center;
-        -ms-flex-pack : center;
--webkit-justify-content : left;
-      justify-content : left;
-      }
-
-body { padding-top: 90px; }
-
-.btn-primary{
-        background-color:#006A3B;
-        border-color: #006A3B;
-    }
-
-img.resize{
-    width:75px;
-    height:75px;
-}
-
-img.resize2{
-    width: 150px;
-}
-
-.v-center {
-  min-height:200px;
-  display: flex;
-  justify-content:center;
-  flex-flow: column wrap;
-}
-
-.btn-success {
-    color: #fff;
-    background-color: #4cae4c;
-    border-color: #5cb85c;
-}
-
-a {
-    color: #969696;
-    text-decoration: none;
-}
-    </style>
 
 </head>
 
 <body style="font-family: 'Lora', serif;">
+
+	{% include 'StandardDeveloper1/sidebar.html' %}
+
+	{% include 'StandardDeveloper1/topbar.html' %}
+
+
 
 <form method="post" action='Back2Study' id="parentform">
 {% csrf_token %}
@@ -830,22 +697,12 @@ a {
 	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
 	<input type="hidden" name="Study" value="{{Study}}"/>
 	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
-	<input type="hidden" name="ModelName" value="{{ModelName}}"/>
-	<input type="hidden" name="ModelVersion" value="{{ModelVersion}}"/>
 	<input type="hidden" name="DSName" value="{{DSName}}"/>
 	<input type="hidden" name="IGDSource" value="{{IGDSource}}"/>
 	<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
 	<input type="hidden" name="Class" value="{{Class}}"/>
 	<input type="hidden" name="NextVarGroup" value="{{NextVarGroup}}"/>
 </div>
-
-<div class="navbar navbar-default navbar-fixed-top" style="background-color:#ffffff;">
-    <a class="navbar-brand" href="#" style="color:#969696;">CLINICAL STUDY DESIGNER SUITE</a>
-    <ul class="nav navbar-nav navbar-right">
-        <a href="https://www.wrightave.com" target="_blank"><li style="padding-top:12px;padding-right:27px;"><img class="resize2" src="{% static 'StandardDeveloper1/image.png' %}"></li></a>
-    </ul>
-</div>
-
 
 
 <div class="container">
@@ -856,16 +713,19 @@ a {
 	</ul>
 
 	<div class='im-centered'>
-		<table data-toggle="table" id="varmdtable" data-id-field="name" data-url="http://localhost:8000/StandardDeveloper1/GetADaMStudyVars" data-query-params="StudySourceParms">
+		<table data-toggle="table" id="varmdtable" data-id-field="name" data-url="{{URLPATH}}GetADaMStudyVars" data-query-params="StudySourceParms">
 		    <thead>
 		    <tr>
-		       <th data-field="VarName">Name</th>
+		    	<th data-field="OID" data-class="hidden"></th>
+		        <th data-field="VarName">Name</th>
 		        <th data-field="Label">Label</th>
 		        <th data-field="SASType">SAS Type</th>
 		        <th data-field="SASLength">SAS Length</th>
 		        <th data-field="DataType">Data Type</th>
 		        <th data-field="Origin">Origin</th>
-		        <th data-field="removeedit" data-formatter="GlyphsRemoveEdit" data-align="center">Action</th>
+		        <th data-field="VLMTF" data-class="hidden"/>
+		        <th data-field="CustomTF" data-class="hidden"/>
+		        <th data-field="removeedit" data-formatter="GlyphsRemoveEdit" data-align="center" data-class="EditVarFromVar">Action</th>
         	</tr>
 		    </thead>
 		</table>
@@ -887,8 +747,6 @@ a {
 					<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
 					<input type="hidden" name="Class" value="{{Class}}"/>
 					<input type="hidden" name="NextVarGroup" value="{{NextVarGroup}}"/>
-					<input type="hidden" name="ModelName" value="{{ModelName}}"/>
-					<input type="hidden" name="ModelVersion" value="{{ModelVersion}}"/>
 					<input type="hidden" name="Action"/>
 					<input type="hidden" name="CustomYN"/>
 					<input type="hidden" name="CTCode"/>
@@ -900,6 +758,13 @@ a {
 					<input type="hidden" name="Sources"/>
 					<input type="hidden" name="CT"/>
 					<input type="hidden" name="Method"/>
+					<input type="hidden" name="DTYPEMethods"/>
+					<input type="hidden" name="MD1"/>
+					<input type="hidden" name="Sources1"/>
+					<input type="hidden" name="CT1"/>
+					<input type="hidden" name="Method1"/>
+					<input type="hidden" name="DTYPEMethods1"/>
+
 				</div>
 			    <div class="modal-header" id="mh">
 			    	<button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -917,123 +782,90 @@ a {
 </div>
 
 
+<div class="modal fade" id="myModal3" role="dialog">
+    <div class="modal-dialog" style="width: 300px;font-family: 'Lato', sans-serif;">
+
+        <!-- Modal content-->
+        <div class="modal-content" style="width: 300px;">
+        	<div id="hide3">
+        		<input type="hidden" name="rowdata"/>
+        	</div>
+
+            <div class="modal-header" style="width: 300px;">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" id="mh3"></h4>
+            </div>
+
+            <div class="modal-body" id="mb3" style="width: 300px;">
+                <div class="container" id="mbc3" style="width: 300px;">
+                	<textarea rows="3" cols="20" id="desc" placeholder="Enter Description here"></textarea>
+					</div>
+            </div>
+
+            <div class="modal-footer" id="mf3" style="width: 300px;">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <input type="button" class="btn btn-success" value="Ok" id="donewithdesc"></input>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% include 'StandardDeveloper1/footer.html' %}
+
 <script>
 
 	function DisplayVLMYN() {
 		$('#mb').append('<p>Will this variable be defined in subsets?</p><div class="radio"><label><input type="radio" name="vlmYN" value="Y">Yes</label></div><div class="radio"><label><input type="radio" value="N" name="vlmYN">No</label></div>');
 	}
 
-	function DisplaySource1() {
-		$('#mb').append('<p>We start by thinking about where this variable is coming from.  Is it copied from another variable?  Derived from another variable?  Does it come straight from the protocol?</p><div class="form-group"><select class="form-control" name="Origin"><option disabled selected></option><option>Assigned</option><option>Protocol</option><option>Derived</option><option>Predecessor</option></select></div>')
+	function DisplaySource1(Origin='') {
+		$('#mb').append('<p>We start by thinking about where this variable is coming from.  Is it copied from another variable?  Derived from another variable?  Does it come straight from the protocol?</p><div class="form-group"><select class="form-control" name="Origin"><option disabled selected></option><option value="Assigned">Assigned</option><option value="Protocol">Protocol</option><option value="Derived">Derived</option><option value="Predecessor">Predecessor</option></select></div>')
+
+		if (Origin) {
+			$('option[value='+Origin+']').prop('selected',true) ;
+		}
 	}
 
-	function DisplaySourcePredecessor() {
-		$('#mb').append('<p>We now identify the data set and the variable from which the predecessor originated.  Start by either selecting a source data set that has already been defined, or define a new one.  </p><div class="radio"><label><input type="radio" name="sourcetype" id="c1">Select an already existing source.</label></div><table id="PredTable"></table>') ;
-
-		$('#PredTable').bootstrapTable({
-			url:"http://localhost:8000/StandardDeveloper1/GetStudySources",
-			//queryParams:"StudySourceParms",
-			queryParams:{Study:'{{Study}}',DSName:'{{DSName}}'},
-			clickToSelect:'true',
-			selectItemName:'tableradio',
-			columns:[{
-				field:'state',
-				radio:'true',
-				formatter:'format'
-			}, {
-				field:'Models',
-				class:'hidden'
-			}, {
-				field:'Display',
-				title:'Source'
-			}, {
-				field:'Datasets',
-				class:'hidden',
-			}, {
-				field:'JConditions',
-				class:'hidden'
-			}, {
-				field:'Subsets',
-				class:'hidden'
-			}]
-		})
-
-		$('#mb').append('<div class="radio"><label><input type="radio" name="sourcetype" id="c2">Define a new ADaM source</label></div>')
-
-		$('#mb').append('<div class="radio"><label><input type="radio" name="sourcetype" id="c3">Define a new SDTM source</label></div>')
-	}
-
-	function DisplaySourceDerived() {
-		$('#mb').append('<p>We now identify the data sets from which the variable originated.  Select any number of source data sets that have already been defined, and define any number of new ones.  </p><table id="SourceTable"></table>') ;
-
-		$('#SourceTable').bootstrapTable({
-			url:"http://localhost:8000/StandardDeveloper1/GetStudySources",
-			//queryParams:"StudySourceParms",
-			queryParams:{Study:'{{Study}}',DSName:'{{DSName}}'},
-			clickToSelect:'true',
-			columns:[{
-				field:'state',
-				checkbox:'true'
-			}, {
-				field:'Models',
-				class:'hidden'
-			}, {
-				field:'Display',
-				title:'Source'
-			}, {
-				field:'Datasets',
-				class:'hidden',
-			}, {
-				field:'JConditions',
-				class:'hidden'
-			}, {
-				field:'Subsets',
-				class:'hidden'
-			}]
-		})
-
-		$('#mb').append('<div class="container" id="radiocontainer"><div class="radio"><label><input type="radio" name="newsource" value="adam">Define a new ADaM source</label></div><div class="radio"><label><input type="radio" name="newsource" value="sdtm">Define a new SDTM source</label></div></div>') ;
-
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
-			$.each(data,function() {
-				$('<option value="'+this['DSName']+'</option>').appendTo('#adamds') ;
-			})
-		})
-	}
-
-	function DisplayPredVarPreDefined(SourceDic) {
+	function DisplayPredVarPreDefined(SourceDic,RSYN) {
 		$('#mb').append('<p>In the box(es) below, provide the name of the variable in the source data set being mapped to this predecessor.</p>')
-		for (x=0; x<SourceDic['Datasets'].length; x++) {
-			var desc = SourceDic['Models'][x]+'.'+SourceDic['Datasets'][x]
-			if (SourceDic['Subsets'][x]) {
-				desc += ' where '+SourceDic['Subsets'][x]
+		if (RSYN == 'Y') {
+			for (x=0; x<SourceDic['Datasets'].length; x++) {
+				var desc = SourceDic['Models'][x]+'.'+SourceDic['Datasets'][x]
+				if (SourceDic['Subsets'][x]) {
+					desc += ' where '+SourceDic['Subsets'][x]
+				}
+				if (SourceDic['Models'][x] == 'SDTM') {
+					$('#mb').append('<div class="form-group"><label>'+desc+'</label><input maxlength="8" id="var_'+SourceDic['Datasets'][x]+'" type="text" class="form-control"></div>');
+				}
+				else {
+					$('#mb').append('<div class="form-group"><label>'+desc+'</label><select id="var_'+SourceDic['Datasets'][x]+'" class="form-control"></select></div>');
+					$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+						$.each(data,function() {
+							$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets'][x]);
+						})
+					})
+				}
 			}
-			if (SourceDic['Models'][x] == 'SDTM') {
-				$('#mb').append('<div class="form-group"><label>'+desc+'</label><input maxlength="8" id="var_'+SourceDic['Datasets'][x]+'" type="text" class="form-control"></div>');
+		}
+
+		else {
+			var desc = SourceDic['Models']+'.'+SourceDic['Datasets']
+			if (SourceDic['Subsets']) {
+				desc += ' where '+SourceDic['Subsets']
+			}
+			if (SourceDic['Models'] == 'SDTM') {
+				$('#mb').append('<div class="form-group"><label>'+desc+'</label><input maxlength="8" id="var_'+SourceDic['Datasets']+'" type="text" class="form-control"></div>');
 			}
 			else {
-				$('#mb').append('<div class="form-group"><label>'+desc+'</label><select id="var_'+SourceDic['Datasets'][x]+'" class="form-control"></select></div>');
+				$('#mb').append('<div class="form-group"><label>'+desc+'</label><select id="var_'+SourceDic['Datasets']+'" class="form-control"></select></div>');
 				$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
 					$.each(data,function() {
-						$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets'][x]);
+						$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets']);
 					})
 				})
 			}
 		}
-	}
-
-	function DisplayPredVarSDTM() {
-		$('#mb').append('<div class="form-group"><label>SDTM data set name</label><input type="text" id="sdtmds" class="form-control"></div><div class="form-group"><label>SDTM variable name</label><input type="text" id="sdtmvar" class="form-control"></div><div class="form-group"><label>Description of dataset subset</label><textarea rows="3" cols="20" id="sdtmsubset" class="form-control"></textarea></div><div class="form-group"><label>Description of merge</label><textarea rows="3" cols="20" id="sdtmjoin" class="form-control"></textarea></div>') ;
-	}
-
-	function DisplayPredVarADAM() {
-		$('#mb').append('<div class="form-group"><label>ADaM data set name</label><select id="adamds" class-"form-control"></select></div>')
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
-			$.each(data,function() {
-				$('<option value="'+this['DSName']+'</option>').appendTo('#adamds') ;
-			})
-		})
-		$('#mb').append('<div class="form-group"><label>ADaM variable name</label><select id="adamvar" class="form-control"></select></div><div class="form-group"><label>Description of dataset subset</label><textarea rows="3" cols="20" id="adamsubset" class="form-control"></textarea></div><div class="form-group"><label>Description of merge</label><textarea rows="3" cols="20" id="adamjoin" class="form-control"></textarea></div>')
 	}
 
 	function DisplayCTStandard(StandardCL) {
@@ -1050,242 +882,14 @@ a {
 		$('#mb').append('<div class="form-group"><label>Choose here which list of allowable values (global list or a sub-list defined in this study) on which your list will be based</label><select class="form-control" id="stdct2"><option disabled selected></option><option value="global">'+StandardCL+' (global)</option></select></div>') ;
 
 		// Populate the above dropdown with study-specific sub-codelists
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyCodelistsByCode',{'Study':$('[name=Study]').val(),'CLCode':$('[name=CTCode]').val()},function(data) {
+		$.getJSON('{{URLPATH}}GetStudyCodelistsByCode',{'Study':$('[name=Study]').val(),'CLCode':$('[name=CTCode]').val()},function(data) {
 			$.each(data,function() {
 				$('#stdct2').append('<option>'+this['CLName']+'</option>') ;
 			})
 		})
 	}
 
-	function DisplayCTCustom() {
 
-		var mddic=JSON.parse($('[name=MD]').val()) ;
-		var Origin=mddic['Origin'] ;
-
-		$('#mb').append("<p>It's now time to start thinking about how a programmer will populate this variable.  We begin by thinking about the values allowed for this variable.  Make a selection from the dropdown below.</p>") ;
-
-		if (Origin != 'Predecessor') {
-			$('#mb').append('<div id="nopredchoice" class="form-group"><label>Choose here whether to define programming instructions along with allowable values or separate from allowable values.</label><div class="col-xs-10"><select id="cstct1"><option disabled selected></option><option value="cstct1a">Define allowable values with programming instructions</option><option value="cstct1b">Define allowable values separate from programming instructions</option><option value="cstct1c">Not applicable for this variable - skip to programming instructions</option></select></div></div>') ;
-		}
-
-		else {
-			$('#mb').append('<div class="form-group"><label>Choose how to define a set of allowable values</label><div class="col-xs-6"><select class="format-control" id="cstct2"><option disabled selected></option><option value="cstct2a">Based on a global list</option><option value="cstct2b">Based on a study list</option><option value="cstct2c">Not applicable</option><option value="cstct2d">Create a list from scratch</option></select></div></div><br>')
-		}
-	}
-
-	function DisplayListofCodeLists(codelistchoice) {
-		var qp='' ;
-
-		// Choice to start from a global list
-		if (codelistchoice == 'a') {
-			var url="http://localhost:8000/StandardDeveloper1/GetAllGlobalCL" ;
-		}
-
-		// Choice to start from a study list
-		else if (codelistchoice == 'b') {
-			var url="http://localhost:8000/StandardDeveloper1/GetAllStudyCL" ;
-			//var qp='StudySourceParms' ;
-			var qp={Study:"{{Study}}"} ;
-		}
-
-		$('#CodeListTable').remove() ;
-
-		$('#mb').append('<div class="form-group"><label>Select a list from the table below on which to base your new list.</label></div><table id="CodeListTable" style="display:block;max-height:200px;overflow-y:auto;-ms-overflow-style:-ms-autohiding-scrollbar"></table>') ;
-
-		$('#CodeListTable').bootstrapTable({
-			url:url,
-			queryParams:qp,
-			scrollY:"200px",
-			columns:[{
-				field:'state',
-				radio:'true'
-			}, {
-				field:'CLCode',
-				title:'Code'
-			}, {
-				field:'CodeListName',
-				title:'CodeList Name'
-			}, {
-				field:'Extensible',
-				class:'hidden',
-			}, {
-				field:'DataType',
-				class:'hidden'
-			}, {
-				field:'DecodeYN',
-				class:'hidden'
-			}]
-		})
-	}
-
-	function DisplayScratchCodeList() {
-		var DecodeYN=$('#scratchdecodes').prop('checked') ;
-
-		$('#mb').append('<div class="form-group"><label>Select from the table below the values allowed for this variable.</label></div>') ;
-
-		if (DecodeYN == true) {
-			ExtCT('true');
-			$('#mb').append('<table id="CodeListItemTable" style="display:block;max-height:200px;overflow-y:auto;-ms-overflow-style:-ms-autohiding-scrollbar"></table>') ;
-			$('#CodeListItemTable').bootstrapTable({
-				scrollY:"200px",
-				columns:[{
-					field:'state',
-					checkbox:'true'
-				}, {
-					field:'CodedValue',
-					title:'Submission Value'
-				}, {
-					field:'Decode',
-					title:'Decode',
-				}]
-			})
-		}
-
-		else {
-			ExtCT('false') ;
-			$('#mb').append('</div><table id="CodeListItemTable" style="display:block;max-height:200px;overflow-y:auto;-ms-overflow-style:-ms-autohiding-scrollbar"></table>') ;
-			$('#CodeListItemTable').bootstrapTable({
-				scrollY:"200px",
-				columns:[{
-					field:'state',
-					checkbox:'true'
-				}, {
-					field:'CodedValue',
-					title:'Submission Value'
-				}]
-			})
-		}
-	}
-
-	function DisplayACodeList(url,qp,Ext,DecodeYN) {
-		$('#mb').append('<div class="form-group"><label>Select from the table below the values allowed for this variable.</label></div><table id="CodeListItemTable" style="display:block;max-height:200px;overflow-y:auto;-ms-overflow-style:-ms-autohiding-scrollbar"></table>') ;
-
-		if (Ext == 'Yes') {
-			ExtCT(DecodeYN) ;
-		}
-
-		if (DecodeYN == true) {
-			$('#CodeListItemTable').bootstrapTable({
-				url:'http://localhost:8000/StandardDeveloper1/'+url,
-				queryParams:qp,
-				scrollY:"200px",
-				columns:[{
-					field:'state',
-					checkbox:'true'
-				}, {
-					field:'ItemCode',
-					title:'Code'
-				}, {
-					field:'CodedValue',
-					title:'Submission Value'
-				}, {
-					field:'Decode',
-					title:'Decode'
-				}]
-			})
-		}
-
-		else {
-			$('#CodeListItemTable').bootstrapTable({
-				url:'http://localhost:8000/StandardDeveloper1/'+url,
-				queryParams:qp,
-				scrollY:"200px",
-				columns:[{
-					field:'state',
-					checkbox:'true'
-				}, {
-					field:'ItemCode',
-					title:'Code'
-				}, {
-					field:'CodedValue',
-					title:'Submission Value'
-				}]
-			})
-		}
-	}
-
-	function StudySourceParms () {
-		return {Study:'{{Study}}',DSName:'{{DSName}}' };
-	}
-
-	function format() {
-		return {disabled:true} ;
-	}
-
-	function ExtCT(DecodeYN) {
-		$('#mb').append('<p>To add terms to your list, enter the value in the box below (and if applicable, the decode), and then click the Add Term button.</p><div class="container" id="newtermcontainer"><div class="form-group"><textarea cols="35" rows="2" id="code" placeholder="Enter term here"></textarea></div>') ;
-
-		if (DecodeYN == true) {
-			var functioncall="AddTerm('true');" ;
-			$('#newtermcontainer').append('<div class="form-group"><textarea cols="35" rows="2" id="decode" placeholder="Enter decode here"></textarea></div>') ;
-		}
-
-		else {
-			var functioncall="AddTerm('false');"
-		}
-
-		$('#newtermcontainer').append('<div class="form-group"><button type="button" onclick="'+functioncall+'" class="btn btn-success" id="addtermbutton">Add Term</button></div>') ;
-	}
-
-	function AddTerm(DecodeYN) {
-		if (DecodeYN == 'true') {
-			$('#CodeListItemTable').bootstrapTable('append',{
-				state:true,
-				CodedValue:$('#code').val(),
-				Decode:$('#decode').val()
-			})
-			$('#decode').val(null) ;
-			$('#decode').attr('placeholder','Enter decode here') ;
-		}
-
-		else {
-			$('#CodeListItemTable').bootstrapTable('append',{
-				state:true,
-				CodedValue:$('#code').val()
-			})
-		}
-
-		$('#code').val(null) ;
-		$('#code').attr('placeholder','Enter term here') ;
-	}
-
-	function DisplayMethodConditions(WithCT) {
-		var pi='<p>Defining programming instructions with conditions means that we define conditions and the results that go with them, as well as the final result that is assigned when no defined conditions are met.  Begin by indicating whether the result you are defining comes with a condition or is the "all else fails" result.  If it comes with a condition, populate the Condition box that appears.  ';
-		if (WithCT) {
-			pi+='Then choose a result from the dropdown, or, if applicable, add a result manually.  '
-		}
-		else {
-			pi+='Then populate the Result box that appears.  '
-		}
-
-		pi+='When you are finished, click the button to add to the table or click a row to add before the clicked row.</p>' ;
-
-		$('#mb').append(pi+'<div class="container" id="inputcontainer"><div class="radio"><label><input type="radio" name="ifelse" value="if">Define a condition and a result</label></div><div class="radio"><label><input type="radio" name="ifelse" value="else">Result when all else fails</label></div><div class="form-group"><textarea cols="35" rows="2" id="condition" placeholder="Condition" disabled></textarea></div></div>') ;
-
-		if (WithCT) {
-
-		}
-		else {
-			$('#inputcontainer').append('<div class="form-group"><textarea cols="35" rows="2" id="result" placeholder="Result" disabled></textarea></div>') ;
-		}
-
-		$('#inputcontainer').append('<div class="form-group"><button type="button" onclick="AddCondition();" class="btn btn-success" id="addcondition">Add</button></div>') ;
-
-		$('#mb').append('<table id="ConditionTable" style="display:block;max-height:200px;overflow-y:auto;-ms-overflow-style:-ms-autohiding-scrollbar"></table>') ;
-
-		$('#ConditionTable').bootstrapTable({
-			scrollY:"200px",
-			columns:[{
-				field:'IfElse'
-			}, {
-				field:'Condition',
-				title:'Condition'
-			}, {
-				field:'Result',
-				title:'Result',
-			}]
-		})
-	}
 
 	function AddCondition() {
 		// Determine if the result being added has a condition or not
@@ -1359,13 +963,33 @@ a {
 		}
 	}
 
-	function DisplayMethodbChoice() {
-		// Offer choice of how to define method (with conditions or free text)
-		$('#mb').append('<p>It is now time to provide explicit instructions for programming.  You can do this either by providing a free text explanation, or by defining conditions and their results.  If you have defined a set of allowable values, be sure your instructions lead to values in that set.</p><div class="container" id="radiocontainer"><div class="radio"><label><input type="radio" name="methodbchoice" value="freetext">Provide programming instructions with free text</label></div><div class="radio"><label><input type="radio" name="methodbchoice" value="conditions">Provide programming instructions with conditions</label></div></div>') ;
-	}
 
 	function DisplayFinal(){
-		$('#mb').append('<p>Your variable is complete!</p><br><input class="btn btn-success" type="submit" value="Finish"/>')
+		$('#mb').append('<p>Your variable is complete!</p><br><input class="btn btn-success" type="submit" value="Finish" id="last"/>')
+	}
+
+	function DisplayPredVarSDTM() {
+		$('#mb').append('<p>In the boxes below, provide information about the SDTM source</p><div class="row"><div class="col-xs-4 form-group"><label>SDTM data set name</label>\
+			<input type="text" id="sdtmds" class="form-control"></div></div><div class="row"><div class="col-xs-4 form-group"><label>SDTM variable name</label>\
+			<input type="text" id="sdtmvar" class="form-control"></div></div><div class="row"><div class="form-group col-xs-10"><label>Subset (optional)</label>\
+			<input type="text" id="sdtmsubset" class="form-control" placeholder="e.g. LBTESTCD=ALB">\
+			</div></div><div class="form-group"><label>Description of merge</label>\
+			<textarea rows="3" cols="20" id="sdtmjoin" class="form-control"></textarea></div>') ;
+	}
+
+	function DisplayPredVarADAM() {
+		$('#mb').append('<div class="form-group"><label>ADaM data set name</label><select id="adamds" class-"form-control"></select>\</div>')
+		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
+			$.each(data,function() {
+				$('<option value="'+this['DSName']+'</option>').appendTo('#adamds') ;
+			})
+		})
+		$('#mb').append('<p>In the boxes below, provide information about the ADaM source</p><div class="row"><div class="col-xs-4 form-group"><label>ADaM data set name</label>\
+			<input type="text" id="adamds" class="form-control"></div></div><div class="row"><div class="col-xs-4 form-group"><label>ADaM variable name</label>\
+			<input type="text" id="adamvar" class="form-control"></div></div><div class="row"><div class="form-group col-xs-10"><label>Subset (optional)</label>\
+			<input type="text" id="adamsubset" class="form-control" placeholder="e.g. LBTESTCD=ALB">\
+			</div></div><div class="form-group"><label>Description of merge</label>\
+			<textarea rows="3" cols="20" id="adamjoin" class="form-control"></textarea></div>') ;
 	}
 
 
@@ -1375,7 +999,7 @@ a {
 		// If MDSource is Study, need to determine if the variable is custom or not (CustomYN)
 		// CustomYN determines what is read-only 
 
-		var VarName='',VarLabel='',VarSASType='',VarSASLength='',VarOrderNumber='',VarMandatory='',VarDataType='',VarOrigin='' ;
+		var VarName='',VarLabel='',VarSASType='',VarSASLength='',VarOrderNumber='',VarMandatory='',VarDataType='';
 		var CustomYN=$('[name=CustomYN]').val() ;
 		var MDDic=JSON.parse($('[name=MD]').val()) ;
 
@@ -1383,21 +1007,16 @@ a {
 
 		if (MDSource) {
 			if (MDSource == 'Standard' || MDSource == 'Model') {
-				var url='http://localhost:8000/StandardDeveloper1/GetStandardVar' ;
+				var url='{{URLPATH}}GetStandardVar' ;
 				var dict={'StandardName':StandardName,'StandardVersion':StandardVersion,'IGDName':IGDName,'VarName':VarNameIn,'StandardType':MDSource} ;
 			}
 
 			else if (MDSource == 'Study') {
-				var url='http://localhost:8000/StandardDeveloper1/GetStudyVar' ;
+				var url='{{URLPATH}}GetStudyVar' ;
 				var dict={'Study':Study,'DSName':IGDName,'VarName':VarNameIn,'VLMOID':''}
 			}
 
 			$.getJSON(url,dict,function(data) {
-				if (MDSource == 'Study') {
-					//var CustomYN = data[0]['CustomYN'] ;
-					// Add the study CT flag to the hidden variable
-					$('[name=StudyCTName]').val(data[0]['CodeListNameStudy']) ;
-				}
 
 				var VarName=data[0]['Name'];
 				var VarLabel=data[0]['Label'];
@@ -1406,7 +1025,14 @@ a {
 				var VarOrderNumber=data[0]['OrderNumber'] ;
 				var VarMandatory=data[0]['Mandatory'] ;
 				var VarDataType=data[0]['DataType'] ;
-				var VarOrigin=data[0]['Origin'] ;
+				var VarOID=data[0]['OID'] ;
+
+				if (MDSource == 'Study') {
+					//$('[name=StudyCTName]').val(data[0]['CodeListNameStudy']) ;
+					$('[name=CT1]').val(data[0]['CodeListNameStudy']) ;
+					// Store in hidden dictionary that represents original study metadata
+					$('[name=MD1]').val(JSON.stringify({'Name':VarName,'Label':VarLabel,'SASType':VarSASType,'DataType':VarDataType,'Origin':data[0]['Origin'],'SASLength':VarSASLength,'OrderNumber':VarOrderNumber,'Mandatory':VarMandatory,'OID':VarOID})) ;
+				}
 
 				if (VarSASLength) {
 					$('[name=VarSASLength]').val(VarSASLength) ;
@@ -1452,10 +1078,121 @@ a {
 		}
 
 		else {
-			$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+$('[name=ChosenVarName]').val()+'"></div>') ;
+			$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+MDDic['Name']+'"></div>') ;
 			$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarLabel"></div>') ;
 			$('#SASTypeRow').append('<div class="col-xs-8 form-group"><select name="VarSASType"><option selected disabled></option><option value="Char">Char</option><option value="Num">Num</option></select></div>') ;
 		}
+	}
+
+	function DisplayVarMD4VLM(Study,StandardName,StandardVersion,IGDName,VarNameIn,MDSource) {
+		// MDSource can be Model, Standard, or Study, and determines where to go get the metadata from
+		// If the user chose to define a new custom variable, then MDSource is null
+		// If MDSource is Study, need to determine if the variable is custom or not (CustomYN)
+		// CustomYN determines what is read-only 
+
+		var VarName='',VarLabel='',VarSASType='',VarOrderNumber='',VarDataType='' ;
+		var CustomYN=$('[name=CustomYN]').val() ;
+		var MDDic=JSON.parse($('[name=MD]').val()) ;
+
+		$('#mb').append('<p>Since this variable is being defined in subsets, we will define only a handful of properties at the variable level, and define the rest in the subsets we define.  Populate the fields below for the variable level.</p><div class="container"><div class="row" id="NameRow"><div class="col-xs-4">Name</div></div><div class="row" id="LabelRow"><div class="col-xs-4">Label</div></div><div class="row" id="SASTypeRow"><div class="col-xs-4">SAS Type</div></div><div class="row" id="OrderNumberRow"><div class="col-xs-4">Dataset Position</div><div class="col-xs-8 form-group"><input type="number" min="1" max="200" name="VarOrderNumber"></div></div><div class="row" id="DataTypeRow"><div class="col-xs-4">Data Type</div><div class="col-xs-8 form-group"><select name="VarDataType"><option selected disabled></option><option value= "text">text</option><option value="integer">integer</option><option value="float">float</option><option value="date">date</option><option value="datetime">datetime</option></select></div></div></div>') ;
+
+		if (MDSource) {
+			if (MDSource == 'Standard' || MDSource == 'Model') {
+				var url='{{URLPATH}}GetStandardVar' ;
+				var dict={'StandardName':StandardName,'StandardVersion':StandardVersion,'IGDName':IGDName,'VarName':VarNameIn,'StandardType':MDSource} ;
+			}
+
+			else if (MDSource == 'Study') {
+				var url='{{URLPATH}}GetStudyVar' ;
+				var dict={'Study':Study,'DSName':IGDName,'VarName':VarNameIn,'VLMOID':''}
+			}
+
+			$.getJSON(url,dict,function(data) {
+
+				var VarName=data[0]['Name'];
+				var VarLabel=data[0]['Label'];
+				var VarSASType=data[0]['SASType'];
+				var VarOrderNumber=data[0]['OrderNumber'] ;
+				var VarDataType=data[0]['DataType'] ;
+				var VarOID=data[0]['OID']
+
+				if (MDSource == 'Study') {
+					// Store in hidden dictionary that represents original study metadata
+					$('[name=MD1]').val(JSON.stringify({'Name':VarName,'Label':VarLabel,'SASType':VarSASType,'DataType':VarDataType,'Origin':data[0]['Origin'],'OrderNumber':VarOrderNumber,'OID':VarOID})) ;
+				}
+
+
+				if (VarOrderNumber) {
+					$('[name=VarOrderNumber]').val(VarOrderNumber) ;
+				}
+
+				if (VarDataType) {
+					$('option[value='+VarDataType+']').prop('selected',true);
+				}
+
+				if (CustomYN == true) {
+					$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+VarName+'"></div>') ;
+					$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarLabel" value="'+VarLabel+'"></div>') ;
+					$('#SASTypeRow').append('<div class="col-xs-8 form-group"><select name="VarSASType"><option selected disabled></option><option value="Char">Char</option><option value="Num">Num</option></select></div>') ;
+
+					if (VarSASType) {
+						$('option[value='+VarSASType+']').prop('selected',true) ;
+					}
+				}
+
+				else {
+					$('#NameRow').append('<div class="col-xs-8 form-group">'+VarName+'</div>') ;
+					$('#LabelRow').append('<div class="col-xs-8 form-group">'+VarLabel+'</div>') ;
+					$('#SASTypeRow').append('<div class="col-xs-8 form-group">'+VarSASType+'</div>') ;
+					MDDic['Label']=VarLabel ;
+					MDDic['SASType']=VarSASType;
+					$('[name=MD]').val(JSON.stringify(MDDic)) ;
+				}
+			}) ;
+		}
+
+		else {
+			$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+MDDic['Name']+'"></div>') ;
+			$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarLabel"></div>') ;
+			$('#SASTypeRow').append('<div class="col-xs-8 form-group"><select name="VarSASType"><option selected disabled></option><option value="Char">Char</option><option value="Num">Num</option></select></div>') ;
+		}
+	}
+	function DisplayDtypeMethods(Study,DSName) {
+
+		$.getJSON('{{URLPATH}}GetDerivedRows',{'Study':Study,'DSName':DSName},function(data){
+			if (data.length) {
+				$('#mb').append('<p>Since you have defined derived records (DTYPE records) for some parameters, you need to indicate how this variable will be defined for such records.  For each row in the table below, indicate whether the value of this variable on the indicated derived record will be null, retained from parent records from which it was derived, or something else (you will have a chance to specify.<table id="parmdtypes" data-unique-id="OID"></table>')
+
+				$('#parmdtypes').bootstrapTable({
+					columns:[{
+						field:'OID',
+						class:'hidden'
+					},{
+						field:'Condition',
+						title:'DTYPE Condition'
+					},{
+						field:'null',
+						title:'Set to Null',
+						align:'center'
+					},{
+						field:'retain',
+						title:'Retain value from parent records',
+						align:'center'
+					},{
+						field:'other',
+						title:'Other (specify)',
+						align:'center'
+					},{
+						field:'Description',
+						title:'Specify'
+					}]
+				})
+
+				$.each(data,function() {
+					$('#parmdtypes').bootstrapTable('append',[{'OID':this['OID'],'Condition':'PARAMCD='+this['PARAMCD']+' and DTYPE='+this['DTYPE'],'null':'<input type="radio" style="text-align:center" name="OID'+this['OID']+'" value="null">','retain':'<input type="radio" style="text-align:center" name="OID'+this['OID']+'" value="retain">','other':'<input type="radio" style="text-align:center" name="OID'+this['OID']+'" value="other">','Description':''}]);
+				})
+			}
+		})
 	}
 </script>
 

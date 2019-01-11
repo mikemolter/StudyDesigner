@@ -39,16 +39,28 @@ $(document).ready(function() {
 
 	// When finished, store the record sources
 	$('form').submit(function() {
-		var mddic=JSON.parse($('[name=MD]').val()) ;
+		var id=$(this).attr('id') ;
 
-		if (mddic['Class'] == 'BASIC DATA STRUCTURE') {
-			ProcessParmDef() ;
+		if (id == 'dsmd') {
+			var mddic=JSON.parse($('[name=MD]').val()) ;
+
+			if (mddic['Class'] == 'BASIC DATA STRUCTURE') {
+				ProcessParmDef() ;
+			}
+
+			else {
+				$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
+			}
 		}
 
-		else {
-			$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
+		else if (id == 'GenerateADaMSpec' || id == 'GenerateDefine') {
+			$('#myModal').modal('hide') ;
 		}
 	})
+
+	// $('#GenerateADaMSpec').submit(function() {
+	// 	$('#myModal').modal('hide') ;
+	// })
 
 	$('#myModal').on('click','[id^=ToParcat1]',function() {
 		$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
@@ -169,7 +181,21 @@ $(document).ready(function() {
 			$('#dtypedesc').prop('disabled',true);
 		}
 	})
+
+	// When the user chooses to edit variables from a chosen data set from the StudyHome page
+	$('#pageform').on('click','.EditVarFromHome',function() {
+		var rowindex=$(this).closest('tr').data('index'); 
+		var ds=$('#dsmdtable').bootstrapTable('getData')[rowindex]['Dataset'] ;
+		var igdsource=$('#dsmdtable').bootstrapTable('getData')[rowindex]['IGDSource'] ;
+		var DSClass=$('#dsmdtable').bootstrapTable('getData')[rowindex]['Class'] ;
+		$('[name=Dataset]').val(ds);
+		$('[name=IGDSource]').val(igdsource);
+		$('[name=Class').val(DSClass);
+		$('#pageform').submit() ;
+	})
+
 })
+
 
 
 function ProcessParmDef() {

@@ -23,10 +23,11 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 
 {% block table %}
 	<div class='im-centered'>
-		<table data-toggle="table" id="dsmdtable" data-id-field="name" data-url="http://localhost:8000/StandardDeveloper1/GetStudyDSMD" data-query-params="StudySourceParms">
+		<table data-toggle="table" id="dsmdtable" data-id-field="name" data-url="{{URLPATH}}GetStudyDSMD" data-query-params="StudySourceParms">
 		    <thead>
 		    <tr>
-		       <th data-field="Dataset">Dataset</th>
+		    	<th data-field="IGDSource" data-class="hidden"></th>
+		        <th data-field="Dataset">Dataset</th>
 		        <th data-field="Label">Label</th>
 		        <th data-field="Class">Class</th>
 		        <th data-field="RecordSources">Record Sources</th>
@@ -34,7 +35,7 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 		        <th data-field="Repeating">Multiple records per subject?</th>
 		        <th data-field="Reference">Reference data?</th>
 		        <th data-field="removeedit" data-formatter="GlyphsRemoveEdit" data-align="center">Dataset Action</th>
-		        <th data-field="editvar" data-formatter="GlyphsEditOnly" data-align="center">Edit Variable</th>
+		        <th data-field="editvar" data-formatter="GlyphsEditOnly" data-align="center" data-class="EditVarFromHome">Edit Variable</th>
         	</tr>
 		    </thead>
 		</table>
@@ -42,7 +43,7 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 {% endblock %}
 
 {% block GetStudyInfo %}
-	$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandardDSwoStudy',{Study:"{{Study}}",StandardName:"{{StandardName}}",StandardVersion:"{{StandardVersion}}"},function(data) {
+	$.getJSON('{{URLPATH}}GetStandardDSwoStudy',{Study:"{{Study}}",StandardName:"{{StandardName}}",StandardVersion:"{{StandardVersion}}"},function(data) {
 		$.each(data,function () {
 			$('.btn-group-justified').prepend('<div class="btn-group"><button type="button" class="btn btn-success" id="ADD_'+this['Name']+'">'+this['Name']+'</button></div>') ;
 		})
@@ -55,10 +56,10 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 <h3>Generate Study outputs</h3>
 <div class="row">
 	<div class='col-xs-6'>
-		<button class="btn btn-success" id='spec'>Generate Programming Spec</button>
+		<button class="btn btn-success" type="button" id='spec'>Generate Programming Spec</button>
 	</div>
 	<div class='col-xs-6'>
-		<button class="btn btn-success" id='define'>Generate Define.xml (2.0)</button>
+		<button class="btn btn-success" type="button" id='define'>Generate Define.xml (2.0)</button>
 	</div>
 </div>
 {% endblock %}

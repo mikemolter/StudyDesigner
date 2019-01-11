@@ -29,6 +29,8 @@ ALLOWED_HOSTS = ['localhost','vagrant.neo4j','127.0.0.1']
 
 CORS_ORIGIN_ALLOW_ALL = True
 
+URLPATH = 'http://localhost:8000/StandardDeveloper1/'
+
 
 # Application definition
 

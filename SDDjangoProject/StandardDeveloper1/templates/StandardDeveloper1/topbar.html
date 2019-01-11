@@ -1,0 +1,21 @@
+{% load static %}
+  <div id="content">
+
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+
+        <div class="navbar-header">
+          <button type="button" id="sidebarCollapse" class="btn btn-link navbar-btn">
+            <i class="fa fa-bars"></i>&nbsp;&nbsp;<a id="titleLink" href="#">STUDY DESIGNER PORTAL</a>
+          </button>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <form action="/logout/" method="post">
+                <ul class="nav navbar-nav navbar-right">
+                    <a href="https://www.wrightave.com" target="_blank"><li id="brandImg"><img class="resize2" src="{% static 'StandardDeveloper1/image.png' %}"></li></a>
+                </ul>
+            </form>
+        </div>
+      </div>
+    </nav>

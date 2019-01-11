@@ -3,300 +3,20 @@
 
 {% load static %}
 <head>
-   <!-- CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="https://fonts.googleapis.com/css?family=Lato|Lora" rel="stylesheet">
-    <!-- JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    
 
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.css">
+    {% include 'StandardDeveloper1/head.html' %}
 
-	<!-- Latest compiled and minified JavaScript -->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.js"></script>
-
-	<!-- Latest compiled and minified Locales -->
-	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table-locale-all.js"></script> -->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/locale/bootstrap-table-en-US.js"></script>
-	<script type="text/javascript" src="{% static 'StandardDeveloper1/NewStudy.js' %}"></script>
-	<script type="text/javascript" src="{% static 'StandardDeveloper1/Utilities.js' %}"></script>
-	<!-- <script type="text/javascript" src="/static/StandardDeveloper1/NewStudy.js"></script> -->
-
-	<script>
-	$(document).ready(function(){
-		// Begin study-level metadata collection with an introduction
-		$('#NewStudy').click(function (){
-			$('#mh14').text('Welcome to Study Designer!') ;
-			$('#mbc1').append("<div>Study Designer is a tool that facilitates the collection and management of metadata for data design and submission.  You'll begin by answering a few questions about the study.  After you've finished and reviewed your input, you'll then begin the design of the ADSL data set.  Click the Next button below to get started.</div>")
-			$('#myModal1').modal('show') ;
-			$('input[value=Next]').attr('id','ToStudy1FromIntro') ;
-		})
-
-		$('#myModal1').on('click','[id^=ToStudy1]',function() {
-			var id=$(this).attr('id') ;
-			$('#mh14').text('Study Information') ;
-			$('#mbc1').empty() ;
-			$('#mbc1').append('<div class="radio"><p>Select a model</p><label><input type="radio" name="ModelName" disabled value="SDTM">SDTM</label></div><div class="radio"><label><input type="radio" name="ModelName" value="ADAM">ADaM</label></div><div id="sel2" class="form-group"><select name=Versions><option selected disabled>Select a default standard version</option></select></div><div class="form-group"><textarea rows="2" cols="60" id="studyname" placeholder="Enter here the short, external name of the study"></textarea></div><div class="form-group"><textarea rows="2" cols="60" id="protocolname" placeholder="Enter here the sponsor internal name of the study"></textarea></div><div class="form-group"><textarea rows="10" cols="90" id="studydesc" placeholder="Enter here a description of the study"></textarea></div>')
-			if (id == 'ToStudy1FromIntro') {
-				$('#'+id).attr('id','ToStudy2FromStudy1') ;
-			}
-		})
-
-		$('#myModal1').on('click','[id^=ToStudy2]',function() {
-			var id=$(this).attr('id') ;
-			if (id == 'ToStudy2FromStudy1') {
-				// Store the information collected in Study1
-				$('[name=ModelName]').val($('input[name=ModelName]:checked').val()); 
-				$('[name=ModelVersion]').val($('#sel2 :selected').val()) ;
-				$('[name=StudyName]').val($('#studyname').val()) ;
-				$('[name=StudyDescription]').val($('#studydesc').val()) ;
-				$('[name=ProtocolName]').val($('#protocolname').val()) ;
-				$('#'+id).attr('id','ToStudy3FromStudy2')
-			}
-			$('#mbc1').empty() ;
-			DisplayDicts() ;
-		})
-
-		$('#myModal1').on('click','[id^=ToStudy3]',function() {
-			var id=$(this).attr('id') ;
-			if (id == 'ToStudy3FromStudy2') {
-				// Store the information collected in Study1
-				$('[name=ExtDicts]').val(JSON.stringify($('#dicttable').bootstrapTable('getSelections'))) ;
-				$('[value=Next]').remove() ;
-				$('#mf1').append('<input type="submit" class="btn btn-success" value="Finish"></input>') ;
-				// $('#'+id).attr('id','Test') ;
-			}
-
-			$('#mbc1').empty() ;
-			$('#dicttable').remove() ;
-			DisplayDocs() ;
-		})
-
-
-		// $('#myModal1').on('change','[name=ModelName]',function(){
-		// 	var selectedVal = $('input[name=ModelName]:checked').val();
-		// 	$.getJSON('http://localhost:8000/StandardDeveloper1/GetStandards',{'Model':selectedVal},function(data){
-		// 		$.each(data,function() {
-		// 			$('<option value="'+this['Version']+'">'+this['Name']+' IG ('+this['Version']+')</option>').appendTo('[name=Versions]');
-		// 		})
-		// 	})
-		// })
-
-		$('#myModal1').on('change','#dicts',function() {
-			var dict=$('#dicts :selected').val() ;
-			if (dict == "meddra") {
-				$('#EDName').val("MedDRA") ;
-				$('#EDDesc').val("Adverse Event Dictionary") ;
-				$('#EDName').prop('disabled',true) ;
-				$('#EDDesc').prop('disabled',true) ;
-			}
-
-			else if (dict == "whodrug") {
-				$('#EDName').val("WHODrug") ;
-				$('#EDDesc').val("World Health Organization Drug Dictionary") ;
-				$('#EDName').prop('disabled',true) ;
-				$('#EDDesc').prop('disabled',true) ;
-			}
-
-			else {
-				$('#EDName').val(null);
-				$('#EDDesc').val(null);
-				$('#EDName').prop('disabled',false);
-				$('#EDDesc').prop('disabled',false);
-			}
-		})
-
-		$('#myModal1').on('change','#docs',function() {
-			var dict=$('#docs :selected').val() ;
-			if (dict == "acrf") {
-				$('#DocName').val("Annotated Case Report Form") ;
-				$('#DocName').prop('disabled',true) ;
-			}
-
-			else if (dict == "sdrg") {
-				$('#DocName').val("Study Data Reviewers Guide") ;
-				$('#DocName').prop('disabled',true) ;
-			}
-
-			else if (dict == "adrg") {
-				$('#DocName').val("Analysis Data Reviewers Guide") ;
-				$('#DocName').prop('disabled',true) ;
-			}
-
-			else if (dict == "sap") {
-				$('#DocName').val("Statistical Analysis Plan") ;
-				$('#DocName').prop('disabled',true) ;
-			}
-
-			else {
-				$('#DocName').val(null);
-				$('#DocName').prop('disabled',false);
-			}
-		})
-
-		$('#myModal1').on('click','#Test',function(){
-			alert ('hello world') ;
-			$('[name=Documents]').val(JSON.stringify($('#doctable').bootstrapTable('getSelections'))) ;
-		})
-		$('form').submit(function() {
-			$('[name=Documents]').val(JSON.stringify($('#doctable').bootstrapTable('getSelections'))) ;
-		})
-	})
-
-
-	</script>
-
-    <!-- JS -->
-<!--     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
- -->
-    <style>
-div.navdiv {
-    width: 100%;
-}
-
-div.maindiv {
-    padding-left: 15px;
-    padding-right: 15px;
-}
-
-.table {width: 75%; }
-
-img.resize{
-    max-width:99%;
-}
-
-.im-centered {
-      min-height: 50%;  /* Fallback for vh unit */
-      min-height: 50vh; /* You might also want to use
-                            'height' property instead.
-
-                            Note that for percentage values of
-                            'height' or 'min-height' properties,
-                            the 'height' of the parent element
-                            should be specified explicitly.
-
-                            In this case the parent of '.vertical-center'
-                            is the <body> element */
-
-/* Make it a flex container */
-display: -webkit-box;
-display: -moz-box;
-display: -ms-flexbox;
-display: -webkit-flex;
-display: flex;
-
-/* Align the bootstrap's container vertically */
--webkit-box-align : center;
--webkit-align-items : center;
-   -moz-box-align : center;
-   -ms-flex-align : center;
-      align-items : center;
-
-/* In legacy web browsers such as Firefox 9
- we need to specify the width of the flex container */
-width: 100%;
-
-/* Also 'margin: 0 auto' doesn't have any effect on flex items in such web browsers
- hence the bootstrap's container won't be aligned to the center anymore.
-
- Therefore, we should use the following declarations to get it centered again */
-     -webkit-box-pack : center;
-        -moz-box-pack : center;
-        -ms-flex-pack : center;
--webkit-justify-content : center;
-      justify-content : center;
-      }
-
-body { padding-top: 90px; }
-
-.btn-primary{
-        background-color:#006A3B;
-        border-color: #006A3B;
-    }
-
-img.resize{
-    width:75px;
-    height:75px;
-}
-
-img.resize2{
-    width: 150px;
-}
-
-.v-center {
-  min-height:200px;
-  display: flex;
-  justify-content:center;
-  flex-flow: column wrap;
-}
-
-.btn-success {
-    color: #fff;
-    background-color: #4cae4c;
-    border-color: #5cb85c;
-}
-
-a {
-    color: #969696;
-    text-decoration: none;
-}
-    </style>
 </head>
 
-<body style="font-family: 'Lora', serif;">
-
-<div class="navbar navbar-default navbar-fixed-top" style="background-color:#ffffff;">
-    <a class="navbar-brand" href="#" style="color:#969696;">CLINICAL STUDY DESIGNER SUITE</a>
-    <form action="/logout/" method="post">
-        <ul class="nav navbar-nav navbar-right">
-            <a href="https://www.wrightave.com" target="_blank"><li style="padding-top:12px;padding-right:27px;"><img class="resize2" src="{% static 'StandardDeveloper1/image.png' %}"></li></a>
-        </ul>
-    </form>
-</div>
-
-<div class="im-centered">
-    <div class="well" style="width:65%;text-align:center;font-family: 'Lato', sans-serif;">
-    <h2>Welcome to the Study Designer Portal</h2><p>&nbsp;</p>
-    <div class="row" style="font-family: 'Lato', sans-serif;">
-<!--         <a class="btn btn-success btn-lg text-center" data-toggle="modal" data-target="#myModal1" aria-label="Settings">
-            <i class="fa fa-file-text fa-5x" aria-hidden="true"></i><br>Create a<br>new study
-        </a>
-
- --> 
-     <a class="btn btn-success btn-lg text-center" id="NewStudy" aria-label="Settings">
-        <i class="fa fa-file-text fa-5x" aria-hidden="true"></i><br>Create a<br>new study
-    </a>
-
-	<a class="btn btn-success btn-lg text-center" data-toggle="modal" data-target="#myModal" aria-label="Settings">
-	    <i class="fa fa-copy fa-5x" aria-hidden="true"></i><br>Create new study<br>from existing
-	</a>
-
-	<a class="btn btn-success btn-lg text-center" data-toggle="modal" data-target="#myModal2" aria-label="Settings">
-	    <i class="fa fa-pencil fa-5x" aria-hidden="true"></i><br>Edit existing<br>study data
-	</a>
-    </div>
-        <br>
-        <p><a href="https://www.wrightave.com/about-us/" target="_blank">© Wright Avenue Partners - All Rights Reserved</a></p>
-</div>
-</div>
-
-
-
-
-
-
+<body>
 
 <!-- Modal -->
 <div class="modal fade" id="myModal1" role="dialog">
-    <div class="modal-dialog" style="width: 700px;font-family: 'Lato', sans-serif;">
+    <div class="modal-dialog">
 
         <!-- Modal content-->
-        <div class="modal-content" style="width: 700px;">
-        	<form action='NewStudy' style="height:100%">
+        <div class="modal-content">
+        	<form action='NewStudy'>
         		<div id='hide'>
         			<input type="hidden" name="StudyDescription"/>
         			<input type="hidden" name="StudyName"/>
@@ -307,17 +27,17 @@ a {
         			<input type="hidden" name="ModelVersion"/>
         		</div>
 
-	            <div class="modal-header" style="width: 700px;">
+	            <div class="modal-header">
 	                <button type="button" class="close" data-dismiss="modal">&times;</button>
 	                <h4 class="modal-title" id="mh14"></h4>
 	            </div>
 
-	            <div class="modal-body" id="mb1" style="width: 700px;">
-	                <div class="container" id="mbc1" style="width: 700px;">
+	            <div class="modal-body" id="mb1">
+	                <div class="container" id="mbc1">
  					</div>
 	            </div>
 
-	            <div class="modal-footer" id="mf1" style="width: 700px;">
+	            <div class="modal-footer" id="mf1">
 	                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
 	                <input type="button" class="btn btn-success" value="Next"></input>
 	            </div>
@@ -327,27 +47,25 @@ a {
     </div>
 </div>
 
+
+
 <!-- Modal -->
 <div class="modal fade" id="myModal" role="dialog">
-    <div class="modal-dialog" style="width: 700px;font-family: 'Lato', sans-serif;">
+    <div class="modal-dialog">
 
         <!-- Modal content-->
-        <div class="modal-content" style="width: 700px;">
-            <div class="modal-header" style="width: 700px;">
+        <div class="modal-content">
+            <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">Please make a selection</h4>
             </div>
-            <div class="modal-body" style="width: 700px;">
-                <div class="container" style="width: 700px;">
-                    <div class="radio">
-                        <label><input type="radio" name="optradio" checked>SDTM from ADaM</label>
-                    </div>
-                    <div class="radio">
-                        <label><input type="radio" name="optradio">ADaM from SDTM</label>
-                    </div>
+
+            <div class="modal-body">
+                <div class="container">
                 </div>
             </div>
-            <div class="modal-footer" style="width: 700px;">
+
+            <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-success" data-dismiss="modal" onclick="waitingDialog.show();setTimeout(function () {waitingDialog.hide();}, 4000);">OK</button>
             </div>
@@ -358,90 +76,54 @@ a {
 
 <!-- Modal -->
 <div class="modal fade" id="myModal2" role="dialog">
-    <div class="modal-dialog" style="width: 700px;font-family: 'Lato', sans-serif;">
+    <div class="modal-dialog">
 
         <!-- Modal content-->
-        <div class="modal-content" style="width: 700px;">
-            <div class="modal-header" style="width: 700px;">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Please make a selection</h4>
-            </div>
-            <div class="modal-body" style="width: 700px;">
-                <div class="container" style="width: 700px;">
-                    <div class="radio">
-                        <label><input type="radio" name="optradio" checked>SDTM</label>
-                    </div>
-                    <div class="radio">
-                        <label><input type="radio" name="optradio">ADaM</label>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="width: 700px;">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-success" data-dismiss="modal" onclick="waitingDialog.show();setTimeout(function () {waitingDialog.hide();}, 4000);">OK</button>
-            </div>
-        </div>
+        <div class="modal-content">
+        	<form action="EditStudy">
+	            <div class="modal-header">
+	                <button type="button" class="close" data-dismiss="modal">&times;</button>
+	                <h4 class="modal-title" id="mh2"></h4>
+	            </div>
 
+	            <div class="modal-body" id="mb2">
+	                <div class="container" id="mbc2">
+	                </div>
+	            </div>
+
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+	                <button type="submit" class="btn btn-success" value="Finish">OK</button>
+	            </div>
+	        </form>
+        </div>
     </div>
 </div>
 
+  {% include 'StandardDeveloper1/sidebar.html' %}
 
-<script type="text/javascript">
-	function DisplayDicts() {
-		$('#mh14').text('Study Information - External Dictionaries') ;
-		$('#mbc1').append('<div class="form-group"><p>Define your external dictionaries by selecting an option from the dropdown and providing the version, or enter information in the fields below for a different dictionary.</p><select id="dicts"><option selected disabled>Select a dictionary</option><option value="meddra">Adverse Event Dictionary (Meddra)</option><option value="whodrug">WHO Drug Dictionary</option><option value="other">Other</option></select></div><div class="row form-group"><div class="col-xs-2">Name</div><div class="col-xs-4"><input id="EDName" class="form-control input-sm"></div></div><div class="row form-group"><div class="col-xs-2">Description</div><div class="col-xs-8"><input id="EDDesc" class="form-control input-sm"></div></div><div class="row form-group"><div class="col-xs-2">Version</div><div class="col-xs-4"><input id="EDVersion" class="form-control input-sm"></div></div><div class="form-group"><button type="button" class="btn btn-success" id="addbutton">Add dictionary to table</button></div><div>');
-		$('#mb1').append('<table id="dicttable"></table>');
-		$('#addbutton').attr('onclick','Add2Table($("#dicttable"),["name","description","version"],[$("#EDName"),$("#EDDesc"),$("#EDVersion")])');
-		$('#dicttable').bootstrapTable({
-			scrollY:"200px",
-			columns:[{
-				field:'state',
-				checkbox:'true',
-				title:'Check/Uncheck all'
-			},{
-				field:'name',
-				title:'Dictionary Name'
-			},{
-				field:'description',
-				title:'Dictionary Description'
-			},{
-				field:'version',
-				title:'Dictionary version'
-			}]
-		})
-	}
+  {% include 'StandardDeveloper1/topbar.html' %}
 
+  <div>
+    <div id="appWell" class="well">
+        <h2>Dataset Designer</h2><p>&nbsp;</p>
+        <div class="row">
+	         <a class="btn btn-success btn-lg text-center" id="NewStudy" aria-label="Settings">
+        <i class="fa fa-file-text fa-5x" aria-hidden="true"></i><br>Create a<br>new study
+    </a>
 
-	function DisplayDocs() {
-		$('#mh14').text('Study Information - External Dictionaries') ;
-		$('#mbc1').append('<div class="form-group"><p>Define your external documents by selecting an option from the dropdown and providing the file name, or enter information in the fields below for a different document.</p><select id="docs"><option selected disabled>Select a document</option><option value="acrf">Annotated Case Report Form</option><option value="sdrg">Study Data Reviewers Guide</option><option value="adrg">Analysis Data Reviewers Guide</option><option value="sap">Statistical Analysis Plan</option><option value="other">Other</option></select></div><div class="row form-group"><div class="col-xs-2">Name</div><div class="col-xs-4"><input id="DocName" class="form-control input-sm"></div></div><div class="row form-group"><div class="col-xs-2">File Name (including file extension)</div><div class="col-xs-4"><input id="FileName" class="form-control input-sm"></div></div><div class="form-group"><button type="button" class="btn btn-success" id="addbutton">Add document to table</button></div><div>');
-		$('#mb1').append('<table id="doctable"></table>');
-		$('#addbutton').attr('onclick','Add2Table($("#doctable"),["name","file"],[$("#DocName"),$("#FileName")])');
-		$('#doctable').bootstrapTable({
-			scrollY:"200px",
-			columns:[{
-				field:'state',
-				checkbox:'true',
-				title:'Check/Uncheck all'
-			},{
-				field:'name',
-				title:'Document Name'
-			},{
-				field:'file',
-				title:'File Name'
-			}]
-		})
-	}
+	<a class="btn btn-success btn-lg text-center" data-toggle="modal" data-target="#myModal" aria-label="Settings">
+	    <i class="fa fa-copy fa-5x" aria-hidden="true"></i><br>Create new study<br>from existing
+	</a>
 
-	// function Add2Table(TableObject,FieldNames,AddObjects) {
-	// 	var data={state:true} ;
-	// 	for (x in FieldNames) {
-	// 		data[FieldNames[x]]=AddObjects[x].val() ;
-	// 		AddObjects[x].val(null) ;
-	// 	}
-	// 	$(TableObject).bootstrapTable('append',data) ;
-	// }
+	<a class="btn btn-success btn-lg text-center" id="CurrentStudy" aria-label="Settings">
+	    <i class="fa fa-pencil fa-5x" aria-hidden="true"></i><br>Edit existing<br>study data
+	</a>
+        </div>
+    </div>
+  </div>
 
-</script>
+  {% include 'StandardDeveloper1/footer.html' %}
+
 </body>
 </html>

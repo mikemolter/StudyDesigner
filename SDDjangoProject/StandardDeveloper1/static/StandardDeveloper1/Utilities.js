@@ -7,15 +7,19 @@ function Add2Table(TableObject,FieldNames,AddObjects) {
 	$(TableObject).bootstrapTable('append',data) ;
 }
 
-	function GlyphsRemoveEdit() {
-		return '<i class="glyphicon glyphicon-trash"></i><i class="glyphicon glyphicon-pencil" id="pencilwithtrash"></i>'
-	}
+function GlyphsRemoveEdit() {
+	return '<i class="glyphicon glyphicon-trash"></i><i class="glyphicon glyphicon-pencil" id="pencilwithtrash"></i>'
+}
 
-	function GlyphsEditOnly() {
-		return '<i class="glyphicon glyphicon-pencil" id="pencilonly"></i>'
-	}
+function GlyphsEditOnly() {
+	return '<i class="glyphicon glyphicon-pencil" id="pencilonly"></i>'
+}
 
-	function StudySourceParms () {
-		//return {Study:'{{Study}}',DSName:'{{DSName}}' };
-		return {Study:$('[name=Study]').val(),DSName:'{{DSName}}' };
-	}
+function StudySourceParms () {
+	//return {Study:'{{Study}}',DSName:'{{DSName}}' };
+	return {Study:$('[name=Study]').val(),DSName:$('[name=DSName]').val() };
+}
+
+function VarParms(){
+	return {Study:$('[name=Study]').val(),DSName:$('[name=DSName]').val(),VarName:$('[name=VarName]').val() };
+}

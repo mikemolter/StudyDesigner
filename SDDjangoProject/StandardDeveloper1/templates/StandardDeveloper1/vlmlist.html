@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+
+{% load static %}
+<head>
+
+	{% include 'StandardDeveloper1/head.html' %}
+	<script type="text/javascript" src="{% static 'StandardDeveloper1/VLM.js' %}"></script>
+
+</head>
+
+<body style="font-family: 'Lora', serif;">
+
+	{% include 'StandardDeveloper1/sidebar.html' %}
+
+	{% include 'StandardDeveloper1/topbar.html' %}
+
+
+<form method="post" action='Back2VarList'>
+{% csrf_token %}
+
+<div id="hide">
+	<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+	<input type="hidden" name="Study" value="{{Study}}"/>
+	<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+	<input type="hidden" name="DSName" value="{{DSName}}"/>
+	<input type="hidden" name="VarName" value="{{VarName}}"/>
+	<input type="hidden" name="IGDSource" value="{{IGDSource}}"/>
+	<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
+	<input type="hidden" name="Class" value="{{Class}}"/>
+	<input type="hidden" name="NextVarGroup" value="{{NextVarGroup}}"/>
+
+</div>
+
+
+<div class="container">
+	<h2>Study: {{Study}}</h2>
+	<h2>Subset Definitions for {{DSName}}.{{VarName}}</h2>
+	<hr>
+	<h3>Variable-Level metadata summary</h3>
+	<div id="varsummary"></div>
+	<button type="button" class="btn btn-success">Edit Variable Metadata</button>
+	<hr>
+	<h3>Subset Definitions</h3>
+
+ 	<p>Select a pre-defined subset from the table, or, define a custom subset</p>
+ 	<button type="button" class="btn btn-success">Custom Subset</button>
+ 	<div class='im-centered'>
+		<table data-toggle="table" id="subsettable" data-url="{{URLPATH}}GetPotentialWhereConditions" data-query-params="VarParms">
+		    <thead>
+		    <tr>
+		    	<th data-field="wcOID" class="hidden"></th>
+		        <th data-field="PARAMCD" class="hidden"></th>
+		        <th data-field="DTYPE" class="hidden"></th>
+		        <th data-field="pop" class="hidden"></th>
+		        <th data-field="dop" class="hidden"></th>
+		        <th data-field="wcOID4VarinStudyTF" class="hidden"></th>
+		        <th data-field="_merge" class="hidden"></th>
+		        <th data-field="Subset" data-formatter="DisplayConditionColumn">Subset</th>
+		        <th data-field="Name">Subset Name</th>
+		        <th data-field="Label">Subset Description</th>
+		        <th data-field="Origin">Origin</th>
+		        <th data-field="DataType">DataType</th>
+		        <th data-field="Length">Length</th>
+		        <th data-field="Mandatory">Mandatory</th>
+		        <th data-field="Action" data-formatter="WhichVLMGlyph" data-align="center">Action</th>
+        	</tr>
+		    </thead>
+		</table>
+	</div>
+
+	<input type='submit' value='Back to variables' class="btn btn-success">
+
+</div>
+</form>
+
+<div id="myModal" class="modal fade" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<form action='NewVar' method="post" >
+				{% csrf_token %}
+				<div id="hidemodal">
+					<input type="hidden" name="StandardName" value="{{StandardName}}"/>
+					<input type="hidden" name="Study" value="{{Study}}"/>
+					<input type="hidden" name="StandardVersion" value="{{StandardVersion}}"/>
+					<input type="hidden" name="DSName" value="{{DSName}}"/>
+					<input type="hidden" name="VarName" value="{{VarName}}"/>
+					<input type="hidden" name="IGDSource" value="{{IGDSource}}"/>
+					<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
+					<input type="hidden" name="Class" value="{{Class}}"/>
+					<input type="hidden" name="NextVarGroup" value="{{NextVarGroup}}"/>
+					<input type="hidden" name="MD"/>
+					<input type="hidden" name="RecordSources"/>
+					<input type="hidden" name="StandardTF"/>
+					<input type="hidden" name="Action"/>
+					<input type="hidden" name="Sources"/>
+					<input type="hidden" name="CT"/>
+					<input type="hidden" name="Method"/>
+					<input type="hidden" name="MD1"/>
+					<input type="hidden" name="Sources1"/>
+					<input type="hidden" name="CT1"/>
+					<input type="hidden" name="Method1"/>
+				</div>
+			    <div class="modal-header" id="mh">
+			    	<button type="button" class="close" data-dismiss="modal">&times;</button>
+			    	<h4 class="modal-title" id="mh4"></h4>
+			    </div>
+
+			    <div class="modal-body" id="mb">
+			    </div>
+
+	            <div class="modal-footer" id="mf">
+	            </div>
+        	</form>
+		</div>
+	</div>
+</div>
+
+{% include 'StandardDeveloper1/footer.html' %}
+
+</body>
