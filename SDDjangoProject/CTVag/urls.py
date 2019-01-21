@@ -2,7 +2,7 @@ from django.conf.urls import url
 
 from . import views
 
-print "HELLO WORLD!"
+print("HELLO WORLD!")
 
 urlpatterns = [
     url(r'^$', views.index, name='idx'),
@@ -17,5 +17,5 @@ urlpatterns = [
     url('FromStudy',views.FromStudy)
 ]
 
-print 'URLPATTERNS: ' 
-print urlpatterns
+print('URLPATTERNS: ') 
+print(urlpatterns)
