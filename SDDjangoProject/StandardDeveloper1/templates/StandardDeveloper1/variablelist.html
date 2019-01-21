@@ -92,7 +92,7 @@
 
 			if (VLMTF) {
 				DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",chosenvar,"Study")
-				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToFinalFromVLM"/>');
+				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToCommentFromVLM"/>');
 			}
 
 			else {
@@ -141,7 +141,7 @@
 						DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",VarName,"Standard")
 					}
 
-					$('#'+id).attr('id','ToFinalFromVLM') ;
+					$('#'+id).attr('id','ToCommentFromVLM') ;
 				}
 
 				else {
@@ -513,7 +513,7 @@
 					$('#mb').empty();
 
 					if (PredYN) {
-						$('#'+id).attr('id','ToFinalFromMatchCT');
+						$('#'+id).attr('id','ToCommentFromMatchCT');
 					}
 					else {
 						$('#'+id).attr('id','ToMethodbFromMatchCT');
@@ -541,7 +541,7 @@
 					$('#mb').empty();
 
 					if (PredYN) {
-						$('#'+id).attr('id','ToFinalFromNoMatchCT');
+						$('#'+id).attr('id','ToCommentFromNoMatchCT');
 					}
 					else {
 						$('#'+id).attr('id','ToMethodbFromNoMatchCT');
@@ -560,7 +560,7 @@
 
 
 
-		$('#myModal').on('click','#ToBDSFinal',function() {
+		$('#myModal').on('click','#ToBDSComment',function() {
 			var alldata=$('#parmdtypes').bootstrapTable('getData') ;
 			var dtypemethodslist=[] ;
 			for (x=0; x<alldata.length; x++) {
@@ -568,8 +568,8 @@
 			}
 			$('[name=DTYPEMethods]').val(JSON.stringify(dtypemethodslist)) ;
 			$('#mb').empty() ;
-			DisplayFinal() ;
-			$('[id=ToBDSFinal]').remove() ;
+			DisplayMethodComment(type='cvar') ;
+			$('[id=ToBDSComment]').attr('id','ToFinalFromComment') ;
 		})
 
 
@@ -758,11 +758,13 @@
 					<input type="hidden" name="Sources"/>
 					<input type="hidden" name="CT"/>
 					<input type="hidden" name="Method"/>
+					<input type="hidden" name="Comment"/>
 					<input type="hidden" name="DTYPEMethods"/>
 					<input type="hidden" name="MD1"/>
 					<input type="hidden" name="Sources1"/>
 					<input type="hidden" name="CT1"/>
 					<input type="hidden" name="Method1"/>
+					<input type="hidden" name="Comment1"/>
 					<input type="hidden" name="DTYPEMethods1"/>
 
 				</div>
@@ -1191,6 +1193,13 @@
 				$.each(data,function() {
 					$('#parmdtypes').bootstrapTable('append',[{'OID':this['OID'],'Condition':'PARAMCD='+this['PARAMCD']+' and DTYPE='+this['DTYPE'],'null':'<input type="radio" style="text-align:center" name="OID'+this['OID']+'" value="null">','retain':'<input type="radio" style="text-align:center" name="OID'+this['OID']+'" value="retain">','other':'<input type="radio" style="text-align:center" name="OID'+this['OID']+'" value="other">','Description':''}]);
 				})
+
+				$('[id^=ToComment]').attr('id','ToBDSComment')
+			}
+
+			else {
+				DisplayMethodComment(type='cvar') ;
+				$('[id^=ToComment]').attr('id','ToFinalFromComment') ;
 			}
 		})
 	}

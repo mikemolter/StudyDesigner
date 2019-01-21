@@ -527,6 +527,7 @@ function DisplayVLMD(Study,IGDName,VarNameIn,OID,Action) {
 }
 
 function DisplayFinal(){
-	$('#mb').append('<p>Your subset is complete!</p><br><input class="btn btn-success" type="submit" value="Finish" id="last"/>')
+	$('#mb').append('<p>Your subset is complete!</p><br><input class="btn btn-success" type="submit" value="Finish" id="last"/>');
+	$('#mf').empty();
 }
 

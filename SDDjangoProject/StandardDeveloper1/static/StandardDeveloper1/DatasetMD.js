@@ -22,14 +22,15 @@ $(document).ready(function() {
 		// If this is not a BDS data set, then make this the last modal by turning the button into a submit button.
 		// Otherwise, move on to defining parameters.
 		if (mddic['Class'] != 'BASIC DATA STRUCTURE') {
-			$('[value=Next]').remove();
+			// $('[value=Next]').remove();
 
-			if ($(this).attr('id') == 'ToRecordSourceFromAddDSMD') {
-				$('#mf').append('<input type="submit" value="Finish" class="btn btn-success">') ;
-			}
-			else {
-				$('#mf').append('<input type="submit" value="Finish" class="btn btn-success" formaction="EditDS">') ;
-			}
+			// if ($(this).attr('id') == 'ToRecordSourceFromAddDSMD') {
+			// 	$('#mf').append('<input type="submit" value="Finish" class="btn btn-success">') ;
+			// }
+			// else {
+			// 	$('#mf').append('<input type="submit" value="Finish" class="btn btn-success" formaction="EditDS">') ;
+			// }
+			$('[value=Next]').attr('id','ToCmtFromSource') ;
 		}
 
 		else {
@@ -42,15 +43,17 @@ $(document).ready(function() {
 		var id=$(this).attr('id') ;
 
 		if (id == 'dsmd') {
-			var mddic=JSON.parse($('[name=MD]').val()) ;
+			// Process comments
+			ProcessMethodComment() ;
+		// 	var mddic=JSON.parse($('[name=MD]').val()) ;
 
-			if (mddic['Class'] == 'BASIC DATA STRUCTURE') {
-				ProcessParmDef() ;
-			}
+		// 	if (mddic['Class'] == 'BASIC DATA STRUCTURE') {
+		// 		ProcessParmDef() ;
+		// 	}
 
-			else {
-				$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
-			}
+		// 	else {
+		// 		$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
+		// 	}
 		}
 
 		else if (id == 'GenerateADaMSpec' || id == 'GenerateDefine') {
@@ -149,10 +152,9 @@ $(document).ready(function() {
 			ParcatList.splice(ParcatNbr-1,1,LastDic);
 			$('[name=Parcats]').val(JSON.stringify(ParcatList)) ;
 
-			$('#ToParcat2FromParcat2').text('Define another parameter');
-			$('#ToParcat2FromParcat2').attr('id','ToParmDef1FromParmDef1');	
-			$('[value=Next]').remove();
-			$('#mf').append('<input type="submit" value="Finish" class="btn btn-success">');
+			$('#ToParcat2FromParcat2').remove() ;
+			$('#mf').prepend('<button type="button" id="ToParmDef1FromParmDef1" class="btn btn-success">Define another parameter</button');
+			$('[value=Next]').attr('id','ToCmtFromParm') ;
 		}
 
 		else if (id == 'ToParmDef1FromParmDef1') {
@@ -160,9 +162,8 @@ $(document).ready(function() {
 		}
 
 		else if (id == 'ToParmDef1FromParcat1') {
-			$('#ToParmDef1FromParcat1').val('Define another parameter');
-			$('#ToParmDef1FromParcat1').attr('id','ToParmDef1FromParmDef1');
-			$('#mf').append('<input type="submit" value="Finish" class="btn btn-success">');
+			$('#mf').prepend('<button type="button" id="ToParmDef1FromParmDef1" class="btn btn-success">Define another parameter</button');
+			$('[value=Next]').attr('id','ToCmtFromParm') ;
 		}
 
 		$('#mb').empty() ;
@@ -194,6 +195,24 @@ $(document).ready(function() {
 		$('#pageform').submit() ;
 	})
 
+	$('#myModal').on('click','[id^=ToCmt]',function() {
+		var id = $(this).attr('id') ;
+		if (id == 'ToCmtFromParm') {
+			ProcessParmDef();
+			$('#ToParmDef1FromParmDef1').remove();
+			$('#ToCmtFromParm').remove() ;
+		}
+
+		else {
+			$('[value=Next]').remove();
+			$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
+		}
+
+		$('#mf').append('<input type="submit" value="Finish" class="btn btn-success">');
+
+		$('#mb').empty();
+		DisplayMethodComment(type='cds'); 
+	})
 })
 
 
