@@ -2,7 +2,7 @@ from django.conf.urls import url
 
 from . import views
 
-print 'HELLO WORLD FROM STANDARDDEVELOPER 1!'
+print('HELLO WORLD FROM STANDARDDEVELOPER 1!')
 urlpatterns = [
     url(r'^$', views.index, name='index'),
     url('NewStudy',views.NewStudy),

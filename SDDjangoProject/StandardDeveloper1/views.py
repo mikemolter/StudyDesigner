@@ -13,7 +13,7 @@ import re
 import os
 from lxml import etree as et
 
-graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+graph = Graph('http://neo4j:ne04j@localhost:7474/db/data/')
 
 
 #graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
@@ -53,7 +53,7 @@ def NewStudy(request):
 			for x in Dictionaries:
 				stmt=stmt+'with c,dicts create (dicts)-[:ContainDict]->(:Dictionary {Name:"'+x['name']+'",Description:"'+x['description']+'",Version:"'+x['version']+'"}) '
 
-		print 'NEWSTUDY STMT: '+stmt ;
+		print('NEWSTUDY STMT: '+stmt)
 
 		# tx = graph.cypher.begin()
 		# tx.append(stmt)
@@ -454,7 +454,9 @@ def NewDS(request):
 
 			stmt=stmt+'with '+', '.join(withlist)+' set id.Length='+str(DTYPELength)
 
-	print "NEWDS STMT: "+stmt
+
+	print("NEWDS STMT: "+stmt)
+
 	tx=graph.begin()
 	tx.run(stmt)
 	tx.commit()
@@ -484,8 +486,8 @@ def GenerateADaMSpec(request):
 		optional match (igd)-[:BasedOn]->(igdm:ItemGroupDef)--(:Model) optional match (igd)-[:BasedOn]->(igds:ItemGroupDef)-[:BasedOn]->(igdmm:ItemGroupDef)--(:Model) \
 		with igd.Name as Name,igd.Label as Label, case when igdm.Name is not null then igdm.Name else igdmm.Name end as Class return Name,Label,Class'))
 
-	print 'DATASETSDF: '
-	print datasetsDF 
+	print('DATASETSDF: ')
+	print(datasetsDF )
 
 	dssources=pd.DataFrame(graph.data('match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[rs:RecordSource]->\
 			(igdr:ItemGroupDef) return distinct "Record" as SourceType,igd.Name as Name,igdr.Name as SourceName,rs.Subset as Subset,"" as Join union \
@@ -509,9 +511,9 @@ def GenerateADaMSpec(request):
 		case when size(sources)=1 then sources[0] else reduce(s=head(sources),x in tail(sources)|s+", "+x) end as Sources,\
 		reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarOrder,VarName'
 
-	print 'VARIABLES STMT: '+stmt
+	print('VARIABLES STMT: '+stmt)
 	variablesDF=pd.DataFrame(graph.data(stmt))
-	print variablesDF
+	print(variablesDF)
 
 	# Get VLM
 	# stmt='match (:Study {Name:"'+StudyName+'"})-[:ItemGroupRef]->(igd:ItemGroupDef)-[:ItemRef]->(id0:ItemDef)--(:ValueListDef)-[ir:ItemRef]->(id:ItemDef)--(:WhereClauseDef)--(rc:RangeCheck)--(cv:CheckValue) \
@@ -542,9 +544,9 @@ def GenerateADaMSpec(request):
 		case when size(conditions)=1 then conditions[0] else reduce(acc=head(conditions),x in tail(conditions)|acc+" and "+x) end as Condition,\
 		reduce(inst="",x in icoll|inst+" "+x) as Programming order by DSName,VarName'
 
-	print 'VLM STMT: '+stmt
+	print('VLM STMT: '+stmt)
 	VLMDF=pd.DataFrame(graph.data(stmt))
-	print VLMDF
+	print(VLMDF)
 
 	# Get parameter information
 	parms1DF=pd.DataFrame(graph.data('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem) \
@@ -571,14 +573,14 @@ def GenerateADaMSpec(request):
 				parcatDF=pd.DataFrame(graph.data('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"PARAMCD"})--(cl:CodeList)--(cli:CodeListItem)-[pa:ParameterAttribute {Type:"'+y5['PARCAT']+'"}]->(pc:CodeListItem) return \
 					igd.Name as DSNAME,cli.CodedValue as PARAMCD,pc.CodedValue as '+y5['PARCAT']))
 				parmsDF=pd.merge(parmsDF,parcatDF,how='left',on=['DSNAME','PARAMCD'])
-				print 'PARMSDF: '
-				print parmsDF
+				print('PARMSDF: ')
+				print(parmsDF)
 				# If a numeric counterpart was provided, get its value
 				if y5['PARCAT']+'N' in list(variablesDF['VarName']):
 					parcatnDF=pd.DataFrame(graph.data('match (:Study {Name:"'+StudyName+'"})--(igd:ItemGroupDef)--(:ItemDef {Name:"'+y5['PARCAT']+'N'+'"})--(cl:CodeList)--(cli:CodeListItem) \
 						return cli.CodedValue as '+y5['PARCAT']+'N,cli.Decode as '+y5['PARCAT']))
-					print 'PARCATNDF: '
-					print parcatnDF
+					print('PARCATNDF: ')
+					print(parcatnDF)
 					parmsDF=pd.merge(parmsDF,parcatnDF,how='left',on=y5['PARCAT'])
 
 	# Write spec
@@ -1480,13 +1482,13 @@ def NewVar(request):
 			(id)-[:DerivedMethodRef {Type:"'+x['method']+'",Description:"'+x['description']+'"}]->(wc) '
 
 	if NewItemDef or Change:
-		print 'NEWVAR STMT: '+stmt 
+		print('NEWVAR STMT: '+stmt )
 		tx=graph.begin()
 		tx.run(stmt)
 		tx.commit()
 
 	else:
-		print 'NEWVAR: NO DATABASE CHANGES'
+		print('NEWVAR: NO DATABASE CHANGES')
 
 	if SubsetDic:
 		return render(request,'StandardDeveloper1/vlmlist.html', {'Study':Study,'DSName':DSName,'VarName':VarName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,'IGDSource':IGDSource,\
@@ -1514,7 +1516,7 @@ def QStandardVars(standardname,standardversion,dsname,filter=''):
 	if filter:
 		statement=statement+'where '+filter
 	statement=statement+' return c.Name as Name,c.Group as VarGroup order by r.OrderNumber '
-	print 'QSTANDARDVARS STMT: '+statement
+	print('QSTANDARDVARS STMT: '+statement)
 	stdvarsDF=pd.DataFrame(graph.data(statement))
 	return stdvarsDF
 
@@ -1523,7 +1525,7 @@ def QStudyDSVarList(Study,DSName):
 	# Get a study dataset's variables
 	stmt='match (:Study {Name:"'+Study+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(a:ItemDef) return a.Name as Name, a.Label as Label'
 	DF=pd.DataFrame(graph.data(stmt))
-	print 'QSTUDYDSVARLIST STMT: '+stmt
+	print('QSTUDYDSVARLIST STMT: '+stmt)
 	return DF
 
 
@@ -1642,14 +1644,14 @@ def CompareCT(request):
 		for x2,y2 in StudyCTTemp.iterrows():
 			NewCTDF1=NewCTDF1.append(y1.append(y2),ignore_index=True)
 
-	print 'NEWCTDF: '
-	print NewCTDF
-	print 'STUDYCTDF: '
-	print StudyCTDF
-	print 'STUDYCTTEMP: '
-	print StudyCTTemp
-	print 'NEWCTDF1: '
-	print NewCTDF1
+	print('NEWCTDF: ')
+	print(NewCTDF)
+	print('STUDYCTDF: ')
+	print(StudyCTDF)
+	print('STUDYCTTEMP: ')
+	print(StudyCTTemp)
+	print('NEWCTDF1: ')
+	print(NewCTDF1)
 
 	Both1DF=pd.merge(NewCTDF1,StudyCTDF,how='outer',on=['CLCode','CodeListName','CodedValue'],indicator=True)
 	# Change null CL Codes to xxx so that we don't lose them upon aggregation
@@ -1673,18 +1675,18 @@ def CompareCT(request):
 				Match=False
 
 		if Match:
-			print 'CONDITION 1'
+			print('CONDITION 1')
 			return HttpResponse(pd.Series({'Match':True,'MatchType':'Standard','Code':StandardCode,'Name':StandardCLName}).to_json(),content_type='application/json')
 		else:
-			print 'CONDITION 2'
+			print('CONDITION 2')
 			return HttpResponse(pd.Series({'Match':False,'MatchType':'','Code':StandardCode,'Name':StandardCLName}).to_json(),content_type='application/json')
 
 	elif matchDF.empty:
-		print 'CONDITION 3'
+		print('CONDITION 3')
 		return HttpResponse(pd.Series({'Match':False,'MatchType':'','Code':'','Name':''}).to_json(),content_type='application/json')
 
 	else:
-		print 'CONDITION 4'
+		print('CONDITION 4')
 		return HttpResponse(pd.Series({'Match':True,'MatchType':'Study','Code':matchDF.iloc[0]['CLCode'],'Name':matchDF.iloc[0]['CodeListName']}).to_json(),content_type='application/json')
 
 
@@ -1808,8 +1810,8 @@ def GetPotentialWhereConditions(request):
 		# Sort in display order
 		allparms=allparms.sort_values(by=['wcOID4VarinStudyTF','PARAMCD','sortTF','DTYPE'],ascending=[False,True,True,True])
 
-		print 'ALLPARMS AFTER MERGE WITH STUDYPARMS: '
-		print allparms
+		print('ALLPARMS AFTER MERGE WITH STUDYPARMS: ')
+		print(allparms)
 
 		del allparms['VarName']
 		del allparms['sortTF']
@@ -1820,8 +1822,8 @@ def GetPotentialWhereConditions(request):
 		allparms['wcOID']=allparms['wcOIDa']
 		allparms=allparms.sort_values(by=['PARAMCD','DTYPE'])
 
-		print 'ALLPARMS WITHOUT A STUDYPARMS TO MERGE: '
-		print allparms
+		print('ALLPARMS WITHOUT A STUDYPARMS TO MERGE: ')
+		print(allparms)
 
 	return HttpResponse(allparms.to_json(orient='records'),content_type='application/json')
 
@@ -1880,8 +1882,8 @@ def GetDerivedRows(request):
 	dp=pd.DataFrame(graph.data("match (a:Study {Name:'"+Study+"'})--(igd:ItemGroupDef {Name:'"+DSName+"'})--(:ItemDef {Name:'DTYPE'})<-[rcd:RangeCheck {Operator:'eq'}]-(wc:WhereClauseDef)-[rcp:RangeCheck {Operator:'eq'}]-(:ItemDef {Name:'PARAMCD'}) \
 		return wc.OID as OID,rcd.CheckValue as DTYPE,rcp.CheckValue as PARAMCD"))
 
-	print 'GETDERIVEDROWS: '
-	print dp
+	print('GETDERIVEDROWS: ')
+	print(dp)
 	return HttpResponse(dp.to_json(orient='records'),content_type='application/json')
 
 def GetStandardDS(request):
@@ -2005,8 +2007,8 @@ def GetAllVarGroups(request):
 	StandardName=request.GET['StandardName']
 	StandardVersion=request.GET['StandardVersion']
 
-	print 'REQUEST.GET: '
-	print request.GET
+	print('REQUEST.GET: ')
+	print(request.GET)
 
 	if IGDSource == 'Standard':
 		GroupVars=QStandardVars(StandardName,StandardVersion,DSName,filter='')
@@ -2019,8 +2021,8 @@ def GetAllVarGroups(request):
 		GroupVars2=pd.DataFrame(GroupVars.VarGroup.unique())
 		GroupVars2.columns=['VarGroup']
 
-	print 'GROUPVARS2: '
-	print GroupVars2
+	print('GROUPVARS2: ')
+	print(GroupVars2)
 
 	return HttpResponse(GroupVars2.to_json(orient='records'),content_type='application/json')
 
@@ -2040,7 +2042,7 @@ def GetStandardVar(request):
 			optional match (c)-[:CodeListRef]->(cl:CodeList)--(cli:CodeListItem) return c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.MaxLength as SASLength, \
 			r.OrderNumber as OrderNumber,r.Mandatory as Mandatory,cl.Name as CodeListName,cl.Extensible as Extensible,cl.AliasName as CLCode,cli.Decode is not null as DecodeYN limit 1 '
 
-	print 'GetStandardVar STMT: '+stmt
+	print('GetStandardVar STMT: '+stmt)
 
 	df=pd.DataFrame(graph.data(stmt))
 	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
@@ -2064,12 +2066,12 @@ def GetStudyVar(request):
 		r.OrderNumber as OrderNumber,r.Mandatory as Mandatory,clStandard.Name as CodeListName,\
 		clStudy.Extensible as Extensible,clStudy.AliasName as CLCode,clStudy.Decode is not null as DecodeYN,clStudy.Name as CodeListNameStudy limit 1 '
 
-	print 'GETSTUDYVAR STMT: '+stmt
+	print('GETSTUDYVAR STMT: '+stmt)
 
 	df=pd.DataFrame(graph.data(stmt))
 
-	print 'GETSTUDYVAR DF: '
-	print df
+	print('GETSTUDYVAR DF: ')
+	print(df)
 
 	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
 
@@ -2106,17 +2108,17 @@ def GetStudyVarMethod(request):
 		return m.Description as Description,exists((m)--(mc1)) as methodbTF,exists((m)--(mc2)) as methodaTF,mc1.If as Ifb,mc2.If as Ifa,mc1.Order as \
 		Orderb,mc2.Order as Ordera,mt.Then as Thenb,mcli.CodedValue as Thena'
 
-	print 'GETSTUDYVARMETHOD STMT: '+stmt
+	print('GETSTUDYVARMETHOD STMT: '+stmt)
 
 	df=pd.DataFrame(graph.data(stmt))
-	print 'DF1: '
-	print df
+	print('DF1: ')
+	print(df)
 	df['methodchoice']=df.apply(lambda row: 'a' if row['methodaTF'] else 'b',axis=1)
 	df['Order']=df.apply(lambda row: row['Ordera'] if row['methodaTF'] else row['Orderb'] if row['methodbTF'] else '',axis=1)
 	df['If']=df.apply(lambda row: row['Ifa'] if row['methodaTF'] else row['Ifb'] if row['methodbTF'] else '',axis=1)
 	df['Then']=df.apply(lambda row: row['Thena'] if row['methodaTF'] else row['Thenb'] if row['methodbTF'] else '',axis=1)
-	print 'DF FINAL: '
-	print df
+	print('DF FINAL: ')
+	print(df)
 
 	df=df[['methodchoice','Description','Order','If','Then']].sort_values(by='Order')
 	return HttpResponse(df.to_json(orient='records'),content_type='application/json')
@@ -2370,7 +2372,7 @@ def RecordSource(request):
 			# For now, we're just creating a new SDTM ItemGroupDef node to connect to
 			stmt=stmt+'with study,igd merge (igd)-[:RecordSource {Subset:"'+x['Subset']+'"}]->(:ItemGroupDef {Name:"'+x['Dataset']+'"}) '
 	
-	print "STMT: "+stmt
+	print("STMT: "+stmt)
 	tx=graph.cypher.begin()
 	tx.append(stmt)
 	tx.commit()
@@ -2433,8 +2435,8 @@ def AddParms(request):
 		ModelVersion=ParmMDRL[0]['ModelVersion']
 		BasedOnString='match (:Model {name:"'+ModelName+'",version:"'+ModelVersion+'"})-[:ItemGroupRef]->(ms:ItemGroupDef {Name:"BASIC DATA STRUCTURE"}) '
 
-	print 'PARMMDRL: ('+VarSource+')'
-	print ParmMDRL
+	print('PARMMDRL: ('+VarSource+')')
+	print(ParmMDRL)
 
 	# Start generating the query
 	stmt='match (study:Study {Name:"'+Study+'"})--(igd:ItemGroupDef {Name:"'+DSName+'"}) with igd,study '+BasedOnString
@@ -2705,7 +2707,7 @@ def AddParms(request):
 				stmt=stmt+'with study,igd,pcd match (igd)--(:ItemDef {Name:"PARAMN"})--(:CodeList)--(cli:CodeListItem {CodedValue:"'+x['paramn']+'"})\
 					with study,igd,pcd,cli create (pcd)-[:ParameterAttribute {Type:"PARAMN"}]->(cli) '
 
-	print 'ADDPARMS STMT: '+stmt
+	print('ADDPARMS STMT: '+stmt)
 	tx=graph.cypher.begin()
 	tx.append(stmt)
 	tx.commit()
@@ -2872,8 +2874,8 @@ def ESDS(request):
 	if 'BeforeReference' in request.POST:
 		BeforeReference=request.POST['BeforeReference']
 
-	print 'REQUEST.POST: '
-	print request.POST
+	print('REQUEST.POST: ')
+	print(request.POST)
 
 	# Edit the data set
 	Comma=''
@@ -2901,7 +2903,7 @@ def ESDS(request):
 		stmt=stmt+Comma+'b.Reference="'+Reference+'"'
 		Comma=', '
 
-	print 'STMT: '+stmt 
+	print('STMT: '+stmt )
 	if Comma:
 		tx=graph.cypher.begin()
 		tx.append(stmt)
@@ -3094,8 +3096,8 @@ def EditStudyVar(request):
 	SrcAfterDF = pd.DataFrame(SrcAfter)
 	SrcMergeDF = pd.merge(SrcBeforeDF,SrcAfterDF,how='outer',indicator=True)
 
-	print 'SRCMERGEDF: '
-	print SrcMergeDF
+	print('SRCMERGEDF: ')
+	print(SrcMergeDF)
 
 	CTAfter=[]
 	for k,v in request.POST.iteritems():
@@ -3135,8 +3137,8 @@ def EditStudyVar(request):
 		MethodAfterDF=pd.DataFrame(columns=['If2','ElseFL2','Order2','Then2'])
 
 	MethodMergeDF=pd.merge(MethodBeforeDF,MethodAfterDF,how='outer',indicator=True,suffixes=['_before','_after'],on='If2')
-	print 'METHODMERGEDF: '
-	print MethodMergeDF
+	print('METHODMERGEDF: ')
+	print(MethodMergeDF)
 
 	# Determine if anything changed
 	if VLM:
@@ -3183,10 +3185,10 @@ def EditStudyVar(request):
 	MethodChg = False
 	if methodchoice=='freetext':
 		if request.POST['free'] != MethodRL[0]['Description3']:
-			print 'DESCRIPTION BEFORE: '
-			print MethodRL[0]['Description3']
-			print 'DESCRIPTION AFTER: '
-			print request.POST['free']
+			print('DESCRIPTION BEFORE: ')
+			print(MethodRL[0]['Description3'])
+			print('DESCRIPTION AFTER: ')
+			print(request.POST['free'])
 			MethodChg = True
 
 	for k,v in MethodMergeDF.iterrows():
@@ -3646,7 +3648,7 @@ def EditStudyVar(request):
 					stmt=stmt+'create ('+AliasNumber2+')-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+k+'",Decode:"'+v+'"}) '
 
 
-	print 'STMT: '+stmt
+	print('STMT: '+stmt)
 	tx=graph.cypher.begin()
 	tx.append(stmt)
 	tx.commit()
@@ -3837,11 +3839,11 @@ def OldNewVar(request):
 	Sources=json.loads(request.POST['Sources'])
 	SourcesList=Sources['sources']
 
-	print 'SOURCES (NEWVAR): '+request.POST['Sources']
+	print('SOURCES (NEWVAR): '+request.POST['Sources'])
 	Sources2=json.dumps(Sources)
-	print 'SOURCES2 (NEWVAR): '+Sources2 
-	print 'SOURCESLIST: '
-	print SourcesList
+	print('SOURCES2 (NEWVAR): '+Sources2 )
+	print('SOURCESLIST: ')
+	print(SourcesList)
 
 		# Separate SDTM from ADaM sources
 		# NOTE:  For now, we are just creating an SDTM ItemGroupDef node without properties.  We will update once SDTM is built into the app.
@@ -4024,14 +4026,14 @@ def OldNewVar(request):
 
 	if stdterms:
 		stdterms=stdterms+'] '
-		print 'STDTERMS: '+stdterms
+		print('STDTERMS: '+stdterms)
 
 	# Put the extended terms into a dictionary
 	for k,v in request.POST.iteritems():
 		if k[0:8] == 'newterm_':
 			newterms[k[8:]]=v
-	print 'NEWTERMS: '
-	print newterms
+	print('NEWTERMS: ')
+	print(newterms)
 
 
 	# If there is any controlled terminology...
@@ -4070,9 +4072,9 @@ def OldNewVar(request):
 		for k,v in newterms.iteritems():
 			stmt=stmt+WithClause(withlist)+'create (CL)-[:ContainsCodeListItem]->(:CodeListItem {CodedValue:"'+k+'",Decode:"'+v+'"})'
 
-	print 'NEWVAR STATEMENT: '+stmt
-	print 'REQUEST.POST: '
-	print request.POST ;
+	print('NEWVAR STATEMENT: '+stmt)
+	print('REQUEST.POST: ')
+	print(request.POST)
 
 	tx=graph.cypher.begin()
 	tx.append(stmt)
@@ -4115,8 +4117,8 @@ def OldNewVar(request):
 		# 	PMPDict={}
 		# 	PMPDict['StudyVarsRL']=OtherVars
 
-		print 'STUDYVARSRL: '
-		print PMPDict['StudyVarsRL']
+		print('STUDYVARSRL: ')
+		print(PMPDict['StudyVarsRL'])
 
 		PMPDict['Class']=ModelClass
 		PMPDict['StandardName']=StandardName
@@ -4484,7 +4486,7 @@ def QueryStudyVarMD(request):
 				d.AliasName as AliasCL,e.CodedValue as CodedValue,e.AliasName as AliasItem,e.Decode as Decode'
 
 	if CLstmt:
-		print 'CLSTMT: '+CLstmt
+		print('CLSTMT: '+CLstmt)
 		CTTable=graph.cypher.execute(CLstmt)
 		CTExt=CTTable[0]['Extensible']
 		if CTTable[0]['Decode']:
@@ -4523,9 +4525,9 @@ def QStandardVar(standardname,standardversion,dsname,varname):
 		return distinct c.Name as Name,c.Label as Label,c.SASType as SASType,c.DataType as DataType,c.Origin as Origin,c.MaxLength as SASLength, \
 		c.Core as Core,c.CodeList as CodeList,r.OrderNumber as OrderNumber,r.Mandatory as Mandatory')
 	df=pd.DataFrame(RL.records,columns=RL.columns)
-	print 'STANDARDNAME: '+standardname+', STANDARDVERSION: '+standardversion+', DSNAME: '+dsname+', VARNAME: '+varname 
-	print 'DF: '
-	print df 
+	print('STANDARDNAME: '+standardname+', STANDARDVERSION: '+standardversion+', DSNAME: '+dsname+', VARNAME: '+varname )
+	print('DF: ')
+	print(df )
 	dic={}
 	for k,v in df.iloc[0].iteritems():
 		dic[k]=v
@@ -4560,12 +4562,12 @@ def QMethod(Level,LevelName,LevelVersion,IGDName,VarName,VLMOID=''):
 		b2.If as If2,b2.Order as Order2,b2.ElseFL as ElseFL2,c2.Then as Then2,c1.CodedValue as CodedValue1,d.OID as MethodDefOID,e1.MethodOID as ConditionOID1,\
 		e2.MethodOID as ConditionOID2 order by b1.Order,b2.Order'
 
-	print 'METHOD STATEMENT: '+stmt
+	print('METHOD STATEMENT: '+stmt)
 
 	result=graph.cypher.execute(stmt)
 
-	print 'METHOD RESULTS: '
-	print result 
+	print('METHOD RESULTS: ')
+	print(result )
 
 	if result[0][3]:
 		return [result,1]
@@ -4672,17 +4674,17 @@ def Test1(request):
 	Parms=request.POST['parms']
 	ParmsDict=json.loads(Parms)
 	ParmsList=ParmsDict['parms']
-	print 'ParmsDict: '
-	print ParmsDict
-	print 'ParmsList: '
-	print ParmsList
+	print('ParmsDict: ')
+	print(ParmsDict)
+	print('ParmsList: ')
+	print(ParmsList)
 	for i,v1 in enumerate(ParmsList):
-		print 'Row '+str(i)
+		print('Row '+str(i))
 		for k,v2 in v1.iteritems():
 			if k not in ['parcats','dtypes']:
-				print k+': '+v2
+				print(k+': '+v2)
 			else:
 				for k2,v3 in v2.iteritems():
-					print k2+': '+v3
+					print(k2+': '+v3)
 
 	return render(request,'StandardDeveloper1/test.html')

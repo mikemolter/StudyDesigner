@@ -7,7 +7,7 @@ from lxml import etree
 
 
 #graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
-graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+graph = Graph('http://neo4j:ne04j@localhost:7474/db/data/')
 
 # Create your views here.
 def index(request):
@@ -57,13 +57,13 @@ def displayNCI(request):
 	return render(request,'CTVag/dbcodelists.html',{'CodeLists':DBQuery,'MyVersion':chosenversion})
 
 def displayStudy(request):
-	print 'From displayStudy, SCOPENODE: ' + ScopeNode
+	print('From displayStudy, SCOPENODE: ' + ScopeNode)
 	QueryDB(ScopeNode)
 	return render(request,'CTVag/studycodelists.html',{'Codelists':DBQuery,'Studyname':study})
 
 def FromStudy(request):
 	studychoice = request.GET['studychoice']
-	print 'From FromStudy, SCOPENODE: ' + ScopeNode
+	print('From FromStudy, SCOPENODE: ' + ScopeNode)
 	
 	if studychoice == "Add an NCI codelist":
 		QueryDB('CT {version:"'+chosenversion+'"}')
@@ -204,8 +204,8 @@ def ChildrenCL(request):
 		elif k[0:2] == 'r_':
 			tx = graph.cypher.begin()
 			statement = 'match (a:'+ScopeNode+')-[r:ContainsCodeList]->(b:CodeList {OID:"'+k[2:]+'"}) delete r'
-			print 'STATEMENT: '
-			print statement 
+			print('STATEMENT: ')
+			print(statement )
 			tx.append(statement)
 			tx.commit()
 			QueryDB(ScopeNode)
@@ -237,10 +237,10 @@ def DBChangeFromChild(request):
 			OID = request.POST['ParentOID'].rpartition('_')[0]+nextchildstr
 			poid=request.POST['ParentOID']
 			rp=poid.rpartition('_')
-			print 'POID: '
-			print poid
-			print 'RP: '
-			print rp
+			print('POID: ')
+			print(poid)
+			print('RP: ')
+			print(rp)
 		else:
 			OID=request.POST['ParentOID']+nextchildstr
 
@@ -295,7 +295,7 @@ def DBChangeFromChild(request):
 			return render(request,'CTVag/studycodelists.html',{'Codelists':DBQuery,'Studyname':study})
 
 def DBChangeFromNew(request):
-	print 'FROM DBCHANGEFROMNEW'
+	print('FROM DBCHANGEFROMNEW')
 	if request.POST['submit'] == 'Save':
 		statement = 'match (a:'+ScopeNode+') with a create (a)-[:ContainsCodeList {Child:0}]->(b:CodeList {OID:"'+request.POST['OID']+'", \
 			DataType:"'+request.POST['datatype']+'", Name:"'+request.POST["Name"]+'"}) with b '
@@ -323,15 +323,15 @@ def DBChangeFromNew(request):
 
 def DBChangeFromAddNCI(request):
 	if request.POST['submit'] == 'Submit':
-		print "SUBMIT: " + request.POST['submit']
+		print("SUBMIT: " + request.POST['submit'])
 		tx=graph.cypher.begin()
 		for k,v in request.POST.iteritems():
-			print "KV: "+k+" "+v
+			print("KV: "+k+" "+v)
 			if k[0:2] == 'a_':
 				# Connect the study to the codelist
 				statement = 'match (a:'+ScopeNode+'), (b:CT {version:"'+chosenversion+'"})-[:ContainsCodeList]->(c:CodeList {OID:"'+k[2:]+'"}) with a,c create (a)-[:ContainsCodeList {Child:0}]->(c)'
 				tx.append(statement)
-				print "STATEMENT: "+statement
+				print("STATEMENT: "+statement)
 		
 		tx.commit()
 
