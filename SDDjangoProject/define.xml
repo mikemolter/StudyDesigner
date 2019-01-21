@@ -1,1 +1,245 @@
-<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="define2-0-0.xsl"?><ODM/>
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="define2-0.xsl"?><ODM xmlns:def="http://www.cdisc.org/ns/def/v2.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.cdisc.org/ns/odm/v1.3" CreationDateTime="2019-01-18T23:12:48" FileOID="Define_jan1905_ADaM" FileType="Snapshot" ODMVersion="1.3.2">
+  <Study OID="Study_jan1905">
+    <GlobalVariables>
+      <StudyName>jan1905</StudyName>
+      <StudyDescription>Description of jan1905</StudyDescription>
+      <ProtocolName>1905 internal name</ProtocolName>
+    </GlobalVariables>
+    <MetaDataVersion Description="Study jan1905, Data Definitions" Name="Study jan1905, Data Definitions" OID="MDV.jan1905.ADaMIG.1.1" def:DefineVersion="2.0.0" def:StandardName="ADaM-IG" def:StandardVersion="1.1">
+      <def:SupplementalDoc>
+        <def:DocumentRef leafID="LF.sap.pdf"/>
+        <def:DocumentRef leafID="LF.sdrg.pdf"/>
+      </def:SupplementalDoc>
+      <ItemGroupDef IsReferenceData="No" Name="ADSL" OID="IG.ADSL" Purpose="Analysis" Repeating="Yes" SASDatasetName="ADSL" def:Structure="One record per subject" def:Class="SUBJECT LEVEL ANALYSIS DATASET" def:ArchiveLocationID="LF.ADSL">
+        <Description>
+          <TranslatedText lang="en">Subject-Level Analysis</TranslatedText>
+        </Description>
+        <ItemRef ItemOID="ID.SUBJID.1" Mandatory="Yes" OrderNumber="3" MethodOID="MT.1.0"/>
+        <ItemRef ItemOID="ID.SEX.1" Mandatory="Yes" OrderNumber="14" MethodOID="MT.2.0"/>
+        <ItemRef ItemOID="ID.USUBJID.1" Mandatory="Yes" OrderNumber="2" MethodOID="MT.6.0"/>
+        <ItemRef ItemOID="ID.TRTxxP.1" Mandatory="Yes" OrderNumber="27"/>
+        <ItemRef ItemOID="ID.RACE.1" Mandatory="Yes" OrderNumber="15"/>
+        <ItemRef ItemOID="ID.SITEID.1" Mandatory="Yes" OrderNumber="4" MethodOID="MT.5.0"/>
+        <def:leaf ID="LF.ADSL" xlink:href="ADSL.xpt">
+          <def:title>ADSL.xpt</def:title>
+        </def:leaf>
+      </ItemGroupDef>
+      <ItemDef DataType="text" Length="10" Name="SUBJID" OID="ID.SUBJID.1">
+        <Description>
+          <TranslatedText lang="en">Subject Identifier for the Study</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="1" Name="SEX" OID="ID.SEX.1">
+        <Description>
+          <TranslatedText lang="en">Sex</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+        <CodeListRef CodeListOID="CL.MFSex"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="12" Name="USUBJID" OID="ID.USUBJID.1" def:CommentOID="COM.USUBJID">
+        <Description>
+          <TranslatedText lang="en">Unique Subject Identifier</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+        <CodeListRef CodeListOID="CL.Epoch"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="15" Name="TRTxxP" OID="ID.TRTxxP.1" def:CommentOID="COM.TRTxxP">
+        <Description>
+          <TranslatedText lang="en">Planned Treatment for Period xx</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">DM.ARMCD</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="text" Length="10" Name="RACE" OID="ID.RACE.1" def:CommentOID="COM.RACE">
+        <Description>
+          <TranslatedText lang="en">Race</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">DM.RACE</TranslatedText>
+          </Description>
+        </def:Origin>
+        <CodeListRef CodeListOID="CL.RACE2"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="13" Name="SITEID" OID="ID.SITEID.1" def:CommentOID="COM.SITEID">
+        <Description>
+          <TranslatedText lang="en">Study Site Identifier</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+      </ItemDef>
+      <CodeList DataType="text" Name="Epoch" OID="CL.Epoch">
+        <CodeListItem CodedValue="FOLLOW-UP">
+          <Decode>
+            <TranslatedText lang="en">Clinical Study Follow-up</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C99158"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="INDUCTION TREATMENT">
+          <Decode>
+            <TranslatedText lang="en">Induction Therapy Epoch</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C123453"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="OPEN LABEL TREATMENT">
+          <Decode>
+            <TranslatedText lang="en">Open Label Treatment Epoch</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C102256"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="BASELINE">
+          <Decode>
+            <TranslatedText lang="en">Baseline Epoch</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C125938"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="LONG-TERM FOLLOW-UP">
+          <Decode>
+            <TranslatedText lang="en">Long-term Follow-up</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C16032"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="BLINDED TREATMENT">
+          <Decode>
+            <TranslatedText lang="en">Blinded Treatment Epoch</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C102255"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="CONTINUATION TREATMENT">
+          <Decode>
+            <TranslatedText lang="en">Continuation Therapy Epoch</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C123452"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="SCREENING">
+          <Decode>
+            <TranslatedText lang="en">Trial Screening</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C48262"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="RUN-IN">
+          <Decode>
+            <TranslatedText lang="en">Run-in Period</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C98779"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="WASHOUT">
+          <Decode>
+            <TranslatedText lang="en">Washout Period</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C42872"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="TREATMENT">
+          <Decode>
+            <TranslatedText lang="en">Treatment Epoch</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C101526"/>
+        </CodeListItem>
+        <Alias Context="nci:ExtCodeID" Name="C99079"/>
+      </CodeList>
+      <CodeList DataType="text" Name="RACE2" OID="CL.RACE2">
+        <CodeListItem CodedValue="WHITE">
+          <Decode>
+            <TranslatedText lang="en">White</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C41261"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER">
+          <Decode>
+            <TranslatedText lang="en">Native Hawaiian or Other Pacific Islander</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C41219"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="ASIAN">
+          <Decode>
+            <TranslatedText lang="en">Asian</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C41260"/>
+        </CodeListItem>
+        <Alias Context="nci:ExtCodeID" Name="C74457"/>
+      </CodeList>
+      <CodeList DataType="text" Name="MFSex" OID="CL.MFSex">
+        <CodeListItem CodedValue="F">
+          <Decode>
+            <TranslatedText lang="en">Female</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C16576"/>
+        </CodeListItem>
+        <CodeListItem CodedValue="M">
+          <Decode>
+            <TranslatedText lang="en">Male</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C20197"/>
+        </CodeListItem>
+        <Alias Context="nci:ExtCodeID" Name="C66731"/>
+      </CodeList>
+      <MethodDef Name="Algorithm for SUBJID" OID="MT.1.0" Type="Computation">
+        <Description>
+          <TranslatedText lang="en"> SUBJID instructions</TranslatedText>
+        </Description>
+      </MethodDef>
+      <MethodDef Name="Algorithm for SEX" OID="MT.2.0" Type="Computation">
+        <Description>
+          <TranslatedText lang="en"> if DM.SEX=MALE then M; else F</TranslatedText>
+        </Description>
+      </MethodDef>
+      <MethodDef Name="Algorithm for USUBJID" OID="MT.6.0" Type="Computation">
+        <Description>
+          <TranslatedText lang="en"> USUBJID method see sap</TranslatedText>
+        </Description>
+        <def:DocumentRef leafID="LF.sap.pdf">
+          <def:PDFPageRef Type="NamedDestination" PageRefs="usubjidnd"/>
+        </def:DocumentRef>
+      </MethodDef>
+      <MethodDef Name="Algorithm for SITEID" OID="MT.5.0" Type="Computation">
+        <Description>
+          <TranslatedText lang="en"> SITEID method see sap</TranslatedText>
+        </Description>
+        <def:DocumentRef leafID="LF.sap.pdf">
+          <def:PDFPageRef Type="NamedDestination" PageRefs=""/>
+        </def:DocumentRef>
+      </MethodDef>
+      <def:CommentDef OID="COM.USUBJID">
+        <Description>
+          <TranslatedText lang="en">usubjid comment</TranslatedText>
+        </Description>
+        <def:DocumentRef leafID="LF.sdrg.pdf">
+          <def:PDFPageRef Type="PhysicalRef" FirstPage="21" LastPage="22"/>
+        </def:DocumentRef>
+      </def:CommentDef>
+      <def:CommentDef OID="COM.TRTxxP">
+        <Description>
+          <TranslatedText lang="en">See SAP</TranslatedText>
+        </Description>
+        <def:DocumentRef leafID="LF.sap.pdf">
+          <def:PDFPageRef Type="PhysicalRef" PageRefs="14"/>
+        </def:DocumentRef>
+      </def:CommentDef>
+      <def:CommentDef OID="COM.RACE">
+        <Description>
+          <TranslatedText lang="en">SEE SAP</TranslatedText>
+        </Description>
+        <def:DocumentRef leafID="LF.sap.pdf">
+          <def:PDFPageRef Type="PhysicalRef" PageRefs="25"/>
+        </def:DocumentRef>
+      </def:CommentDef>
+      <def:CommentDef OID="COM.SITEID">
+        <Description>
+          <TranslatedText lang="en">SITEID comment see sdrg</TranslatedText>
+        </Description>
+        <def:DocumentRef leafID="LF.sdrg.pdf">
+          <def:PDFPageRef Type="PhysicalRef" FirstPage="14" LastPage="47"/>
+        </def:DocumentRef>
+      </def:CommentDef>
+      <def:leaf ID="LF.sap.pdf" xlink:href="sap.pdf">
+        <def:title>Statistical Analysis Plan</def:title>
+      </def:leaf>
+      <def:leaf ID="LF.sdrg.pdf" xlink:href="sdrg.pdf">
+        <def:title>Study Data Reviewers Guide</def:title>
+      </def:leaf>
+    </MetaDataVersion>
+  </Study>
+</ODM>

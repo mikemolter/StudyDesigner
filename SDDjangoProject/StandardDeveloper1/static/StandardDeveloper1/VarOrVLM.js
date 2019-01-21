@@ -50,9 +50,10 @@ $(document).ready(function(){
 
 			// no codelist
 			else if (mddic['Origin'] == 'Predecessor') {
-				// go to last page
+				// go to comment page
 				$('#mb').empty() ;
-				DisplayFinal() ;
+				$('#ToListofCodeListsFromCTCustom').attr('id','ToFinalFromComment') ;
+				DisplayMethodComment(type='cvar') ;
 			}
 
 			else {
@@ -84,9 +85,10 @@ $(document).ready(function(){
 		$('#mb').empty() ;
 
 		if (methodb == 'freetext') {
-			//$('#mt1b').attr('id','ToFinalFromFreeMethod');
-			$('.btn').attr('id','ToFinalFromFreeMethod');
-			$('#mb').append('<div class="container"><p>Enter programming instruction in the box below</p><div class="form-group"><textarea cols="65" rows="15" id="free"></textarea></div>') ;
+			$('.btn').attr('id','ToCommentFromFreeMethod');
+			//$('#mb').append('<div class="container"><p>Enter programming instruction in the box below</p><div class="form-group"><textarea cols="65" rows="15" id="free"></textarea></div>') ;
+			DisplayMethodComment();
+
 			if (Action == 'Edit') {
 				var m1=JSON.parse($('[name=Method1]').val()) ;
 				if (m1['MethodType'] == 'FreeText') {
@@ -97,7 +99,7 @@ $(document).ready(function(){
 
 		else {
 			DisplayMethodConditions(false) ;
-			$('.btn[value=Next]').attr('id','ToFinalFromCondMethod') ;
+			$('.btn[value=Next]').attr('id','ToCommentFromCondMethod') ;
 			if (Action == 'Edit') {
 				var m1=JSON.parse($('[name=Method1]').val()) ;
 				if (m1['MethodType'] == 'Conditions') {
@@ -123,28 +125,29 @@ $(document).ready(function(){
 		}
 	})
 
-	// Arrive at final page 
-	$('#myModal').on('click','[id^=ToFinal]',function() {
+	// Arrive at comment page 
+	$('#myModal').on('click','[id^=ToComment]',function() {
 		// Capture the id that got us here
 		var id=$(this).attr('id'); 
 		var CustomYN=$('[name=CustomYN]').val() ;
 		var mddic=JSON.parse($('[name=MD]').val()) ;
 		// If arriving here from free text method
-		if (id == 'ToFinalFromFreeMethod') {
-			$('[name=Method]').val(JSON.stringify({'MethodType':'FreeText','MethodValue':$('#free').val()})) ;
+		if (id == 'ToCommentFromFreeMethod') {
+			//$('[name=Method]').val(JSON.stringify({'MethodType':'FreeText','MethodValue':$('#free').val()})) ;
+			ProcessMethodComment(type='m') ;
 		}
 		// If arriving here from condition method
-		else if (id == 'ToFinalFromCondMethod') {
+		else if (id == 'ToCommentFromCondMethod') {
 			$('[name=Method]').val(JSON.stringify({'MethodType':'Conditions','MethodValue':$('#ConditionTable').bootstrapTable('getData')})) ;
 		}
 
-		else if (id == 'ToFinalFromNoMatchCT') {
+		else if (id == 'ToCommentFromNoMatchCT') {
 			var CTDic=JSON.parse($('[name=CT]').val()) ;
 			CTDic['Name']=$('#newCodeListName').val() ;
 			$('[name=CT]').val(JSON.stringify(CTDic)) ;
 		}
 
-		else if (id == 'ToFinalFromVLM') {
+		else if (id == 'ToCommentFromVLM') {
 			if (CustomYN == true) {
 				mddic['Label']=$('[name=VarLabel]').val() ;
 				mddic['SASType']=$('[name=VarSASType]').val() ;
@@ -158,18 +161,31 @@ $(document).ready(function(){
 
 		$('#mb').empty() ;
 
-		if ($('[name=Class]').val() == 'BASIC DATA STRUCTURE' && id != 'ToFinalFromVLM' && ! ('Subset' in mddic)) {
+		if ($('[name=Class]').val() == 'BASIC DATA STRUCTURE' && id != 'ToCommentFromVLM' && ! ('Subset' in mddic)) {
 			DisplayDtypeMethods($('[name=Study]').val(),$('[name=DSName]').val()) ;
-			$('[id='+id+']').attr('id','ToBDSFinal')
 		}
 
 		else {
-			DisplayFinal() ;
-			$('[id='+id+']').remove() ;
-			if (id == 'ToFinalFromVLM'){
-				$('#last').attr('formaction','NewVarVLM') ;
+			DisplayMethodComment(type='cvar') ;
+			if (id == 'ToCommentFromVLM') {
+				$('[id='+id+']').attr('id','ToFinalFromCommentVLM') ;
+			}
+			else {
+				$('[id='+id+']').attr('id','ToFinalFromComment') ;
 			}
 		}
+	})
+
+	$('#myModal').on('click','[id^=ToFinalFromComment]',function() {
+		ProcessMethodComment() ;
+		$('[value=Next').remove() ;
+		$('#mb').empty() ;
+		DisplayFinal() ;
+		var id=$(this).attr('id'); 
+		if (id == 'ToFinalFromCommentVLM'){
+			$('#last').attr('formaction','NewVarVLM') ;
+		}
+
 	})
 
 	// Enable the radio buttons in the predecessor source table when the first radio button is selected, then ask for predecessor source variable names
@@ -214,6 +230,17 @@ $(document).ready(function(){
 		$('#mb').append('<div class="container" id="radiocontainer"><div class="radio"><label><input type="radio" name="newsource" value="adam">Define a new ADaM source</label></div><div class="radio"><label><input type="radio" name="newsource" value="sdtm">Define a new SDTM source</label></div></div>') ;
 	})
 
+	// When specifying page reference information 
+	$('#mb').on('change','[name=pagetype]',function() {
+		var pagetype=$('[name=pagetype]:checked').val() ;
+		$('#pageinfo').empty() ;
+		if (pagetype == 'NamedDestination') {
+			$('#pageinfo').append('<label>Enter the name of the PDF named destination</label><input type="text" id="pagetext" class="form-control">') ;
+		}
+		else {
+			$('#pageinfo').append('<label>Enter a space-delimited list of individiual pages (e.g. 3 19 21) or a range of pages separated by a hyphen (e.g. 14-16)</label><input type="text" id="pagetext" class="form-control">') ;
+		}
+	})
 })
 
 
@@ -297,7 +324,7 @@ $(document).ready(function(){
 
 		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
 			$.each(data,function() {
-				$('<option value="'+this['DSName']+'</option>').appendTo('#adamds') ;
+				$('<option value="'+this['DSName']+'">'+this['DSName']+'</option>').appendTo('#adamds') ;
 			})
 		})
 	}
@@ -538,4 +565,60 @@ $(document).ready(function(){
 				title:'Result',
 			}]
 		})
+	}
+
+	function DisplayMethodComment(type='') {
+		var txt='' ;
+		if (type.substr(0,1) == 'c') {
+			var x1='comment';
+			if (type == 'cds') {
+				x2='data set';
+			}
+			else if (type == 'cvar') {
+				x2='variable';
+			}
+			else if (type == 'cvlm') {
+				x2='subset'
+			}
+
+			txt += '<p>What else is there to know about your '+x2+'?  '
+		}
+
+		else {
+			var x1='method'
+		}
+
+		txt += 'Place your free text '+x1+' in the box below '
+		if (x1 == 'method') {
+			txt += '(required).'
+		}
+		else {
+			txt += '(optional).'
+		}
+
+		$('#mb').append('<div class="container"><p>'+txt+'</p><div class="form-group"><textarea cols="65" rows="15" id="free"></textarea></div><p>Optionally, you can add a reference to a document.</p>\
+			<div class="form-group"><select class="form-control" id="doc"><option disabled selected>Choose a document</option></select></div><div class="radio">\
+			<label><input type="radio" name="pagetype" value="NamedDestination">Named Destination</label></div><div class="radio"><label><input type="radio" name="pagetype" value="PhysicalRef">Page Number(s)</label></div><div class="form-group" id="pageinfo"></div></div>') ;
+
+		$.getJSON('http://localhost:8000/StandardDeveloper1/GetDocs',{'Study':$('[name=Study]').val()},function(data) {
+			$.each(data,function() {
+				$('<option value="'+this['File']+'">'+this['File']+'</option>').appendTo('#doc') ;
+			})
+		})
+	}
+
+	function ProcessMethodComment(type='c') {
+		var dict={'DocName':$('#doc :selected').val(),'pagetype':$('[name=pagetype]:checked').val(),'pagetext':$('#pagetext').val()} ;
+		var freevalue=$('#free').val() ;
+
+		if (type.substr(0,1) == 'm') {
+			dict['MethodType'] = 'FreeText';
+			dict['MethodValue'] = freevalue ;
+			$('[name=Method]').val(JSON.stringify(dict)) ;
+		}
+
+		else {
+			dict['CommentValue'] = freevalue;
+			$('[name=Comment]').val(JSON.stringify(dict)) ;
+		}
 	}
