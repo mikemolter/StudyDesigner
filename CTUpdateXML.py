@@ -7,7 +7,7 @@ http.socket_timeout = 9999
 filename='TestCT.xml'
 CTVersion = '2017-03-31'
 nsmap={'ns':"http://www.cdisc.org/ns/odm/v1.3",'nci':"http://ncicb.nci.nih.gov/xml/odm/EVS/CDISC"}
-graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+graph = Graph('http://neo4j:neo4j@localhost:7474/db/data/')
 
 # Read in the new XML file with the latest version of CT
 doc = etree.parse(filename)

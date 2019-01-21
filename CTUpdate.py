@@ -7,7 +7,7 @@ wb = openpyxl.load_workbook('ct-sdtm-ncievs-2016-06-24.xlsx')
 ct = wb.get_sheet_by_name('SDTM Terminology 2016-06-24')
 #ct = wb['SDTM Terminology 2016-06-24']
 
-graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
+graph = Graph('http://neo4j:neo4j@10.0.0.10:7474/db/data/')
 tx = graph.cypher.begin()
 
 tx.append('CREATE (ct:CT {version: "2016-06-24"})')

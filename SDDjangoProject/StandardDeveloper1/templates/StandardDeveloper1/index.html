@@ -104,7 +104,7 @@
 
   {% include 'StandardDeveloper1/topbar.html' %}
 
-  <div>
+  <!--div>
     <div id="appWell" class="well">
         <h2>Dataset Designer</h2><p>&nbsp;</p>
         <div class="row">
@@ -121,8 +121,45 @@
 	</a>
         </div>
     </div>
-  </div>
+  </div-->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Dataset Designer</li>
+        </ol>
+    </nav>
+            <a href="#" id="NewStudy">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
+					<div class="box-part text-center">
+                        <i class="fa fa-file-text-o fa-5x" aria-hidden="true" style="color:#006A3B"></i>
+						<div class="title">
+                            <h4>Create Study</h4>
+						</div>
+					 </div>
+				</div>
+            </a>
 
+            <a href="#">
+				 <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
+					<div class="box-part text-center">
+					    <i class="fa fa-copy fa-5x" aria-hidden="true" style="color:#006A3B"></i>
+						<div class="title">
+                            <h4>Clone Study</h4>
+						</div>
+					 </div>
+				</div>
+            </a>
+
+            <a href="#" id="CurrentStudy">
+				 <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
+					<div class="box-part text-center">
+                        <i class="fa fa-edit fa-5x" aria-hidden="true" style="color:#006A3B"></i>
+						<div class="title">
+                            <h4>Edit Study</h4>
+						</div>
+					 </div>
+				</div>
+            </a>
   {% include 'StandardDeveloper1/footer.html' %}
 
 </body>

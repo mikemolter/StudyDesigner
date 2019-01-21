@@ -5,14 +5,14 @@
 
 # Enter neo4j information here
 neousername="neo4j"
-neopassword=""
+neopassword="ne04j"
 neopath="localhost:7474/db/data/"
 
-sdtmCTVersion='2018-06-29'
+#sdtmCTVersion='2018-06-29'
 adamCTVersion='2017-09-29'
-wbsdtm='SDTM_Terminology_2018-06-29.xlsx'
+#wbsdtm='SDTM_Terminology_2018-06-29.xlsx'
 wbadam='ADaM_Terminology_2017-09-29 (1).xlsx'
-sheetsdtm='SDTM Terminology 2018-06-29'
+#sheetsdtm='SDTM Terminology 2018-06-29'
 sheetadam='ADaM Terminology 2017-09-29'
 
 import openpyxl
@@ -21,16 +21,16 @@ from py2neo.packages.httpstream import http
 http.socket_timeout = 9999
 
 # Open workbooks and worksheets
-wbs = openpyxl.load_workbook(wbsdtm)
-cts = wbs.get_sheet_by_name(sheetsdtm)
+#wbs = openpyxl.load_workbook(wbsdtm)
+#cts = wbs.get_sheet_by_name(sheetsdtm)
 wba = openpyxl.load_workbook(wbadam)
 cta = wba.get_sheet_by_name(sheetadam)
-ct  = [{'wb':cts,'version':sdtmCTVersion,'model':"SDTM"},{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
-#ct  = [{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
+#ct  = [{'wb':cts,'version':sdtmCTVersion,'model':"SDTM"},{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
+ct  = [{'wb':cta,'version':adamCTVersion,'model':'ADaM'}]
 
 # graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
 graph=Graph('http://'+neousername+':'+neopassword+'@'+neopath)
-tx = graph.cypher.begin()
+tx = graph.begin()
 
 clipropnames=['AliasName','CodedValue','Decode']
 clicolumns=[1,5,8]
@@ -57,10 +57,10 @@ for c in ct:
             statement=statement+'}) '
 
     # Now add the YES codelist
-    statement=statement+'match (cl:CodeList {AliasName:"C66742"})--(cli:CodeListItem {CodedValue:"Y"}) create (new:CodeList {Name:"YES RESPONSE",OID:"YES",Extensible:"No",AliasName:"C66742",DataType:"text"})-[:ContainsCodeListItem]->(cli), \
+    statement=statement+'with ct, cl,cli match (cl:CodeList {AliasName:"C66742"})--(cli:CodeListItem {CodedValue:"Y"}) create (new:CodeList {Name:"YES RESPONSE",OID:"YES",Extensible:"No",AliasName:"C66742",DataType:"text"})-[:ContainsCodeListItem]->(cli), \
         (new)-[:BasedOn]->(cl) '
 
-    print 'STATEMENT: '+statement
+    print ('STATEMENT: '+statement)
     tx.append(statement)
 tx.commit()
 
