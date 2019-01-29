@@ -22,14 +22,6 @@ $(document).ready(function() {
 		// If this is not a BDS data set, then make this the last modal by turning the button into a submit button.
 		// Otherwise, move on to defining parameters.
 		if (mddic['Class'] != 'BASIC DATA STRUCTURE') {
-			// $('[value=Next]').remove();
-
-			// if ($(this).attr('id') == 'ToRecordSourceFromAddDSMD') {
-			// 	$('#mf').append('<input type="submit" value="Finish" class="btn btn-success">') ;
-			// }
-			// else {
-			// 	$('#mf').append('<input type="submit" value="Finish" class="btn btn-success" formaction="EditDS">') ;
-			// }
 			$('[value=Next]').attr('id','ToCmtFromSource') ;
 		}
 
@@ -45,15 +37,6 @@ $(document).ready(function() {
 		if (id == 'dsmd') {
 			// Process comments
 			ProcessMethodComment() ;
-		// 	var mddic=JSON.parse($('[name=MD]').val()) ;
-
-		// 	if (mddic['Class'] == 'BASIC DATA STRUCTURE') {
-		// 		ProcessParmDef() ;
-		// 	}
-
-		// 	else {
-		// 		$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
-		// 	}
 		}
 
 		else if (id == 'GenerateADaMSpec' || id == 'GenerateDefine') {
@@ -61,9 +44,6 @@ $(document).ready(function() {
 		}
 	})
 
-	// $('#GenerateADaMSpec').submit(function() {
-	// 	$('#myModal').modal('hide') ;
-	// })
 
 	$('#myModal').on('click','[id^=ToParcat1]',function() {
 		$('[name=RecordSources]').val(JSON.stringify($('#sourcetable').bootstrapTable('getSelections'))) ;
@@ -359,7 +339,7 @@ function DisplayRecordSources() {
 		'Optionally, enter a description of how the record source is to be subset (e.g. QNAM=ECLSIG)'></textarea></div><div class='form-group'><button type='button' \
 		class='btn btn-success' onclick='Add2SourceTable();' id='addsource'>Add Record Source</button></div><table id='sourcetable'></table>")
 
-	$.getJSON('http://localhost:8000/StandardDeveloper1/GetStudyDatasets',{'Study':$('[name=Study]').val()},function(data){
+	$.getJSON($('[name=URLPath]').val()+'GetStudyDatasets',{'Study':$('[name=Study]').val()},function(data){
 		$.each(data,function(){
 			$("#adamds").append('<option>'+this['Dataset']+'</option>');
 		});
@@ -369,7 +349,7 @@ function DisplayRecordSources() {
 	$('#mh4').text(mddic['Name']+' metadata');
 
 	$('#sourcetable').bootstrapTable({
-		url:'http://localhost:8000/StandardDeveloper1/GetRecordSources',
+		url:$('[name=URLPath]').val()+'GetRecordSources',
 		queryParams:{Study:$('[name=Study]').val(),DSName:mddic['Name']},
 		scrollY:"200px",
 		columns:[{

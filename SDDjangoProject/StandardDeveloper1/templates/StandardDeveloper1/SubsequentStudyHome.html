@@ -35,7 +35,7 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 		        <th data-field="Repeating">Multiple records per subject?</th>
 		        <th data-field="Reference">Reference data?</th>
 		        <th data-field="removeedit" data-formatter="GlyphsRemoveEdit" data-align="center">Dataset Action</th>
-		        <th data-field="editvar" data-formatter="GlyphsEditOnly" data-align="center" data-class="EditVarFromHome">Edit Variable</th>
+		        <th data-field="editvar" data-formatter="GlyphsEditOnly" data-align="center" data-class="EditVarFromHome">Edit A Variable</th>
         	</tr>
 		    </thead>
 		</table>
@@ -43,7 +43,7 @@ Below is a current summary of your study-level metadata.  Scroll down to view st
 {% endblock %}
 
 {% block GetStudyInfo %}
-	$.getJSON('{{URLPATH}}GetStandardDSwoStudy',{Study:"{{Study}}",StandardName:"{{StandardName}}",StandardVersion:"{{StandardVersion}}"},function(data) {
+	$.getJSON($('[name=URLPath]').val()+'GetStandardDSwoStudy',{Study:"{{Study}}",StandardName:"{{StandardName}}",StandardVersion:"{{StandardVersion}}"},function(data) {
 		$.each(data,function () {
 			$('.btn-group-justified').prepend('<div class="btn-group"><button type="button" class="btn btn-success" id="ADD_'+this['Name']+'">'+this['Name']+'</button></div>') ;
 		})

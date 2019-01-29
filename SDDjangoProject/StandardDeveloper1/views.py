@@ -12,8 +12,12 @@ import json
 import re
 import os
 from lxml import etree as et
+from py2neo.packages.httpstream import http
+http.socket_timeout = 9999
 
-graph = Graph('http://neo4j:ne04j@localhost:7474/db/data/')
+#graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+#graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
+graph = Graph('http://'+settings.NEOUN+':'+settings.NEOPW+'@'+settings.NEOPATH)
 
 
 #graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
@@ -100,10 +104,14 @@ def EditVarFromHome(request):
 	Class=request.POST['Class']
 
 	# Determine the variable groups to be presented individually
-	VGList=VarGroupList(DSName,Class)
+	#VGList=VarGroupList(DSName,Class)
 
+	# return render(request,'StandardDeveloper1/variablelist.html', {'Study':StudyName,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,\
+	# 	'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource,"URLPATH":settings.URLPATH})
+
+	# When editing a data set by going to the variables list, give the all variable groups
 	return render(request,'StandardDeveloper1/variablelist.html', {'Study':StudyName,'DSName':DSName,'StandardName':StandardName,'StandardVersion':StandardVersion,'Class':Class,\
-		'VarGroup':VGList[0],'NextVarGroup':VGList[1],'IGDSource':IGDSource,"URLPATH":settings.URLPATH})
+		'IGDSource':IGDSource,"URLPATH":settings.URLPATH})
 
 def GetStudyInfo(request):
 	Study=request.GET['Study']
@@ -256,7 +264,7 @@ def NewDS(request):
 
 		# Create the PARAM ItemDef node
 		stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"Yes",MethodOID:'+str(IRMOID)+',OrderNumber:2}]->(id:ItemDef)-\
-			[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter Code "}) set id.Name=idm.Name,id.Label=idm.Label,id.SASType=idm.SASType,\
+			[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Parameter "}) set id.Name=idm.Name,id.Label=idm.Label,id.SASType=idm.SASType,\
 			id.SASLength='+str(Length)+',id.DataType=idm.DataType,id.Origin=idm.Origin,id.OID='+str(NextPARAMCDOID)+' '
 
 		withlist.append('id')
@@ -357,7 +365,8 @@ def NewDS(request):
 					withlist.remove('cl')
 					
 			withlist.remove('idm')
-			withlist.remove('m')
+
+		withlist.remove('m')
 
 
 		# Create DTYPEs
@@ -390,7 +399,14 @@ def NewDS(request):
 				NextDTYPEOID=1
 
 			# Create the DTYPE ItemDef node
-			stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"No",MethodOID:'+str(IRMOID)+',OrderNumber:'+str(5+2*len(ParcatList))+'}]->(id:ItemDef)-[:BasedOn]->(idm) \
+			# See if DTYPE method exists in the study
+			DTOIDSer=pd.Series(graph.data('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(m:MethodDef {Description:"For each derived record, populate with a single value from DTYPE column in Parameters page"}) return m.OID as DTOID'))
+			if not DTOIDSer.empty:
+				DTMOID=DTOIDSer[0]['DTOID']
+			else:
+				MethodOID=MethodOID+1
+				DTMOID=MethodOID
+			stmt=stmt+'with '+', '.join(withlist)+' create (igd)-[:ItemRef {Mandatory:"No",MethodOID:'+str(DTMOID)+',OrderNumber:'+str(5+2*len(ParcatList))+'}]->(id:ItemDef)-[:BasedOn]->(idm) \
 				set id.Name=idm.Name,id.Label=idm.Label,id.SASType=idm.SASType,id.DataType=idm.DataType,id.Origin="Assigned",id.OID='+str(NextDTYPEOID)+' create \
 				(id)-[:ValueListRef]->(vl:ValueListDef) '
 
@@ -398,6 +414,14 @@ def NewDS(request):
 			withlist.remove('igdm')
 			withlist.append('vl')
 			withlist.append('id')
+
+			# Method
+			if not DTOIDSer.empty:
+				stmt=stmt+'with '+', '.join(withlist)+' match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(m:MethodDef {OID:'+str(DTMOID)+'}) with '+', '.join(withlist)+',m limit 1 \
+					create (id)-[:MethodRef]->(m) '
+
+			else:
+				stmt=stmt+'with '+', '.join(withlist)+' create (id)-[:MethodRef]->(m:MethodDef {OID:'+str(DTMOID)+',Description:"For each derived record, populate with a single value from DTYPE column in Parameters page"}) '
 
 			# Create a value-level ItemDef for each unique codelist in dtypecodelists.  Under each, create a codelist and a where clause
 			WCOID=0
@@ -422,7 +446,7 @@ def NewDS(request):
 				withlist.append('idv')
 
 				# Create codelist
-				stmt=stmt+'with '+', '.join(withlist)+' create (idv)-[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"Derivation Type '+str(x+1)+'"}) '
+				stmt=stmt+'with '+', '.join(withlist)+' create (idv)-[:CodeListRef]->(cl:CodeList {Extensible:"Yes",DataType:"text",Name:"'+DSName+' Derivation Type '+str(x+1)+'"}) '
 				withlist.append('cl')
 
 				# Create codelist items
@@ -452,7 +476,7 @@ def NewDS(request):
 
 				withlist.remove('idpc')
 
-			stmt=stmt+'with '+', '.join(withlist)+' set id.Length='+str(DTYPELength)
+			stmt=stmt+'with '+', '.join(withlist)+' set id.SASLength='+str(DTYPELength)
 
 
 	print("NEWDS STMT: "+stmt)
@@ -723,6 +747,61 @@ def GenerateDefine(request):
 		for x,y in DocsDF[DocsDF['Type'] == 'suppdoc'].iterrows():
 			SDR=et.SubElement(SUPPE,et.QName(nsdefine,'DocumentRef'),leafID='LF.'+y['File'])
 
+
+	# Value-level ItemDefs
+	vlid=pd.DataFrame(graph.data('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)-[ir0ItemRef]->(id0:ItemDef)--(vd:ValueListDef)\
+		-[ir:ItemRef]->(id:ItemDef)--(wc:WhereClauseDef)-[rc:RangeCheck]->(idrc:ItemDef) \
+		optional match (id)-[:MethodRef]->(mt:MethodDef) \
+		optional match (id)-[drid:DocumentRef]->(docid:Document)\
+		optional match (id)-[:CodeListRef]->(cl)\
+		optional match (mt)-[mdrid:DocumentRef]->(mdocid:Document)\
+		optional match (id)-[rs:RecordSource]->(igdrs:ItemGroupDef) where rs.TargetDS=igd.Name\
+		optional match (id)-[js:JoinSource]->(igdj:ItemGroupDef) where js.TargetDS=igd.Name \
+		optional match (mt)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where mt.OID=it1.MethodOID \
+		optional match (mt)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where mt.OID=it2.MethodOID \
+		with igd.Name as DSName,ir.Mandatory as Mandatory,ir.MethodOID as MethodOID,idrc.OID as rcOID,idrc.Name as rcName,rc.Operator as Operator,rc.CheckValue as CheckValue,\
+		rs.Var as predvarr,igdrs.Name as preddsr,js.Var as predvarj,igdj.Name as preddsj,id.Origin as Origin,cl.Name as CLName, \
+		id0.Name as VarName,id.Name as VLMName,id.Label as VLMLabel,id.DataType as DataType,id.Length as Length,id.Comment as VLMComment,drid.Type as VLMDocType,\
+		drid.PageRefs as VLMDocPageRefs,drid.FirstPage as VLMFirstPage,drid.LastPage as VLMLastPage,docid.File as VLMDocFile,mdrid.Type as MethodDocType,\
+		mdrid.PageRefs as MethodDocPageRefs,mdrid.FirstPage as MethodFirstPage,mdrid.LastPage as MethodLastPage,mdocid.File as MethodDocFile,wc.OID as wcOID,\
+		case when mt.Description is not null then mt.Description when mc1.Order=1 then "If "+mc1.If+" then "+mt.Then when mc1.Order=99999 then "; Else "+mt.Then when mc1.Order is not null then "; else if "+mc1.If+" then "+mt.Then \
+		when mc2.Order=1 then "If "+mc2.If+" then "+cli.CodedValue when mc2.Order=99999 then " else "+cli.CodedValue else "; else if "+mc2.If+" then "+cli.CodedValue end as instruction,\
+		case when mc1.Order is not null then mc1.Order else mc2.Order end as OrderNew order by DSName,VarName,OrderNew \
+		with DSName,Mandatory,MethodOID,predvarr,preddsr,predvarj,preddsj,Origin,VarName,VLMName,VLMLabel,DataType,Length,VLMComment,VLMDocType,VLMDocPageRefs,VLMFirstPage,VLMLastPage,\
+		VLMDocFile,CLName,MethodDocType,MethodDocPageRefs,MethodFirstPage,MethodLastPage,MethodDocFile,wcOID,collect(instruction) as collinst,\
+		rcOID,rcName,Operator,CheckValue,reduce(inst="",x in CheckValue|inst+", "+x) as CVstr\
+		return DSName,Mandatory,MethodOID,predvarr,preddsr,predvarj,preddsj,Origin,VarName,VLMName,VLMLabel,DataType,Length,VLMComment,VLMDocType,VLMDocPageRefs,VLMFirstPage,VLMLastPage,\
+		VLMDocFile,CLName,MethodDocType,MethodDocPageRefs,MethodFirstPage,MethodLastPage,MethodDocFile,wcOID,reduce(inst="",x in collinst|inst+" "+x) as MethodDescription,rcOID,rcName,Operator,CheckValue,CVstr'))
+
+	print ('VLID: ')
+	print (vlid) 
+
+	vl=vlid[['DSName','VarName']].drop_duplicates()
+	vl2=vlid.drop_duplicates(subset=['DSName','VarName','wcOID'])
+
+	# Value lists, where clauses, and value-level ItemDefs
+	for x1,y1 in vl.iterrows():
+		VLD=et.SubElement(MDVE,et.QName(nsdefine,'ValueListDef'),OID='VL.'+y1['DSName']+'.'+y1['VarName'])
+		for x2,y2 in vl2[(vl2['DSName'] == y1['DSName']) & (vl2['VarName'] == y1['VarName'])].iterrows():
+			IRE=et.SubElement(VLD,'ItemRef',ItemOID='ID.'+y2['DSName']+'.'+y2['VLMName'],Mandatory=y2['Mandatory'])
+			if y2['Origin'] == 'Derived' and y2['MethodOID']:
+				IRE.attrib['MethodOID'] = 'MT.'+str(y2['MethodOID'])
+
+			WCRE=et.SubElement(IRE,et.QName(nsdefine,'WhereClauseRef'),WhereClauseOID='WC.'+y2['DSName']+'.'+str(y2['wcOID']))
+
+	#wc=vlid[['DSName','VarName','wcOID','rcOID','rcName','Operator','CheckValue']].drop_duplicates(subset=['DSName','wcOID','rcName'])
+	#wcds=wc[['DSName','wcOID']].drop_duplicates()
+	wcds=vlid[['DSName','wcOID']].drop_duplicates()
+	for x1,y1 in wcds.iterrows():
+		WCDE=et.SubElement(MDVE,et.QName(nsdefine,'WhereClauseDef'),OID='WC.'+y1['DSName']+'.'+str(y1['wcOID']))
+		#for x2,y2 in wc[(wc['DSName'] == y1['DSName']) & (wc['wcOID'] == y1['wcOID'])].iterrows():
+		for x2,y2 in vlid[(vlid['DSName'] == y1['DSName']) & (vlid['wcOID'] == y1['wcOID'])].iterrows():
+			RCE=et.SubElement(WCDE,'RangeCheck',Comparator=y2['Operator'],SoftHard='Soft')
+			RCE.attrib[et.QName(nsdefine,'ItemOID')] = 'ID.'+y2['rcName']+'.'+str(y2['rcOID'])
+			for x3 in y2['CheckValue']:
+				CV=et.SubElement(RCE,'CheckValue')
+				CV.text=x3
+
 	# ItemGroupDef, ItemDef
 	igdid=pd.DataFrame(graph.data('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)-[:BasedOn]->(igdm1:ItemGroupDef)\
 		match (igd)-[ir:ItemRef]->(id:ItemDef)-[:MethodRef]->(mt:MethodDef) where ir.MethodOID=mt.OID \
@@ -732,27 +811,28 @@ def GenerateDefine(request):
 		optional match (id)-[:CodeListRef]->(cl)\
 		optional match (mt)-[mdrid:DocumentRef]->(mdocid:Document)\
 		optional match (id)-[rs:RecordSource]->(igdrs:ItemGroupDef) where rs.TargetDS=igd.Name\
+		optional match (id)-[js:JoinSource]->(igdj:ItemGroupDef) where js.TargetDS=igd.Name \
 		optional match (mt)--(mc1:MethodCondition)-[it1:IfThen]->(mt:MethodThen) where mt.OID=it1.MethodOID \
 		optional match (mt)--(mc2:MethodCondition)-[it2:IfThen]-(cli:CodeListItem) where mt.OID=it2.MethodOID \
 		with igd.Name as DSName,case when igdm2.Name is not null then igdm2.Name else igdm1.Name end as Class,igd.Repeating as Repeating,\
 		igd.Label as DSLabel,igd.Structure as Structure,igd.IsReferenceData as IsReferenceData,igd.Comment as DSComment,drigd.Type as DSDocType,\
 		drigd.PageRefs as DSDocPageRefs,drigd.FirstPage as DSFirstPage,drigd.LastPage as DSLastPage,docigd.File as DSDocFile,ir.OrderNumber as OrderNumber,ir.Mandatory as Mandatory,ir.MethodOID as MethodOID,\
-		rs.Var as predvar,igdrs.Name as predds,id.OID as OID,id.Origin as Origin,cl.Name as CLName, \
+		rs.Var as predvarr,igdrs.Name as preddsr,js.Var as predvarj,igdj.Name as preddsj,id.OID as OID,id.Origin as Origin,cl.Name as CLName, \
 		id.Name as VarName,id.Label as VarLabel,id.DataType as DataType,id.SASLength as Length,id.Comment as VarComment,drid.Type as VarDocType,\
 		drid.PageRefs as VarDocPageRefs,drid.FirstPage as VarFirstPage,drid.LastPage as VarLastPage,docid.File as VarDocFile,mdrid.Type as MethodDocType,\
 		mdrid.PageRefs as MethodDocPageRefs,mdrid.FirstPage as MethodFirstPage,mdrid.LastPage as MethodLastPage,mdocid.File as MethodDocFile,\
 		case when mt.Description is not null then mt.Description when mc1.Order=1 then "If "+mc1.If+" then "+mt.Then when mc1.Order=99999 then "; Else "+mt.Then when mc1.Order is not null then "; else if "+mc1.If+" then "+mt.Then \
 		when mc2.Order=1 then "If "+mc2.If+" then "+cli.CodedValue when mc2.Order=99999 then " else "+cli.CodedValue else "; else if "+mc2.If+" then "+cli.CodedValue end as instruction,\
-		case when mc1.Order is not null then mc1.Order else mc2.Order end as OrderNew order by DSName,OrderNumber,VarName,OrderNew \
+		case when mc1.Order is not null then mc1.Order else mc2.Order end as OrderNew,exists((id)--(:ValueListDef)) as VLMYN order by DSName,OrderNumber,VarName,OrderNew \
 		with DSName,Class,Repeating,DSLabel,Structure,IsReferenceData,DSComment,DSDocType,DSDocPageRefs,DSFirstPage,DSLastPage,DSDocFile,OrderNumber,Mandatory,\
-		MethodOID,predvar,predds,OID,Origin,VarName,VarLabel,DataType,Length,VarComment,VarDocType,VarDocPageRefs,VarFirstPage,VarLastPage,\
-		VarDocFile,CLName,MethodDocType,MethodDocPageRefs,MethodFirstPage,MethodLastPage,MethodDocFile,collect(instruction) as collinst\
+		MethodOID,predvarr,preddsr,predvarj,preddsj,OID,Origin,VarName,VarLabel,DataType,Length,VarComment,VarDocType,VarDocPageRefs,VarFirstPage,VarLastPage,\
+		VarDocFile,CLName,MethodDocType,MethodDocPageRefs,MethodFirstPage,MethodLastPage,MethodDocFile,collect(instruction) as collinst,VLMYN\
 		return DSName,Class,Repeating,DSLabel,Structure,IsReferenceData,DSComment,DSDocType,DSDocPageRefs,DSFirstPage,DSLastPage,DSDocFile,OrderNumber,Mandatory,\
-		MethodOID,predvar,predds,OID,Origin,VarName,VarLabel,DataType,Length,VarComment,VarDocType,VarDocPageRefs,VarFirstPage,VarLastPage,\
+		MethodOID,predvarr,preddsr,predvarj,preddsj,OID,Origin,VarName,VarLabel,DataType,Length,VarComment,VarDocType,VarDocPageRefs,VarFirstPage,VarLastPage,VLMYN,\
 		VarDocFile,CLName,MethodDocType,MethodDocPageRefs,MethodFirstPage,MethodLastPage,MethodDocFile,reduce(inst="",x in collinst|inst+" "+x) as MethodDescription'))
 
-	print 'IGDID: '
-	print igdid 
+	print ('IGDID: ')
+	print (igdid) 
 
 	igd=igdid[['DSName','DSLabel','Class','Structure','IsReferenceData','Repeating','DSComment','DSDocFile','DSDocPageRefs','DSDocType','DSFirstPage','DSLastPage']].drop_duplicates()
 
@@ -773,14 +853,7 @@ def GenerateDefine(request):
 
 		# ItemRefs
 		for x2,y2 in igdid[igdid['DSName'] == y1['DSName']].iterrows():
-			IRE=et.SubElement(IGDE,'ItemRef',ItemOID='ID.'+y2['VarName']+'.'+str(y2['OID']),Mandatory=y2['Mandatory'],OrderNumber=str(y2['OrderNumber']))
-			#IRE=et.SubElement(IGDE,'ItemRef')
-			# if y2['OID']:
-			# 	IRE.attrib['ItemOID'] = y2['VarName']+'.'+str(y2['OID'])
-			# if y2['Mandatory']:
-			# 	IRE.attrib['Mandatory'] = y2['Mandatory']
-			# if y2['OrderNumber']:
-			# 	IRE.attrib['OrderNumber'] = str(y2['OrderNumber'])
+			IRE=et.SubElement(IGDE,'ItemRef',ItemOID='ID.'+y2['VarName']+'.'+str(int(y2['OID'])),Mandatory=y2['Mandatory'],OrderNumber=str(y2['OrderNumber']))
 			if y2['Origin'] == 'Derived' and y2['MethodOID']:
 				IRE.attrib['MethodOID'] = 'MT.'+str(y2['MethodOID'])
 
@@ -793,13 +866,12 @@ def GenerateDefine(request):
 	idef=igdid.drop_duplicates(subset=['VarName','OID'])
 
 	for x1,y1 in idef.iterrows():
-		IDE=et.SubElement(MDVE,'ItemDef',OID='ID.'+y1['VarName']+'.'+str(y1['OID']),Name=y1['VarName'],DataType=y1['DataType'],Length=str(y1['Length']))
-		# if y1['OID']:
-		# 	IDE.attrib['OID'] = y1['VarName']+'.'+str(y1['OID'])
+		IDE=et.SubElement(MDVE,'ItemDef',OID='ID.'+y1['VarName']+'.'+str(int(y1['OID'])),Name=y1['VarName'],DataType=y1['DataType'],Length=str(y1['Length']))
 		VarDescE=et.SubElement(IDE,'Description')
 		VarTTE=et.SubElement(VarDescE,'TranslatedText',lang='en')
 		VarTTE.text=y1['VarLabel']
-		OriginE=et.SubElement(IDE,et.QName(nsdefine,'Origin'),Type=y1['Origin'])
+		if y1['Origin']:
+			OriginE=et.SubElement(IDE,et.QName(nsdefine,'Origin'),Type=y1['Origin'])
 
 		if y1['VarComment']:
 			IDE.attrib[et.QName(nsdefine,'CommentOID')] = 'COM.'+y1['VarName']
@@ -810,7 +882,37 @@ def GenerateDefine(request):
 		if y1['Origin'] == 'Predecessor':
 			PredDescE=et.SubElement(OriginE,'Description')
 			PredTTE=et.SubElement(PredDescE,'TranslatedText',lang='en')
-			PredTTE.text=y1['predds']+'.'+y1['predvar']
+			if y1['preddsr']:
+				PredTTE.text=y1['preddsr']+'.'+y1['predvarr']
+			else:
+				PredTTE.text=y1['preddsj']+'.'+y1['predvarj']
+
+		if y1['CLName']:
+			CLRE=et.SubElement(IDE,'CodeListRef',CodeListOID='CL.'+y1['CLName'])
+
+		if y1['VLMYN']:
+			VLRE=et.SubElement(IDE,et.QName(nsdefine,'ValueListRef'),ValueListOID='VL.'+y1['DSName']+'.'+y1['VarName'])
+
+	for x1,y1 in vl2.iterrows():
+		IDE=et.SubElement(MDVE,'ItemDef',OID='ID.'+y1['DSName']+'.'+y1['VLMName'],Name=y1['VLMName'],DataType=y1['DataType'],Length=str(y1['Length']))
+		VLMDescE=et.SubElement(IDE,'Description')
+		VLMTTE=et.SubElement(VLMDescE,'TranslatedText',lang='en')
+		VLMTTE.text=y1['VLMLabel']
+		OriginE=et.SubElement(IDE,et.QName(nsdefine,'Origin'),Type=y1['Origin'])
+
+		if y1['VLMComment']:
+			IDE.attrib[et.QName(nsdefine,'CommentOID')] = 'COM.'+y1['VLMName']
+
+		if y1['VLMDocFile'] and y1['Origin'] == 'CRF':
+			VLMDocRefE=et.SubElement(OriginE,et.QName(nsdefine,'DocumentRef'),leafID='LF.'+y1['VLMDocFile'])
+
+		if y1['Origin'] == 'Predecessor':
+			PredDescE=et.SubElement(OriginE,'Description')
+			PredTTE=et.SubElement(PredDescE,'TranslatedText',lang='en')
+			if y1['preddsr']:
+				PredTTE.text=y1['preddsr']+'.'+y1['predvarr']
+			else:
+				PredTTE.text=y1['preddsj']+'.'+y1['predvarj']
 
 		if y1['CLName']:
 			CLRE=et.SubElement(IDE,'CodeListRef',CodeListOID='CL.'+y1['CLName'])
@@ -818,7 +920,10 @@ def GenerateDefine(request):
 	# Controlled terminology
 	clcli=pd.DataFrame(graph.data('match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--(cl:CodeList)--(cli:CodeListItem) return distinct \
 		cl.Name as CLName,cl.DataType as DataType,cl.AliasName as CLCode,cli.CodedValue as SubmissionValue,cli.AliasName as \
-		ItemCode,cli.Decode as Decode,cli.Decode is null as DecodeNull'))
+		ItemCode,cli.Decode as Decode,cli.Decode is null as DecodeNull union match (:Study {Name:"'+Study+'"})--(:ItemGroupDef)--(:ItemDef)--\
+		(:ValueListDef)--(:ItemDef)--(cl:CodeList)--(cli:CodeListItem) return distinct \
+		cl.Name as CLName,cl.DataType as DataType,cl.AliasName as CLCode,cli.CodedValue as SubmissionValue,cli.AliasName as \
+		ItemCode,cli.Decode as Decode,cli.Decode is null as DecodeNull '))
 
 	cl=clcli[['CLName','DataType','CLCode','DecodeNull']].drop_duplicates(subset=['CLName','DataType','CLCode'])
 
@@ -834,7 +939,7 @@ def GenerateDefine(request):
 				DecodeTTE=et.SubElement(DecodeE,'TranslatedText',lang="en")
 				DecodeTTE.text=y2['Decode']
 
-			ItemE.attrib['CodedValue'] = y2['SubmissionValue']
+			ItemE.attrib['CodedValue'] = str(y2['SubmissionValue'])
 
 			if y2['ItemCode']:
 				ICE=et.SubElement(ItemE,'Alias',Name=y2['ItemCode'],Context='nci:ExtCodeID')
@@ -848,6 +953,21 @@ def GenerateDefine(request):
 	mt=igdid[igdid['Origin'] == 'Derived'].drop_duplicates(subset='MethodOID')
 	for x1,y1 in mt.iterrows():
 		MethodE=et.SubElement(MDVE,'MethodDef',OID='MT.'+str(y1['MethodOID']),Type='Computation',Name='Algorithm for '+y1['VarName'])
+		MTDescE=et.SubElement(MethodE,'Description')
+		MTTTE=et.SubElement(MTDescE,'TranslatedText',lang='en')
+		MTTTE.text=y1['MethodDescription']
+		if y1['MethodDocFile']:
+			MTDocRefE=et.SubElement(MethodE,et.QName(nsdefine,'DocumentRef'),leafID='LF.'+y1['MethodDocFile'])
+			MTDocPDFE=et.SubElement(MTDocRefE,et.QName(nsdefine,'PDFPageRef'),Type=y1['MethodDocType'])
+			if y1['MethodFirstPage']:
+				MTDocPDFE.attrib['FirstPage'] = y1['MethodFirstPage']
+				MTDocPDFE.attrib['LastPage'] = y1['MethodLastPage']
+			else:
+				MTDocPDFE.attrib['PageRefs'] = y1['MethodDocPageRefs']
+
+	mt=vl2[vl2['Origin'] == 'Derived'].drop_duplicates(subset='MethodOID')
+	for x1,y1 in mt.iterrows():
+		MethodE=et.SubElement(MDVE,'MethodDef',OID='MT.'+str(y1['MethodOID']),Type='Computation',Name='Algorithm for '+y1['VLMName'])
 		MTDescE=et.SubElement(MethodE,'Description')
 		MTTTE=et.SubElement(MTDescE,'TranslatedText',lang='en')
 		MTTTE.text=y1['MethodDescription']
@@ -892,6 +1012,22 @@ def GenerateDefine(request):
 				else:
 					CMDocPDFE.attrib['PageRefs'] = y1['VarDocPageRefs']
 
+	# VLM comments
+	for x1,y1 in vl2.iterrows():
+		if y1['VLMComment']:
+			CME=et.SubElement(MDVE,et.QName(nsdefine,'CommentDef'),OID='COM.'+y1['VLMName'])
+			CMDescE=et.SubElement(CME,'Description')
+			CMTTE=et.SubElement(CMDescE,'TranslatedText',lang='en')
+			CMTTE.text=y1['VLMComment']
+			if y1['VLMDocFile']:
+				CMDocRefE=et.SubElement(CME,et.QName(nsdefine,'DocumentRef'),leafID='LF.'+y1['VLMDocFile'])
+				CMDocPDFE=et.SubElement(CMDocRefE,et.QName(nsdefine,'PDFPageRef'),Type=y1['VLMDocType'])
+				if y1['VLMFirstPage']:
+					CMDocPDFE.attrib['FirstPage'] = y1['VLMFirstPage']
+					CMDocPDFE.attrib['LastPage'] = y1['VLMLastPage']
+				else:
+					CMDocPDFE.attrib['PageRefs'] = y1['VLMDocPageRefs']
+
 	# Leafs
 	for x1,y1 in DocsDF.iterrows():
 		LEAFE=et.SubElement(MDVE,et.QName(nsdefine,'leaf'),ID='LF.'+y1['File'])
@@ -911,7 +1047,7 @@ def VarGroupList(DSName,Class):
 		return ['Study Identifiers','Subject Demographics']
 
 	elif Class == 'OCCURRENCE DATA STRUCTURE':
-		return ['Identifier Variables','Dictionary Coding Variables for MedDRA','Dictionary Coding Variables for MedDRA']
+		return ['Identifier Variables','Dictionary Coding Variables for MedDRA']
 
 	elif Class == 'BASIC DATA STRUCTURE':
 		return ['Subject Identifier Variable','Treatment Variables']
@@ -957,8 +1093,15 @@ def NewVarVLM(request):
 
 	if Action == 'Add':
 		# Create the ItemDef
+
+		VarOIDmax=pd.Series(graph.data('match (:Study {Name:"'+Study+'"})--(igd:ItemGroupDef)--(id:ItemDef {Name:"'+MD['Name']+'"}) return max(id.OID) as OID')[0])
+		if VarOIDmax['OID']:
+			NextVarOID=VarOIDmax['OID']+1
+		else:
+			NextVarOID=1
+
 		stmt=stmt+'create (igd)-[ir:ItemRef {OrderNumber:'+str(MD['OrderNumber'])+'}]->\
-			(id:ItemDef {Name:"'+MD['Name']+'",Label:"'+MD['Label']+'",SASType:"'+MD['SASType']+'",DataType:"'+MD['DataType']+'"})'
+			(id:ItemDef {Name:"'+MD['Name']+'",Label:"'+MD['Label']+'",SASType:"'+MD['SASType']+'",DataType:"'+MD['DataType']+'",OID:'+str(NextVarOID)+'})'
 
 		# Calculate the numeric OID value of the method being created
 		# by calculating the max value of the current OIDs in the study
@@ -978,7 +1121,7 @@ def NewVarVLM(request):
 		else:
 			MethodOID=MethodOID+1
 			IRMOID=MethodOID
-			stmt=stmt+'-[:MethodRef]->(:MethodDef {OID:'+str(IRMOID)+',Description:"See Value Level Page"}) '
+			stmt=stmt+'-[:MethodRef]->(:MethodDef {OID:'+str(IRMOID)+',Description:"See Value Level Page"}) with study,ir,id set ir.MethodOID='+str(IRMOID)+' '
 
 		# Create BasedOn
 		if IGDSource == "Model":
@@ -993,6 +1136,8 @@ def NewVarVLM(request):
 		if MD1['OrderNumber'] != MD['OrderNumber'] or MD1['DataType'] != MD['DataType']:
 			Change=True
 			stmt=stmt+'set ir.OrderNumber='+str(MD['OrderNumber'])+', id.DataType="'+MD['DataType']+'" '
+
+	print ('NewVarVLM STMT: '+stmt)
 
 	if Action == 'Add' or Change:
 		tx=graph.begin()
@@ -1012,6 +1157,7 @@ def NewVar(request):
 	VarGroup=request.POST['VarGroup']
 	NextVarGroup=request.POST['NextVarGroup']
 	Action=request.POST['Action']
+	
 
 	VGList=VarGroupList(DSName,Class)
 	MD=json.loads(request.POST['MD'])
@@ -1023,6 +1169,10 @@ def NewVar(request):
 	CommentDic={}
 	NewItemDef=True
 	SCChange=True
+	CustomYN=''
+
+	if 'CustomYN' in request.POST:
+		CustomYN=request.POST['CustomYN']
 
 	if request.POST['CT']:
 		CT=json.loads(request.POST['CT'])
@@ -1288,11 +1438,12 @@ def NewVar(request):
 				stmt=stmt+'}) '
 
 			# Create BasedOn
-			if IGDSource == "Model":
-				stmt=stmt+'with '+', '.join(withlist)+' match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+Class+'"})-[:ItemRef]->(ID2:ItemDef {Name:"'+MD['Name']+'"})  \
-					create (id)-[:BasedOn]->(ID2) '
-			elif IGDSource == "Standard":
-				stmt=stmt+'with '+', '.join(withlist)+' match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(ID2:ItemDef {Name:"'+MD['Name']+'"}) create (id)-[:BasedOn]->(ID2) '
+			if CustomYN == 'false':
+				if IGDSource == "Model":
+					stmt=stmt+'with '+', '.join(withlist)+' match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:BasedOn]->(:Model)-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+Class+'"})-[:ItemRef]->(ID2:ItemDef {Name:"'+MD['Name']+'"})  \
+						create (id)-[:BasedOn]->(ID2) '
+				elif IGDSource == "Standard":
+					stmt=stmt+'with '+', '.join(withlist)+' match (:Standard {Name:"'+StandardName+'",Version:"'+StandardVersion+'"})-[:ItemGroupRef]->(:ItemGroupDef {Name:"'+DSName+'"})-[:ItemRef]->(ID2:ItemDef {Name:"'+MD['Name']+'"}) create (id)-[:BasedOn]->(ID2) '
 
 		else:
 			withlist.append('id')
@@ -1708,12 +1859,12 @@ def GetStudySources(request):
 
 	stmtj='match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(id:ItemDef)-[js:JoinSource {TargetDS:"'+DSName+'"}]->(igd:ItemGroupDef) \
 		with distinct igd.Name as Datasets,js.Subset as Subsets,case when exists((igd)-[:BasedOn]->(:ItemGroupDef)) then "ADAM" else "SDTM" end as Models, id.Name="'+VarName+'" as state,js.Join as JConditions \
-		return Datasets,Subsets,Models,case when Subsets is not null then Models+"."+Datasets+" (where "+Subsets+")" else Models+"."+Datasets end as Display,JConditions,state,"N" as RecordSourceYN '
+		return Datasets,Subsets,Models,case when Subsets <> "" then Models+"."+Datasets+" (where "+Subsets+")" else Models+"."+Datasets end as Display,JConditions,state,"N" as RecordSourceYN '
 
 	if VLMOID:
 		stmtj=stmtj+'union match (:Study {Name:"'+Study+'"})--(:ItemGroupDef {Name:"'+DSName+'"})--(id:ItemDef)--(:ValueListDef)-[ir:ItemRef]->(:ItemDef)-[js:JoinSource {TargetDS:"'+DSName+'"}]->(igd:ItemGroupDef) \
 			with distinct igd.Name as Datasets,js.Subset as Subsets,case when exists((igd)-[:BasedOn]->(:ItemGroupDef)) then "ADAM" else "SDTM" end as Models, id.Name="'+VarName+'" and ir.WCRefOID='+str(VLMOID)+' as state,js.Join as JConditions \
-			return Datasets,Subsets,Models,case when Subsets is not null then Models+"."+Datasets+" (where "+Subsets+")" else Models+"."+Datasets end as Display,JConditions,state,"N" as RecordSourceYN'
+			return Datasets,Subsets,Models,case when Subsets <> "" then Models+"."+Datasets+" (where "+Subsets+")" else Models+"."+Datasets end as Display,JConditions,state,"N" as RecordSourceYN'
 
 		stmtr=stmtr+'when exists((igd0)-[:ItemRef]->(:ItemDef {Name:"'+VarName+'"})--(:ValueListDef)-[:ItemRef {WCRefOID:'+str(VLMOID)+'}]->(:ItemDef)) then 1 '
 

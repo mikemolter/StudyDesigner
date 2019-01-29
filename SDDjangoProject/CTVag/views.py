@@ -4,10 +4,12 @@ from py2neo import Graph
 import openpyxl
 from datetime import datetime
 from lxml import etree
+from py2neo.packages.httpstream import http
+http.socket_timeout = 9999
 
 
 #graph = Graph('http://neo4j:letsgowings@10.0.0.10:7474/db/data/')
-graph = Graph('http://neo4j:ne04j@localhost:7474/db/data/')
+graph = Graph('http://neo4j:letsgowings@localhost:7474/db/data/')
 
 # Create your views here.
 def index(request):

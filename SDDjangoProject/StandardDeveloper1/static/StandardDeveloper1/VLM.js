@@ -1,6 +1,6 @@
 $(document).ready(function(){
 	// Build the variable-level metadata for the variable being defined by VLM
-	$.getJSON("{{URLPATH}}GetStudyVar",{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':$('[name=VarName]').val(),'VLMOID':''},function(data){
+	$.getJSON($('[name=URLPath]').val()+"GetStudyVar",{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':$('[name=VarName]').val(),'VLMOID':''},function(data){
 		$('#varsummary').append('<div class="row" id="NameRow">\
 			<div class="col-xs-4">Name</div><div class="col-xs-8">'+data[0]['Name']+'</div></div>\
 			<div class="row" id="LabelRow">\
@@ -41,7 +41,7 @@ $(document).ready(function(){
 		$('[name=Action]').val('Edit');
 
 		// Store method information
-		$.getJSON('{{URLPATH}}GetStudyVarMethod',{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':$('[name=VarName]').val(),'VLMOID':chosenOID},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'GetStudyVarMethod',{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':$('[name=VarName]').val(),'VLMOID':chosenOID},function(data) {
 			$('#hidemodal').append('<input type="hidden" name="methodchoice" value="'+data[0]['methodchoice'] +'"/>') ;
 
 			if (data[0]['Description'] != '') {
@@ -163,7 +163,7 @@ $(document).ready(function(){
 			// User chose to define a new ADaM source
 			else if (predsource == 'c2') {
 				$('#mb').empty() ;
-				DisplayPredVarADAM() ;
+				DisplayPredVarADAM($('[name=DSName]').val()) ;
 				SourceDic={'Models':'ADAM'} ;
 			}
 
@@ -342,7 +342,7 @@ $(document).ready(function(){
 		TermList=JSON.stringify($('#CodeListItemTable').bootstrapTable('getSelections')) ;
 
 		// Determine if the newly defined codelist already exists
-		$.getJSON('{{URLPATH}}CompareCT',{'Study':$('[name=Study]').val(),'StandardCLName':'','StandardCode':'','CT':TermList},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'CompareCT',{'Study':$('[name=Study]').val(),'StandardCLName':'','StandardCode':'','CT':TermList},function(data) {
 			// Get what is already in the CT hidden variable and add to it
 			var CTDic=JSON.parse($('[name=CT]').val()) ;
 			CTDic['Match']=data['Match'] ;
@@ -443,7 +443,7 @@ function DisplayPredVarPreDefined(SourceDic,RSYN) {
 			}
 			else {
 				$('#mb').append('<div class="form-group"><label>'+desc+' variable name</label><select id="var_'+SourceDic['Datasets'][x]+'" class="form-control"></select></div>');
-				$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+				$.getJSON($('[name=URLPath]').val()+'GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
 					$.each(data,function() {
 						$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets'][x]);
 					})
@@ -463,7 +463,7 @@ function DisplayPredVarPreDefined(SourceDic,RSYN) {
 		}
 		else {
 			$('#mb').append('<div class="form-group"><label>'+desc+'</label><select id="var_'+SourceDic['Datasets']+'" class="form-control"></select></div>');
-			$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+			$.getJSON($('[name=URLPath]').val()+'GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
 				$.each(data,function() {
 					$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets']);
 				})
@@ -481,16 +481,17 @@ function DisplayPredVarPreDefined(SourceDic,RSYN) {
 			<textarea rows="3" cols="20" id="sdtmjoin" class="form-control"></textarea></div>') ;
 	}
 
-	function DisplayPredVarADAM() {
-		$('#mb').append('<div class="form-group"><label>ADaM data set name</label><select id="adamds" class-"form-control"></select>\</div>')
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
+	function DisplayPredVarADAM(DSName) {
+		$('#mb').append('<p>In the boxes below, provide information about the ADaM source</p><div class="form-group"><label>ADaM data set name</label><br/><select id="adamds" class-"form-control"><option disabled selected>Select ADaM data set</option></select></div>')
+		$.getJSON($('[name=URLPath]').val()+'GetADaMStudyDS',{'Study':$('[name=Study]').val()},function(data) {
 			$.each(data,function() {
-				$('<option value="'+this['DSName']+'</option>').appendTo('#adamds') ;
+				if (this['DSName'] != DSName) {
+					$('<option value="'+this['DSName']+'">'+this['DSName']+'</option>').appendTo('#adamds') ;
+				}
 			})
 		})
-		$('#mb').append('<p>In the boxes below, provide information about the ADaM source</p><div class="row"><div class="col-xs-4 form-group"><label>ADaM data set name</label>\
-			<input type="text" id="adamds" class="form-control"></div></div><div class="row"><div class="col-xs-4 form-group"><label>ADaM variable name</label>\
-			<input type="text" id="adamvar" class="form-control"></div></div><div class="row"><div class="form-group col-xs-10"><label>Source records</label>\
+		$('#mb').append('<div class="form-group"><label>ADaM variable name</label><br/>\
+			<select id="adamvar" class="form-control"></select></div><div class="row"><div class="form-group col-xs-10"><label>Subset (optional)</label>\
 			<input type="text" id="adamvlmsub" class="form-control" placeholder="e.g. LBTESTCD=ALB">\
 			</div></div><div class="form-group"><label>Description of merge</label>\
 			<textarea rows="3" cols="20" id="adamjoin" class="form-control"></textarea></div>') ;
@@ -510,7 +511,7 @@ function DisplayVLMD(Study,IGDName,VarNameIn,OID,Action) {
 		<option value="date">date</option><option value="datetime">datetime</option></select></div></div></div>') ;
 
 	if (Action == "Edit") {
-		$.getJSON('{{URLPATH}}GetStudyVar',{'Study':Study,'DSName':IGDName,'VarName':VarNameIn,'VLMOID':OID},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'GetStudyVar',{'Study':Study,'DSName':IGDName,'VarName':VarNameIn,'VLMOID':OID},function(data) {
 			$('[name=VLMName]').val(data[0]['Name']);
 			$('[name=VLMLabel]').val(data[0]['Label'])
 			$('[name=VLMLength]').val(data[0]['Length']) ;

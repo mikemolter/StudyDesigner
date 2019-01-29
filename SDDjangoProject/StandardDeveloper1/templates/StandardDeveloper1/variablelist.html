@@ -30,7 +30,7 @@
 			}
 			else {
 				DisplayVLMYN() ;
-				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToSource1FromVLMYNStandard"/>');
+				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToSource1FromVLMYN"/>');
 			}
 
 			// Show the modal that asks if the variable will be defined with VLM
@@ -46,17 +46,27 @@
 
 			$('[name=Action]').val('Add');
 
-			if (DSName == 'ADSL') {
-				DisplaySource1() ;
-				$('#mf').append('<input type="button" class="btn btn-success" value="Next"/>');
-			}
-			else {
-				DisplayVLMYN() ;
-				$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ToSource1FromVLMYNCustom"/>');
-			}
+			$('#mf').append('<input type="button" class="btn btn-success" value="Next" id="ProcessCustom"/>');
 
 			// Show the modal that asks if the variable will be defined with VLM
 			$('#myModal').modal('show') ;
+		})
+
+		// Process custom variable
+		$('#myModal').on('click','#ProcessCustom',function() {
+			$('[name=MD]').val(JSON.stringify({Name:$('#customvarname').val()})) ;
+			$('#mh4').text('Variable metadata: '+$('#customvarname').val()) ;
+			$('#mb').empty();
+
+			var DSName=$('[name=DSName]').val() ;
+
+			if (DSName == 'ADSL') {
+				DisplaySource1() ;
+			}
+			else {
+				DisplayVLMYN() ;
+				$('[value=Next').attr('id','ToSource1FromVLMYN') ;
+			}
 		})
 
 		// Handler for when a user wants to edit a variable
@@ -74,7 +84,7 @@
 			$('[name=Action]').val('Edit');
 
 			// Store method information
-			$.getJSON('{{URLPATH}}GetStudyVarMethod',{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':chosenvar,'VLMOID':''},function(data) {
+			$.getJSON($('[name=URLPath]').val()+'GetStudyVarMethod',{'Study':$('[name=Study]').val(),'DSName':$('[name=DSName]').val(),'VarName':chosenvar,'VLMOID':''},function(data) {
 				$('#hidemodal').append('<input type="hidden" name="methodchoice" value="'+data[0]['methodchoice'] +'"/>') ;
 
 				if (data[0]['Description'] != '') {
@@ -114,12 +124,6 @@
 			var IGDSource=$('[name=IGDSource]').val() ;
 			var CustomYN=$('[name=CustomYN]').val() ;
 
-
-			if (id == 'ToSource1FromVLMYNCustom') {
-				$('[name=MD]').JSON.stringify({Name:$('#customvarname').val()}) ;
-				$('#mh4').text('Variable metadata: '+$('#customvarname').val()) ;
-			}
-
 			var MDDic=JSON.parse($('[name=MD]').val()) ;
 			var VarName=MDDic['Name']
 
@@ -129,7 +133,7 @@
 				var VLM=$("input[name=vlmYN]:checked").val() ;
 				$('#mb').empty() ;
 				if (VLM == 'Y'){
-					if (CustomYN == true) {
+					if (CustomYN == 'true') {
 						DisplayVarMD4VLM("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",VarName,"")
 					}
 
@@ -248,7 +252,7 @@
 				// User chose to define a new ADaM source
 				else if (predsource == 'c2') {
 					$('#mb').empty() ;
-					DisplayPredVarADAM() ;
+					DisplayPredVarADAM($('[name=DSName]').val()) ;
 					SourceDic={'Models':'ADAM'} ;
 				}
 
@@ -257,16 +261,6 @@
 			}
 		})
 
-
-		// If/when an ADaM data set is chosen as a new source, then this will populate the variable list 
-		$('#myModal').on('change','#adamds',function() {
-			var selectedadamds = $('#adamds :selected').val() ;
-			$.getJSON('{{URLPATH}}GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
-				$.each(data,function() {
-					$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#adamvar');
-				})
-			})
-		})
 
 		$('#myModal').on('click','[id^=ToVarmd]',function() {
 			var id=$(this).attr('id') ;
@@ -337,7 +331,7 @@
 				DisplayVarMD("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",VarName,"Study")
 			}
 
-			else if (CustomYN == true) {
+			else if (CustomYN == 'true') {
 				DisplayVarMD("{{Study}}","{{StandardName}}","{{StandardVersion}}","{{DSName}}",VarName,"")
 			}
 
@@ -365,7 +359,7 @@
 			if (id == 'ToCT1FromVarmd') {
 				// Store variable-level metadata
 
-				if (CustomYN == true) {
+				if (CustomYN == 'true') {
 					mddic['Label']=$('[name=VarLabel]').val() ;
 					mddic['SASType']=$('[name=VarSASType]').val() ;
 				}
@@ -443,7 +437,7 @@
 				// Use any study list that has been defined as a subset of the global list as a base, along with the standard list itself
 				else {
 					var url='Get1StudyWStandardCodeList' ;
-					var qp={CLCode:CodeCL,StudyCLName:$('#stdct2 :selected').text(),StandardCLName:StandardCL}; 
+					var qp={Study:$('[name=Study]').val(),CLCode:CodeCL,StudyCLName:$('#stdct2 :selected').text(),StandardCLName:StandardCL}; 
 				}
 
 				if (mddic['Origin'] != 'Predecessor') {
@@ -503,7 +497,7 @@
 			TermList=JSON.stringify($('#CodeListItemTable').bootstrapTable('getSelections')) ;
 
 			// Determine if the newly defined codelist already exists
-			$.getJSON('{{URLPATH}}CompareCT',{'Study':$('[name=Study]').val(),'StandardCLName':StandardCL,'StandardCode':StandardCode,'CT':TermList},function(data) {
+			$.getJSON($('[name=URLPath]').val()+'CompareCT',{'Study':$('[name=Study]').val(),'StandardCLName':StandardCL,'StandardCode':StandardCode,'CT':TermList},function(data) {
 				// Get what is already in the CT hidden variable and add to it
 				var CTDic=JSON.parse($('[name=CT]').val()) ;
 				CTDic['Match']=data['Match'] ;
@@ -564,7 +558,11 @@
 			var alldata=$('#parmdtypes').bootstrapTable('getData') ;
 			var dtypemethodslist=[] ;
 			for (x=0; x<alldata.length; x++) {
-				dtypemethodslist.push({'wcoid':alldata[x]['OID'],'method':$('[name=OID'+alldata[x]['OID']+']:checked').val(),'description':alldata[x]['Description']})
+				dtypemethoddic={'wcoid':alldata[x]['OID'],'method':$('[name=OID'+alldata[x]['OID']+']:checked').val(),'description':''}
+				if ($('[name=OID'+alldata[x]['OID']+']:checked').val() == 'other') {
+					dtypemethoddic['description'] = $('#desc'+alldata[x]['OID']).val() ;
+				}
+				dtypemethodslist.push(dtypemethoddic) ;
 			}
 			$('[name=DTYPEMethods]').val(JSON.stringify(dtypemethodslist)) ;
 			$('#mb').empty() ;
@@ -576,12 +574,13 @@
 		$('#myModal').on('click','[value=other]',function() {
 			var rowindex=$(this).closest('tr').data('index'); 
 			var rowdata=$('#parmdtypes').bootstrapTable('getData')[rowindex] ;
-			$('[name=rowdata]').val(JSON.stringify(rowdata));
-			$('#mh3').text(rowdata['Condition']) ;
-			if (rowdata['Description']) {
-				$('#desc').text(rowdata['Description']) ;
-			}
-			$('#myModal3').modal('show');
+			$('#mb').append('<div class="form-group"><label>'+rowdata['Condition']+'</label><br/><textarea rows="2" cols="50" id="desc'+rowdata['OID']+'"></textarea></div>')
+			// $('[name=rowdata]').val(JSON.stringify(rowdata));
+			// $('#mh3').text(rowdata['Condition']) ;
+			// if (rowdata['Description']) {
+			// 	$('#desc').text(rowdata['Description']) ;
+			// }
+			// $('#myModal3').modal('show');
 		})
 
 		$('#donewithdesc').click(function() {
@@ -639,7 +638,7 @@
 		// Insert one dropdown for the current variable group
 		{% if VarGroup %}
 
-		$.getJSON('{{URLPATH}}GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':$('[name=VarGroup]').val()},function(data){
+		$.getJSON($('[name=URLPath]').val()+'GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':$('[name=VarGroup]').val()},function(data){
 				$('#navtabul').append('<li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">{{VarGroup}} <span class="caret"></span></a><ul class="dropdown-menu" role="menu" id="dd"></ul></li>')
 
 				$.each(data,function(){
@@ -655,22 +654,26 @@
 
 		{% else %}
 		// Create the dropdown for each variable group
-		$.getJSON('{{URLPATH}}GetAllVarGroups',{'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val()},function(data){
+		$.getJSON($('[name=URLPath]').val()+'GetAllVarGroups',{'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val()},function(data){
 
 			$.each(data,function(){
-				var ddid=this['VarGroup'].replace(/[^a-zA-Z]/g, '');
-				$('#navtabul').append('<li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">'+this['VarGroup']+' <span class="caret"></span></a><ul class="dropdown-menu" role="menu" id="'+ddid+'"></ul></li>')
+				if (this['VarGroup']) {
+					var ddid=this['VarGroup'].replace(/[^a-zA-Z]/g, '');
+					$('#navtabul').append('<li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">'+this['VarGroup']+' <span class="caret"></span></a><ul class="dropdown-menu" role="menu" id="'+ddid+'"></ul></li>')
+				}
 			})
 			$('#navtabul').append('<li><button type="button" class="btn btn-default btn-primary" id="customvar">Define a custom variable</button>&nbsp;')
 			$('#navtabul').append('<li><input type="submit" class="btn btn-default btn-success" value="Finish"></input></li>')
 		})
 
 		// Now populate the dropdowns
-		$.getJSON('{{URLPATH}}GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':''},function(data){
+		$.getJSON($('[name=URLPath]').val()+'GetStandardVarswoStudy',{'Study':$('[name=Study]').val(),'StandardName':$('[name=StandardName]').val(),'StandardVersion':$('[name=StandardVersion]').val(),'DSName':$('[name=DSName]').val(),'IGDSource':$('[name=IGDSource]').val(),'Class':$('[name=Class]').val(),'VarGroup':''},function(data){
 
 			$.each(data,function(){
-				var ddid=this['VarGroup'].replace(/[^a-zA-Z]/g, '');
-				$('#'+ddid).append('<li><a href="#">'+this['Name']+'</a></li>')
+				if (this['VarGroup']) {
+					var ddid=this['VarGroup'].replace(/[^a-zA-Z]/g, '');
+					$('#'+ddid).append('<li><a href="#">'+this['Name']+'</a></li>')
+				}
 			})
 		})
 		{% endif %}
@@ -702,6 +705,7 @@
 	<input type="hidden" name="VarGroup" value="{{VarGroup}}"/>
 	<input type="hidden" name="Class" value="{{Class}}"/>
 	<input type="hidden" name="NextVarGroup" value="{{NextVarGroup}}"/>
+	<input type="hidden" name="URLPath" value="{{URLPATH}}"/>
 </div>
 
 
@@ -842,7 +846,7 @@
 				}
 				else {
 					$('#mb').append('<div class="form-group"><label>'+desc+'</label><select id="var_'+SourceDic['Datasets'][x]+'" class="form-control"></select></div>');
-					$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+					$.getJSON($('[name=URLPath]').val()+'GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
 						$.each(data,function() {
 							$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets'][x]);
 						})
@@ -861,7 +865,7 @@
 			}
 			else {
 				$('#mb').append('<div class="form-group"><label>'+desc+'</label><select id="var_'+SourceDic['Datasets']+'" class="form-control"></select></div>');
-				$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
+				$.getJSON($('[name=URLPath]').val()+'GetADaMStudyVars',{'Study':"{{Study}}",'DSName':"{{DSName}}"},function(data){
 					$.each(data,function() {
 						$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#var_'+SourceDic['Datasets']);
 					})
@@ -884,7 +888,7 @@
 		$('#mb').append('<div class="form-group"><label>Choose here which list of allowable values (global list or a sub-list defined in this study) on which your list will be based</label><select class="form-control" id="stdct2"><option disabled selected></option><option value="global">'+StandardCL+' (global)</option></select></div>') ;
 
 		// Populate the above dropdown with study-specific sub-codelists
-		$.getJSON('{{URLPATH}}GetStudyCodelistsByCode',{'Study':$('[name=Study]').val(),'CLCode':$('[name=CTCode]').val()},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'GetStudyCodelistsByCode',{'Study':$('[name=Study]').val(),'CLCode':$('[name=CTCode]').val()},function(data) {
 			$.each(data,function() {
 				$('#stdct2').append('<option>'+this['CLName']+'</option>') ;
 			})
@@ -979,17 +983,18 @@
 			<textarea rows="3" cols="20" id="sdtmjoin" class="form-control"></textarea></div>') ;
 	}
 
-	function DisplayPredVarADAM() {
-		$('#mb').append('<div class="form-group"><label>ADaM data set name</label><select id="adamds" class-"form-control"></select>\</div>')
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
+	function DisplayPredVarADAM(DSName) {
+		$('#mb').append('<p>In the boxes below, provide information about the ADaM source</p><div class="form-group"><label>ADaM data set name</label><br/><select id="adamds" class-"form-control"><option disabled selected>Select ADaM data set</option></select></div>')
+		$.getJSON($('[name=URLPath]').val()+'GetADaMStudyDS',{'Study':$('[name=Study]').val()},function(data) {
 			$.each(data,function() {
-				$('<option value="'+this['DSName']+'</option>').appendTo('#adamds') ;
+				if (this['DSName'] != DSName) {
+					$('<option value="'+this['DSName']+'">'+this['DSName']+'</option>').appendTo('#adamds') ;
+				}
 			})
 		})
-		$('#mb').append('<p>In the boxes below, provide information about the ADaM source</p><div class="row"><div class="col-xs-4 form-group"><label>ADaM data set name</label>\
-			<input type="text" id="adamds" class="form-control"></div></div><div class="row"><div class="col-xs-4 form-group"><label>ADaM variable name</label>\
-			<input type="text" id="adamvar" class="form-control"></div></div><div class="row"><div class="form-group col-xs-10"><label>Subset (optional)</label>\
-			<input type="text" id="adamsubset" class="form-control" placeholder="e.g. LBTESTCD=ALB">\
+		$('#mb').append('<div class="form-group"><label>ADaM variable name</label><br/>\
+			<select id="adamvar" class="form-control"></select></div><div class="row"><div class="form-group col-xs-10"><label>Subset (optional)</label>\
+			<input type="text" id="adamsubset" class="form-control">\
 			</div></div><div class="form-group"><label>Description of merge</label>\
 			<textarea rows="3" cols="20" id="adamjoin" class="form-control"></textarea></div>') ;
 	}
@@ -1009,12 +1014,12 @@
 
 		if (MDSource) {
 			if (MDSource == 'Standard' || MDSource == 'Model') {
-				var url='{{URLPATH}}GetStandardVar' ;
+				var url=$('[name=URLPath]').val()+'GetStandardVar' ;
 				var dict={'StandardName':StandardName,'StandardVersion':StandardVersion,'IGDName':IGDName,'VarName':VarNameIn,'StandardType':MDSource} ;
 			}
 
 			else if (MDSource == 'Study') {
-				var url='{{URLPATH}}GetStudyVar' ;
+				var url=$('[name=URLPath]').val()+'GetStudyVar' ;
 				var dict={'Study':Study,'DSName':IGDName,'VarName':VarNameIn,'VLMOID':''}
 			}
 
@@ -1052,7 +1057,7 @@
 					$('option[value='+VarDataType+']').prop('selected',true);
 				}
 
-				if (CustomYN == true) {
+				if (CustomYN == 'true') {
 					$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+VarName+'"></div>') ;
 					$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarLabel" value="'+VarLabel+'"></div>') ;
 					$('#SASTypeRow').append('<div class="col-xs-8 form-group"><select name="VarSASType"><option selected disabled></option><option value="Char">Char</option><option value="Num">Num</option></select></div>') ;
@@ -1100,12 +1105,12 @@
 
 		if (MDSource) {
 			if (MDSource == 'Standard' || MDSource == 'Model') {
-				var url='{{URLPATH}}GetStandardVar' ;
+				var url=$('[name=URLPath]').val()+'GetStandardVar' ;
 				var dict={'StandardName':StandardName,'StandardVersion':StandardVersion,'IGDName':IGDName,'VarName':VarNameIn,'StandardType':MDSource} ;
 			}
 
 			else if (MDSource == 'Study') {
-				var url='{{URLPATH}}GetStudyVar' ;
+				var url=$('[name=URLPath]').val()+'GetStudyVar' ;
 				var dict={'Study':Study,'DSName':IGDName,'VarName':VarNameIn,'VLMOID':''}
 			}
 
@@ -1132,7 +1137,7 @@
 					$('option[value='+VarDataType+']').prop('selected',true);
 				}
 
-				if (CustomYN == true) {
+				if (CustomYN == 'true') {
 					$('#NameRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarName" value="'+VarName+'"></div>') ;
 					$('#LabelRow').append('<div class="col-xs-8 form-group"><input type="text" name="VarLabel" value="'+VarLabel+'"></div>') ;
 					$('#SASTypeRow').append('<div class="col-xs-8 form-group"><select name="VarSASType"><option selected disabled></option><option value="Char">Char</option><option value="Num">Num</option></select></div>') ;
@@ -1161,7 +1166,7 @@
 	}
 	function DisplayDtypeMethods(Study,DSName) {
 
-		$.getJSON('{{URLPATH}}GetDerivedRows',{'Study':Study,'DSName':DSName},function(data){
+		$.getJSON($('[name=URLPath]').val()+'GetDerivedRows',{'Study':Study,'DSName':DSName},function(data){
 			if (data.length) {
 				$('#mb').append('<p>Since you have defined derived records (DTYPE records) for some parameters, you need to indicate how this variable will be defined for such records.  For each row in the table below, indicate whether the value of this variable on the indicated derived record will be null, retained from parent records from which it was derived, or something else (you will have a chance to specify.<table id="parmdtypes" data-unique-id="OID"></table>')
 

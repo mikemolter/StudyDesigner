@@ -31,6 +31,10 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 URLPATH = 'http://localhost:8000/StandardDeveloper1/'
 
+NEOUN='neo4j'
+NEOPW='letsgowings'
+NEOPATH='localhost:7474/db/data/'
+
 
 # Application definition
 

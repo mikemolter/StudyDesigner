@@ -12,13 +12,13 @@
 		{% block GetStudyInfo %}{% endblock %}
 
 		// Get Study info and plug it into the template below
-		$.getJSON('{{URLPATH}}GetStudyInfo',{Study:"{{Study}}"},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'GetStudyInfo',{Study:"{{Study}}"},function(data) {
 			$('#protocol').html('Protocol Name: <br>'+data[0]['ProtocolName']) ;
 			$('#studydesc').html('Study Description: <br>'+data[0]['Description']) ;
 		}) ;
 
 		$('#docs').bootstrapTable({
-			url:'{{URLPATH}}GetDocs',
+			url:$('[name=URLPath]').val()+'GetDocs',
 			queryParams:{Study:"{{Study}}"},
 			columns:[{
 				field:'Name',
@@ -30,7 +30,7 @@
 		}) ;
 
 		$('#dicts').bootstrapTable({
-			url:'{{URLPATH}}GetDicts',
+			url:$('[name=URLPath]').val()+'GetDicts',
 			queryParams:{Study:"{{Study}}"},
 			columns:[{
 				field:'Name',
@@ -48,7 +48,7 @@
 			// Begin the definition of ADSL
 			$('#mh4').text('ADSL metadata') ;
 			$('[name=IGDSource]').val('Standard') ;
-			$.getJSON('{{URLPATH}}GetStandardDS',{'DSName':'ADSL','StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
+			$.getJSON($('[name=URLPath]').val()+'GetStandardDS',{'DSName':'ADSL','StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
 				$('#mh4').text(data[0]['Name']+' metadata');
 				var MDDic={'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':true} ;
 				$('[name=MD]').val(JSON.stringify(MDDic)) ;
@@ -83,9 +83,8 @@
 			// Otherwise, if a specific data set was chosen from the standard, then query it
 			// Note that MDDIC is what is being passed to the function, but only part of that is being saved to MD
 			else {
-				$.getJSON('{{URLPATH}}GetStandardDS',{'DSName':selection,'StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
+				$.getJSON($('[name=URLPath]').val()+'GetStandardDS',{'DSName':selection,'StandardName':"{{StandardName}}",'StandardVersion':"{{StandardVersion}}"},function(data) {
 					$('#mh4').text(data[0]['Name']+' metadata');
-					alert('NAME: '+data[0]['Name']+', LABEL: '+data[0]['Label']+', CLASS: '+data[0]['Class']) ;
 					var MDDic={'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':true} ;
 					$('[name=MD]').val(JSON.stringify({'Name':data[0]['Name'],'Label':data[0]['Label'],'Class':data[0]['Class'],'StandardTF':true,'Purpose':'Analysis'})) ;
 					DisplayDatasetMD(MDDic) ;
@@ -106,7 +105,7 @@
 			var chosends=$('#dsmdtable').bootstrapTable('getData')[rowindex]['Dataset'] ;
 
 			// Query the study
-			$.getJSON('{{URLPATH}}GetStudyDS',{'DSName':chosends,'Study':$('[name=Study]').val()},function(data) {
+			$.getJSON($('[name=URLPath]').val()+'GetStudyDS',{'DSName':chosends,'Study':$('[name=Study]').val()},function(data) {
 				$('#mh4').text(data[0]['Dataset']+' metadata');
 				var MDDic={'Name':data[0]['Dataset'],'Label':data[0]['Label'],'Class':data[0]['Class'],'Structure':data[0]['Structure'],'Repeating':data[0]['Repeating'],'Reference':data[0]['Reference'],'Purpose':'Analysis','StandardTF':data[0]['StandardTF']} ;
 
@@ -164,6 +163,7 @@
 	<input type="hidden" name="IGDSource"/>
 	<input type="hidden" name="Dataset"/>
 	<input type="hidden" name="Class"/>
+	<input type="hidden" name="URLPath" value="{{URLPATH}}"/>
 </div>
 
 
@@ -209,6 +209,7 @@
 					<input type="hidden" name="Parcats"/>
 					<input type="hidden" name="Parmdefs"/>
 					<input type="hidden" name="Comment"/>
+					<input type="hidden" name="URLPath" value="{{URLPATH}}"/>
 				</div>
 			    <div class="modal-header" id="mh">
 			    	<button type="button" class="close" data-dismiss="modal">&times;</button>

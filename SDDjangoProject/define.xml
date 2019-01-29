@@ -1,167 +1,572 @@
-<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="define2-0.xsl"?><ODM xmlns:def="http://www.cdisc.org/ns/def/v2.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.cdisc.org/ns/odm/v1.3" CreationDateTime="2019-01-18T23:12:48" FileOID="Define_jan1905_ADaM" FileType="Snapshot" ODMVersion="1.3.2">
-  <Study OID="Study_jan1905">
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="define2-0.xsl"?><ODM xmlns:def="http://www.cdisc.org/ns/def/v2.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.cdisc.org/ns/odm/v1.3" CreationDateTime="2019-01-29T15:41:28" FileOID="Define_jan1907_ADaM" FileType="Snapshot" ODMVersion="1.3.2">
+  <Study OID="Study_jan1907">
     <GlobalVariables>
-      <StudyName>jan1905</StudyName>
-      <StudyDescription>Description of jan1905</StudyDescription>
-      <ProtocolName>1905 internal name</ProtocolName>
+      <StudyName>jan1907</StudyName>
+      <StudyDescription>1907 description</StudyDescription>
+      <ProtocolName>1907 internal name</ProtocolName>
     </GlobalVariables>
-    <MetaDataVersion Description="Study jan1905, Data Definitions" Name="Study jan1905, Data Definitions" OID="MDV.jan1905.ADaMIG.1.1" def:DefineVersion="2.0.0" def:StandardName="ADaM-IG" def:StandardVersion="1.1">
+    <MetaDataVersion Description="Study jan1907, Data Definitions" Name="Study jan1907, Data Definitions" OID="MDV.jan1907.ADaMIG.1.1" def:DefineVersion="2.0.0" def:StandardName="ADaM-IG" def:StandardVersion="1.1">
       <def:SupplementalDoc>
         <def:DocumentRef leafID="LF.sap.pdf"/>
-        <def:DocumentRef leafID="LF.sdrg.pdf"/>
+        <def:DocumentRef leafID="LF.adrg.pdf"/>
       </def:SupplementalDoc>
+      <def:ValueListDef OID="VL.ADVS.AVAL">
+        <ItemRef ItemOID="ID.ADVS.HT" Mandatory="Yes">
+          <def:WhereClauseRef WhereClauseOID="WC.ADVS.7"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADVS.WT" Mandatory="Yes">
+          <def:WhereClauseRef WhereClauseOID="WC.ADVS.8"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADVS.HTMAX" Mandatory="Yes" MethodOID="MT.12.0">
+          <def:WhereClauseRef WhereClauseOID="WC.ADVS.2"/>
+        </ItemRef>
+      </def:ValueListDef>
+      <def:ValueListDef OID="VL.ADEG.AVAL">
+        <ItemRef ItemOID="ID.ADEG.EG2" Mandatory="Yes">
+          <def:WhereClauseRef WhereClauseOID="WC.ADEG.7"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADEG.EG1LOCF" Mandatory="No" MethodOID="MT.21.0">
+          <def:WhereClauseRef WhereClauseOID="WC.ADEG.2"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADEG.EG1" Mandatory="No">
+          <def:WhereClauseRef WhereClauseOID="WC.ADEG.6"/>
+        </ItemRef>
+      </def:ValueListDef>
+      <def:ValueListDef OID="VL.ADLB.AVAL">
+        <ItemRef ItemOID="ID.ADLB.CREAT" Mandatory="Yes">
+          <def:WhereClauseRef WhereClauseOID="WC.ADLB.4"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADLB.CRLOCF" Mandatory="No" MethodOID="MT.18.0">
+          <def:WhereClauseRef WhereClauseOID="WC.ADLB.2"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADLB.ALB" Mandatory="Yes">
+          <def:WhereClauseRef WhereClauseOID="WC.ADLB.3"/>
+        </ItemRef>
+      </def:ValueListDef>
+      <def:ValueListDef OID="VL.ADVS.DTYPE">
+        <ItemRef ItemOID="ID.ADVS.DTYPE2" Mandatory="No">
+          <def:WhereClauseRef WhereClauseOID="WC.ADVS.4"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADVS.DTYPE1" Mandatory="No">
+          <def:WhereClauseRef WhereClauseOID="WC.ADVS.1"/>
+        </ItemRef>
+      </def:ValueListDef>
+      <def:ValueListDef OID="VL.ADLB.DTYPE">
+        <ItemRef ItemOID="ID.ADLB.DTYPE1" Mandatory="No">
+          <def:WhereClauseRef WhereClauseOID="WC.ADLB.1"/>
+        </ItemRef>
+      </def:ValueListDef>
+      <def:ValueListDef OID="VL.ADEG.DTYPE">
+        <ItemRef ItemOID="ID.ADEG.DTYPE1" Mandatory="No">
+          <def:WhereClauseRef WhereClauseOID="WC.ADEG.1"/>
+        </ItemRef>
+        <ItemRef ItemOID="ID.ADEG.DTYPE2" Mandatory="No">
+          <def:WhereClauseRef WhereClauseOID="WC.ADEG.4"/>
+        </ItemRef>
+      </def:ValueListDef>
+      <def:WhereClauseDef OID="WC.ADVS.7">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.1">
+          <CheckValue>HEIGHT</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.1">
+          <CheckValue>NULL</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADVS.8">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.1">
+          <CheckValue>NULL</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.1">
+          <CheckValue>WEIGHT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADEG.7">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.3">
+          <CheckValue>EG2</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.3">
+          <CheckValue>NULL</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADEG.2">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.3">
+          <CheckValue>LOCF</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.3">
+          <CheckValue>EG1</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADLB.4">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.2">
+          <CheckValue>NULL</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.2">
+          <CheckValue>CREAT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADEG.6">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.3">
+          <CheckValue>EG1</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.3">
+          <CheckValue>NULL</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADVS.2">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.1">
+          <CheckValue>MAX</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.1">
+          <CheckValue>HEIGHT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADLB.2">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.DTYPE.2">
+          <CheckValue>LOCF</CheckValue>
+        </RangeCheck>
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.2">
+          <CheckValue>CREAT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADVS.4">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.1">
+          <CheckValue>WEIGHT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADVS.1">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.1">
+          <CheckValue>HEIGHT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADLB.1">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.2">
+          <CheckValue>CREAT</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADEG.1">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.3">
+          <CheckValue>EG1</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADEG.4">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.3">
+          <CheckValue>EG2</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <def:WhereClauseDef OID="WC.ADLB.3">
+        <RangeCheck Comparator="eq" SoftHard="Soft" def:ItemOID="ID.PARAMCD.2">
+          <CheckValue>ALB</CheckValue>
+        </RangeCheck>
+      </def:WhereClauseDef>
+      <ItemGroupDef IsReferenceData="No" Name="ADVS" OID="IG.ADVS" Purpose="Analysis" Repeating="Yes" SASDatasetName="ADVS" def:Structure="ADVS structure" def:Class="BASIC DATA STRUCTURE" def:ArchiveLocationID="LF.ADVS">
+        <Description>
+          <TranslatedText lang="en">ADVS label</TranslatedText>
+        </Description>
+        <ItemRef ItemOID="ID.AVAL.1" Mandatory="Yes" OrderNumber="103"/>
+        <ItemRef ItemOID="ID.USUBJID.1" Mandatory="Yes" OrderNumber="1" MethodOID="MT.8.0"/>
+        <ItemRef ItemOID="ID.PARAMCD.1" Mandatory="Yes" OrderNumber="1"/>
+        <ItemRef ItemOID="ID.PARAM.1" Mandatory="Yes" OrderNumber="2"/>
+        <ItemRef ItemOID="ID.TRTP.1" Mandatory="Yes" OrderNumber="2" MethodOID="MT.9.0"/>
+        <ItemRef ItemOID="ID.DTYPE.1" Mandatory="No" OrderNumber="5"/>
+        <def:leaf ID="LF.ADVS" xlink:href="ADVS.xpt">
+          <def:title>ADVS.xpt</def:title>
+        </def:leaf>
+      </ItemGroupDef>
+      <ItemGroupDef IsReferenceData="No" Name="ADAE" OID="IG.ADAE" Purpose="Analysis" Repeating="Yes" SASDatasetName="ADAE" def:Structure="One record per adverse event" def:Class="OCCURRENCE DATA STRUCTURE" def:ArchiveLocationID="LF.ADAE">
+        <Description>
+          <TranslatedText lang="en">Adverse Events</TranslatedText>
+        </Description>
+        <ItemRef ItemOID="ID.USUBJID.3" Mandatory="Yes" OrderNumber="2"/>
+        <ItemRef ItemOID="ID.AETERM.1" Mandatory="Yes" OrderNumber="6"/>
+        <ItemRef ItemOID="ID.STUDYID.2" Mandatory="Yes" OrderNumber="1"/>
+        <def:leaf ID="LF.ADAE" xlink:href="ADAE.xpt">
+          <def:title>ADAE.xpt</def:title>
+        </def:leaf>
+      </ItemGroupDef>
       <ItemGroupDef IsReferenceData="No" Name="ADSL" OID="IG.ADSL" Purpose="Analysis" Repeating="Yes" SASDatasetName="ADSL" def:Structure="One record per subject" def:Class="SUBJECT LEVEL ANALYSIS DATASET" def:ArchiveLocationID="LF.ADSL">
         <Description>
           <TranslatedText lang="en">Subject-Level Analysis</TranslatedText>
         </Description>
-        <ItemRef ItemOID="ID.SUBJID.1" Mandatory="Yes" OrderNumber="3" MethodOID="MT.1.0"/>
-        <ItemRef ItemOID="ID.SEX.1" Mandatory="Yes" OrderNumber="14" MethodOID="MT.2.0"/>
-        <ItemRef ItemOID="ID.USUBJID.1" Mandatory="Yes" OrderNumber="2" MethodOID="MT.6.0"/>
-        <ItemRef ItemOID="ID.TRTxxP.1" Mandatory="Yes" OrderNumber="27"/>
-        <ItemRef ItemOID="ID.RACE.1" Mandatory="Yes" OrderNumber="15"/>
-        <ItemRef ItemOID="ID.SITEID.1" Mandatory="Yes" OrderNumber="4" MethodOID="MT.5.0"/>
+        <ItemRef ItemOID="ID.SAFFL.1" Mandatory="Yes" OrderNumber="4" MethodOID="MT.5.0"/>
+        <ItemRef ItemOID="ID.ITTFL.2" Mandatory="Yes" OrderNumber="3" MethodOID="MT.4.0"/>
+        <ItemRef ItemOID="ID.SEX.1" Mandatory="Yes" OrderNumber="2"/>
+        <ItemRef ItemOID="ID.SUBJID.1" Mandatory="Yes" OrderNumber="1"/>
         <def:leaf ID="LF.ADSL" xlink:href="ADSL.xpt">
           <def:title>ADSL.xpt</def:title>
         </def:leaf>
       </ItemGroupDef>
-      <ItemDef DataType="text" Length="10" Name="SUBJID" OID="ID.SUBJID.1">
+      <ItemGroupDef IsReferenceData="No" Name="ADEG" OID="IG.ADEG" Purpose="Analysis" Repeating="Yes" SASDatasetName="ADEG" def:Structure="ADEG structure" def:Class="BASIC DATA STRUCTURE" def:ArchiveLocationID="LF.ADEG">
         <Description>
-          <TranslatedText lang="en">Subject Identifier for the Study</TranslatedText>
+          <TranslatedText lang="en">ADEG label</TranslatedText>
+        </Description>
+        <ItemRef ItemOID="ID.DTYPE.3" Mandatory="No" OrderNumber="5"/>
+        <ItemRef ItemOID="ID.PARAM.3" Mandatory="Yes" OrderNumber="2"/>
+        <ItemRef ItemOID="ID.PARAMCD.3" Mandatory="Yes" OrderNumber="1"/>
+        <ItemRef ItemOID="ID.USUBJID.2" Mandatory="Yes" OrderNumber="1"/>
+        <ItemRef ItemOID="ID.AVAL.3" Mandatory="No" OrderNumber="103"/>
+        <def:leaf ID="LF.ADEG" xlink:href="ADEG.xpt">
+          <def:title>ADEG.xpt</def:title>
+        </def:leaf>
+      </ItemGroupDef>
+      <ItemGroupDef IsReferenceData="No" Name="ADLB" OID="IG.ADLB" Purpose="Analysis" Repeating="Yes" SASDatasetName="ADLB" def:Structure="ADLB structure" def:Class="BASIC DATA STRUCTURE" def:ArchiveLocationID="LF.ADLB">
+        <Description>
+          <TranslatedText lang="en">ADLB label</TranslatedText>
+        </Description>
+        <ItemRef ItemOID="ID.PARAM.2" Mandatory="Yes" OrderNumber="2"/>
+        <ItemRef ItemOID="ID.PARAMCD.2" Mandatory="Yes" OrderNumber="1"/>
+        <ItemRef ItemOID="ID.STUDYID.1" Mandatory="Yes" OrderNumber="1"/>
+        <ItemRef ItemOID="ID.DTYPE.2" Mandatory="No" OrderNumber="5"/>
+        <ItemRef ItemOID="ID.AVAL.2" Mandatory="No" OrderNumber="103"/>
+        <def:leaf ID="LF.ADLB" xlink:href="ADLB.xpt">
+          <def:title>ADLB.xpt</def:title>
+        </def:leaf>
+      </ItemGroupDef>
+      <ItemDef DataType="integer" Length="3" Name="AVAL" OID="ID.AVAL.1">
+        <Description>
+          <TranslatedText lang="en">Analysis Value</TranslatedText>
+        </Description>
+        <def:ValueListRef ValueListOID="VL.ADVS.AVAL"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="20" Name="USUBJID" OID="ID.USUBJID.3">
+        <Description>
+          <TranslatedText lang="en">Unique Subject Identifier</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">AE.USUBJID</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="text" Length="1" Name="SAFFL" OID="ID.SAFFL.1">
+        <Description>
+          <TranslatedText lang="en">Safety Population Flag</TranslatedText>
         </Description>
         <def:Origin Type="Derived"/>
+        <CodeListRef CodeListOID="CL.YesOnly"/>
       </ItemDef>
-      <ItemDef DataType="text" Length="1" Name="SEX" OID="ID.SEX.1">
+      <ItemDef DataType="text" Length="1" Name="ITTFL" OID="ID.ITTFL.2">
         <Description>
-          <TranslatedText lang="en">Sex</TranslatedText>
+          <TranslatedText lang="en">Intent-To-Treat Population Flag</TranslatedText>
         </Description>
         <def:Origin Type="Derived"/>
-        <CodeListRef CodeListOID="CL.MFSex"/>
+        <CodeListRef CodeListOID="CL.YesOnly"/>
       </ItemDef>
-      <ItemDef DataType="text" Length="12" Name="USUBJID" OID="ID.USUBJID.1" def:CommentOID="COM.USUBJID">
+      <ItemDef DataType="text" Length="15" Name="USUBJID" OID="ID.USUBJID.1">
         <Description>
           <TranslatedText lang="en">Unique Subject Identifier</TranslatedText>
         </Description>
         <def:Origin Type="Derived"/>
-        <CodeListRef CodeListOID="CL.Epoch"/>
       </ItemDef>
-      <ItemDef DataType="text" Length="15" Name="TRTxxP" OID="ID.TRTxxP.1" def:CommentOID="COM.TRTxxP">
+      <ItemDef DataType="text" Length="6" Name="PARAMCD" OID="ID.PARAMCD.1">
         <Description>
-          <TranslatedText lang="en">Planned Treatment for Period xx</TranslatedText>
+          <TranslatedText lang="en">Parameter Code</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADVS Parameter Code "/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="4" Name="DTYPE" OID="ID.DTYPE.3">
+        <Description>
+          <TranslatedText lang="en">Derivation Type</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <def:ValueListRef ValueListOID="VL.ADEG.DTYPE"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="6" Name="SEX" OID="ID.SEX.1">
+        <Description>
+          <TranslatedText lang="en">Sex</TranslatedText>
         </Description>
         <def:Origin Type="Predecessor">
           <Description>
-            <TranslatedText lang="en">DM.ARMCD</TranslatedText>
+            <TranslatedText lang="en">DM.SEX</TranslatedText>
           </Description>
         </def:Origin>
+        <CodeListRef CodeListOID="CL.SexMF"/>
       </ItemDef>
-      <ItemDef DataType="text" Length="10" Name="RACE" OID="ID.RACE.1" def:CommentOID="COM.RACE">
+      <ItemDef DataType="text" Length="9" Name="PARAM" OID="ID.PARAM.3">
         <Description>
-          <TranslatedText lang="en">Race</TranslatedText>
+          <TranslatedText lang="en">Parameter</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADEG Parameter "/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="15" Name="SUBJID" OID="ID.SUBJID.1">
+        <Description>
+          <TranslatedText lang="en">Subject Identifier for the Study</TranslatedText>
         </Description>
         <def:Origin Type="Predecessor">
           <Description>
-            <TranslatedText lang="en">DM.RACE</TranslatedText>
+            <TranslatedText lang="en">DM.USUBJID</TranslatedText>
           </Description>
         </def:Origin>
-        <CodeListRef CodeListOID="CL.RACE2"/>
       </ItemDef>
-      <ItemDef DataType="text" Length="13" Name="SITEID" OID="ID.SITEID.1" def:CommentOID="COM.SITEID">
+      <ItemDef DataType="text" Length="10" Name="PARAM" OID="ID.PARAM.2">
         <Description>
-          <TranslatedText lang="en">Study Site Identifier</TranslatedText>
+          <TranslatedText lang="en">Parameter</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADLB Parameter "/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="5" Name="PARAMCD" OID="ID.PARAMCD.2">
+        <Description>
+          <TranslatedText lang="en">Parameter Code</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADLB Parameter Code "/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="200" Name="AETERM" OID="ID.AETERM.1">
+        <Description>
+          <TranslatedText lang="en">Reported Term</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">AE.AETERM</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="text" Length="11" Name="PARAM" OID="ID.PARAM.1">
+        <Description>
+          <TranslatedText lang="en">Parameter</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADVS Parameter "/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="15" Name="STUDYID" OID="ID.STUDYID.1">
+        <Description>
+          <TranslatedText lang="en">Study Identifier</TranslatedText>
+        </Description>
+        <def:Origin Type="Protocol"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="3" Name="PARAMCD" OID="ID.PARAMCD.3">
+        <Description>
+          <TranslatedText lang="en">Parameter Code</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADEG Parameter Code "/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="16" Name="USUBJID" OID="ID.USUBJID.2">
+        <Description>
+          <TranslatedText lang="en">Unique Subject Identifier</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="AVAL" OID="ID.AVAL.3">
+        <Description>
+          <TranslatedText lang="en">Analysis Value</TranslatedText>
+        </Description>
+        <def:ValueListRef ValueListOID="VL.ADEG.AVAL"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="4" Name="DTYPE" OID="ID.DTYPE.2">
+        <Description>
+          <TranslatedText lang="en">Derivation Type</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <def:ValueListRef ValueListOID="VL.ADLB.DTYPE"/>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="AVAL" OID="ID.AVAL.2">
+        <Description>
+          <TranslatedText lang="en">Analysis Value</TranslatedText>
+        </Description>
+        <def:ValueListRef ValueListOID="VL.ADLB.AVAL"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="6" Name="TRTP" OID="ID.TRTP.1">
+        <Description>
+          <TranslatedText lang="en">Planned Treatment</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+        <CodeListRef CodeListOID="CL.TRTAB"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="4" Name="DTYPE" OID="ID.DTYPE.1">
+        <Description>
+          <TranslatedText lang="en">Derivation Type</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <def:ValueListRef ValueListOID="VL.ADVS.DTYPE"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="15" Name="STUDYID" OID="ID.STUDYID.2">
+        <Description>
+          <TranslatedText lang="en">Study Identifier</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">AE.STUDYID</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="4" Name="HT" OID="ID.ADVS.HT">
+        <Description>
+          <TranslatedText lang="en">Height results</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">VS.VSSTRESN</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="WT" OID="ID.ADVS.WT">
+        <Description>
+          <TranslatedText lang="en">Weight results</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">VS.VSSTRESN</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="EG2" OID="ID.ADEG.EG2">
+        <Description>
+          <TranslatedText lang="en">EG2 results</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">EG.EGSTRESN</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="EG1LOCF" OID="ID.ADEG.EG1LOCF" def:CommentOID="COM.EG1LOCF">
+        <Description>
+          <TranslatedText lang="en">EG1 last obs</TranslatedText>
         </Description>
         <def:Origin Type="Derived"/>
       </ItemDef>
-      <CodeList DataType="text" Name="Epoch" OID="CL.Epoch">
-        <CodeListItem CodedValue="FOLLOW-UP">
+      <ItemDef DataType="integer" Length="3" Name="CREAT" OID="ID.ADLB.CREAT">
+        <Description>
+          <TranslatedText lang="en">Creatinine results</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">LB.LBSTRESN</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="EG1" OID="ID.ADEG.EG1">
+        <Description>
+          <TranslatedText lang="en">EG1 results</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">EG.EGSTRESN</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="4" Name="HTMAX" OID="ID.ADVS.HTMAX">
+        <Description>
+          <TranslatedText lang="en">maximum height</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="CRLOCF" OID="ID.ADLB.CRLOCF">
+        <Description>
+          <TranslatedText lang="en">Creatinine last obs</TranslatedText>
+        </Description>
+        <def:Origin Type="Derived"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="4" Name="DTYPE2" OID="ID.ADVS.DTYPE2">
+        <Description>
+          <TranslatedText lang="en">Derivation Type 2</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADVS Derivation Type 2"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="3" Name="DTYPE1" OID="ID.ADVS.DTYPE1">
+        <Description>
+          <TranslatedText lang="en">Derivation Type 1</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADVS Derivation Type 1"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="4" Name="DTYPE1" OID="ID.ADLB.DTYPE1">
+        <Description>
+          <TranslatedText lang="en">Derivation Type 1</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADLB Derivation Type 1"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="4" Name="DTYPE1" OID="ID.ADEG.DTYPE1">
+        <Description>
+          <TranslatedText lang="en">Derivation Type 1</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADEG Derivation Type 1"/>
+      </ItemDef>
+      <ItemDef DataType="text" Length="3" Name="DTYPE2" OID="ID.ADEG.DTYPE2">
+        <Description>
+          <TranslatedText lang="en">Derivation Type 2</TranslatedText>
+        </Description>
+        <def:Origin Type="Assigned"/>
+        <CodeListRef CodeListOID="CL.ADEG Derivation Type 2"/>
+      </ItemDef>
+      <ItemDef DataType="integer" Length="3" Name="ALB" OID="ID.ADLB.ALB">
+        <Description>
+          <TranslatedText lang="en">Albumin results</TranslatedText>
+        </Description>
+        <def:Origin Type="Predecessor">
+          <Description>
+            <TranslatedText lang="en">LB.LBSTRESN</TranslatedText>
+          </Description>
+        </def:Origin>
+      </ItemDef>
+      <CodeList DataType="text" Name="ADEG Parameter Code " OID="CL.ADEG Parameter Code ">
+        <CodeListItem CodedValue="EG2" def:ExtendedValue="Yes">
           <Decode>
-            <TranslatedText lang="en">Clinical Study Follow-up</TranslatedText>
+            <TranslatedText lang="en">EG2 param</TranslatedText>
           </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C99158"/>
         </CodeListItem>
-        <CodeListItem CodedValue="INDUCTION TREATMENT">
+        <CodeListItem CodedValue="EG1" def:ExtendedValue="Yes">
           <Decode>
-            <TranslatedText lang="en">Induction Therapy Epoch</TranslatedText>
+            <TranslatedText lang="en">EG1 param</TranslatedText>
           </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C123453"/>
         </CodeListItem>
-        <CodeListItem CodedValue="OPEN LABEL TREATMENT">
-          <Decode>
-            <TranslatedText lang="en">Open Label Treatment Epoch</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C102256"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="BASELINE">
-          <Decode>
-            <TranslatedText lang="en">Baseline Epoch</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C125938"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="LONG-TERM FOLLOW-UP">
-          <Decode>
-            <TranslatedText lang="en">Long-term Follow-up</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C16032"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="BLINDED TREATMENT">
-          <Decode>
-            <TranslatedText lang="en">Blinded Treatment Epoch</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C102255"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="CONTINUATION TREATMENT">
-          <Decode>
-            <TranslatedText lang="en">Continuation Therapy Epoch</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C123452"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="SCREENING">
-          <Decode>
-            <TranslatedText lang="en">Trial Screening</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C48262"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="RUN-IN">
-          <Decode>
-            <TranslatedText lang="en">Run-in Period</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C98779"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="WASHOUT">
-          <Decode>
-            <TranslatedText lang="en">Washout Period</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C42872"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="TREATMENT">
-          <Decode>
-            <TranslatedText lang="en">Treatment Epoch</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C101526"/>
-        </CodeListItem>
-        <Alias Context="nci:ExtCodeID" Name="C99079"/>
       </CodeList>
-      <CodeList DataType="text" Name="RACE2" OID="CL.RACE2">
-        <CodeListItem CodedValue="WHITE">
-          <Decode>
-            <TranslatedText lang="en">White</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C41261"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER">
-          <Decode>
-            <TranslatedText lang="en">Native Hawaiian or Other Pacific Islander</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C41219"/>
-        </CodeListItem>
-        <CodeListItem CodedValue="ASIAN">
-          <Decode>
-            <TranslatedText lang="en">Asian</TranslatedText>
-          </Decode>
-          <Alias Context="nci:ExtCodeID" Name="C41260"/>
-        </CodeListItem>
-        <Alias Context="nci:ExtCodeID" Name="C74457"/>
+      <CodeList DataType="text" Name="ADEG Parameter " OID="CL.ADEG Parameter ">
+        <EnumeratedItem CodedValue="EG2 param" def:ExtendedValue="Yes"/>
+        <EnumeratedItem CodedValue="EG1 param" def:ExtendedValue="Yes"/>
       </CodeList>
-      <CodeList DataType="text" Name="MFSex" OID="CL.MFSex">
+      <CodeList DataType="text" Name="ADLB Parameter " OID="CL.ADLB Parameter ">
+        <EnumeratedItem CodedValue="Creatinine" def:ExtendedValue="Yes"/>
+        <EnumeratedItem CodedValue="Albumin" def:ExtendedValue="Yes"/>
+      </CodeList>
+      <CodeList DataType="text" Name="ADLB Parameter Code " OID="CL.ADLB Parameter Code ">
+        <CodeListItem CodedValue="ALB" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Albumin</TranslatedText>
+          </Decode>
+        </CodeListItem>
+        <CodeListItem CodedValue="CREAT" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Creatinine</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <CodeList DataType="text" Name="TRTAB" OID="CL.TRTAB">
+        <EnumeratedItem CodedValue="TRTB" def:ExtendedValue="Yes"/>
+        <EnumeratedItem CodedValue="TRTA" def:ExtendedValue="Yes"/>
+      </CodeList>
+      <CodeList DataType="text" Name="ADVS Parameter " OID="CL.ADVS Parameter ">
+        <EnumeratedItem CodedValue="Height (cm)" def:ExtendedValue="Yes"/>
+        <EnumeratedItem CodedValue="Weight (kg)" def:ExtendedValue="Yes"/>
+      </CodeList>
+      <CodeList DataType="text" Name="ADVS Parameter Code " OID="CL.ADVS Parameter Code ">
+        <CodeListItem CodedValue="HEIGHT" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Height (cm)</TranslatedText>
+          </Decode>
+        </CodeListItem>
+        <CodeListItem CodedValue="WEIGHT" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Weight (kg)</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <CodeList DataType="text" Name="YesOnly" OID="CL.YesOnly">
+        <CodeListItem CodedValue="Y">
+          <Decode>
+            <TranslatedText lang="en">Yes</TranslatedText>
+          </Decode>
+          <Alias Context="nci:ExtCodeID" Name="C49488"/>
+        </CodeListItem>
+        <Alias Context="nci:ExtCodeID" Name="C66742"/>
+      </CodeList>
+      <CodeList DataType="text" Name="SexMF" OID="CL.SexMF">
         <CodeListItem CodedValue="F">
           <Decode>
             <TranslatedText lang="en">Female</TranslatedText>
@@ -176,69 +581,101 @@
         </CodeListItem>
         <Alias Context="nci:ExtCodeID" Name="C66731"/>
       </CodeList>
-      <MethodDef Name="Algorithm for SUBJID" OID="MT.1.0" Type="Computation">
+      <CodeList DataType="text" Name="ADEG Derivation Type 2" OID="CL.ADEG Derivation Type 2">
+        <CodeListItem CodedValue="MAX" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Maximum</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <CodeList DataType="text" Name="ADEG Derivation Type 1" OID="CL.ADEG Derivation Type 1">
+        <CodeListItem CodedValue="MIN" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Minimum</TranslatedText>
+          </Decode>
+        </CodeListItem>
+        <CodeListItem CodedValue="LOCF" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">last obs</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <CodeList DataType="text" Name="ADLB Derivation Type 1" OID="CL.ADLB Derivation Type 1">
+        <CodeListItem CodedValue="LOCF" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">last obs</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <CodeList DataType="text" Name="ADVS Derivation Type 1" OID="CL.ADVS Derivation Type 1">
+        <CodeListItem CodedValue="MIN" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Minimum</TranslatedText>
+          </Decode>
+        </CodeListItem>
+        <CodeListItem CodedValue="MAX" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">Maximum</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <CodeList DataType="text" Name="ADVS Derivation Type 2" OID="CL.ADVS Derivation Type 2">
+        <CodeListItem CodedValue="WOCF" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">worst obs</TranslatedText>
+          </Decode>
+        </CodeListItem>
+        <CodeListItem CodedValue="LOCF" def:ExtendedValue="Yes">
+          <Decode>
+            <TranslatedText lang="en">last obs</TranslatedText>
+          </Decode>
+        </CodeListItem>
+      </CodeList>
+      <MethodDef Name="Algorithm for SAFFL" OID="MT.5.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en"> SUBJID instructions</TranslatedText>
+          <TranslatedText lang="en"> SAFFL derivation</TranslatedText>
         </Description>
       </MethodDef>
-      <MethodDef Name="Algorithm for SEX" OID="MT.2.0" Type="Computation">
+      <MethodDef Name="Algorithm for ITTFL" OID="MT.4.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en"> if DM.SEX=MALE then M; else F</TranslatedText>
+          <TranslatedText lang="en"> ITTFL derivation</TranslatedText>
         </Description>
       </MethodDef>
-      <MethodDef Name="Algorithm for USUBJID" OID="MT.6.0" Type="Computation">
+      <MethodDef Name="Algorithm for USUBJID" OID="MT.8.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en"> USUBJID method see sap</TranslatedText>
+          <TranslatedText lang="en"> USUBJID derivation</TranslatedText>
         </Description>
-        <def:DocumentRef leafID="LF.sap.pdf">
-          <def:PDFPageRef Type="NamedDestination" PageRefs="usubjidnd"/>
-        </def:DocumentRef>
       </MethodDef>
-      <MethodDef Name="Algorithm for SITEID" OID="MT.5.0" Type="Computation">
+      <MethodDef Name="Algorithm for TRTP" OID="MT.9.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en"> SITEID method see sap</TranslatedText>
+          <TranslatedText lang="en"> TRTP derivation</TranslatedText>
         </Description>
-        <def:DocumentRef leafID="LF.sap.pdf">
-          <def:PDFPageRef Type="NamedDestination" PageRefs=""/>
-        </def:DocumentRef>
       </MethodDef>
-      <def:CommentDef OID="COM.USUBJID">
+      <MethodDef Name="Algorithm for EG1LOCF" OID="MT.21.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en">usubjid comment</TranslatedText>
+          <TranslatedText lang="en"> EG1 LOCF derivation</TranslatedText>
         </Description>
-        <def:DocumentRef leafID="LF.sdrg.pdf">
-          <def:PDFPageRef Type="PhysicalRef" FirstPage="21" LastPage="22"/>
-        </def:DocumentRef>
-      </def:CommentDef>
-      <def:CommentDef OID="COM.TRTxxP">
+      </MethodDef>
+      <MethodDef Name="Algorithm for HTMAX" OID="MT.12.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en">See SAP</TranslatedText>
+          <TranslatedText lang="en"> take maximum height</TranslatedText>
         </Description>
-        <def:DocumentRef leafID="LF.sap.pdf">
-          <def:PDFPageRef Type="PhysicalRef" PageRefs="14"/>
-        </def:DocumentRef>
-      </def:CommentDef>
-      <def:CommentDef OID="COM.RACE">
+      </MethodDef>
+      <MethodDef Name="Algorithm for CRLOCF" OID="MT.18.0" Type="Computation">
         <Description>
-          <TranslatedText lang="en">SEE SAP</TranslatedText>
+          <TranslatedText lang="en"> Creatinine LOCF derivation</TranslatedText>
         </Description>
-        <def:DocumentRef leafID="LF.sap.pdf">
-          <def:PDFPageRef Type="PhysicalRef" PageRefs="25"/>
-        </def:DocumentRef>
-      </def:CommentDef>
-      <def:CommentDef OID="COM.SITEID">
+      </MethodDef>
+      <def:CommentDef OID="COM.EG1LOCF">
         <Description>
-          <TranslatedText lang="en">SITEID comment see sdrg</TranslatedText>
+          <TranslatedText lang="en">EG1 LOCF comment</TranslatedText>
         </Description>
-        <def:DocumentRef leafID="LF.sdrg.pdf">
-          <def:PDFPageRef Type="PhysicalRef" FirstPage="14" LastPage="47"/>
-        </def:DocumentRef>
       </def:CommentDef>
       <def:leaf ID="LF.sap.pdf" xlink:href="sap.pdf">
         <def:title>Statistical Analysis Plan</def:title>
       </def:leaf>
-      <def:leaf ID="LF.sdrg.pdf" xlink:href="sdrg.pdf">
-        <def:title>Study Data Reviewers Guide</def:title>
+      <def:leaf ID="LF.adrg.pdf" xlink:href="adrg.pdf">
+        <def:title>Analysis Data Reviewers Guide</def:title>
       </def:leaf>
     </MetaDataVersion>
   </Study>

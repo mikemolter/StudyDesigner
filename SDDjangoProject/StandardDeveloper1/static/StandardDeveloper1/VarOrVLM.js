@@ -15,6 +15,18 @@ $(document).ready(function(){
 		}
 	})
 
+	// If/when an ADaM data set is chosen as a new source, then this will populate the variable list 
+	$('#myModal').on('change','#adamds',function() {
+		var selectedadamds = $('#adamds :selected').val() ;
+		$('#adamvar').empty() ;
+		$('#adamvar').append('<option disabled selected>Select ADaM variable</option>')
+		$.getJSON($('[name=URLPath]').val()+'GetADaMStudyVars',{'Study':$('[name=Study]').val(),'DSName':selectedadamds},function(data){
+			$.each(data,function() {
+				$('<option value="'+this['VarName']+'">'+this['VarName']+'</option>').appendTo('#adamvar');
+			})
+		})
+	})
+
 	// When a user wants to define custom CT from scratch, give them a checkbox to tick if they want decodes
 	$('#myModal').on('change','#cstct2',function() {
 		if ($('#cstct2').val().substr(6,1) == 'd') {
@@ -251,7 +263,7 @@ $(document).ready(function(){
 		$('#mb').append('<p>We now identify the data set and the variable from which the predecessor originated.  Start by either selecting a source data set that has already been defined, or define a new one.  </p><div class="radio"><label><input type="radio" name="sourcetype" id="c1">Select an already existing source.</label></div><table id="PredTable"></table>') ;
 
 		$('#PredTable').bootstrapTable({
-			url:"http://localhost:8000/StandardDeveloper1/GetStudySources",
+			url:$('[name=URLPath]').val()+"GetStudySources",
 			//queryParams:"StudySourceParms",
 			queryParams:{Study:$('[name=Study]').val(),DSName:$('[name=DSName]').val(),VarName:Var,VLMOID:VLM},
 			clickToSelect:'true',
@@ -290,7 +302,7 @@ $(document).ready(function(){
 		$('#mb').append('<p>We now identify the data sets from which the variable originated.  Select any number of source data sets that have already been defined, and define any number of new ones.  </p><table id="SourceTable"></table>') ;
 
 		$('#SourceTable').bootstrapTable({
-			url:"http://localhost:8000/StandardDeveloper1/GetStudySources",
+			url:$('[name=URLPath]').val()+"GetStudySources",
 			//queryParams:"StudySourceParms",
 			queryParams:{Study:$('[name=Study]').val(),DSName:$('[name=DSName]').val(),VarName:Var,VLMOID:VLM},
 			clickToSelect:'true',
@@ -322,7 +334,7 @@ $(document).ready(function(){
 			<input type="radio" name="newsource" value="adam">Define a new ADaM source</label></div><div class="radio"><label>\
 			<input type="radio" name="newsource" value="sdtm">Define a new SDTM source</label></div></div>') ;
 
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'GetADaMStudyDS',{'Study':"{{Study}}"},function(data) {
 			$.each(data,function() {
 				$('<option value="'+this['DSName']+'">'+this['DSName']+'</option>').appendTo('#adamds') ;
 			})
@@ -338,15 +350,15 @@ $(document).ready(function(){
 		$('#mb').append("<p>It's now time to start thinking about how a programmer will populate this variable.  We begin by thinking about the values allowed for this variable.  Make a selection from the dropdown below.</p>") ;
 
 		if (Origin != 'Predecessor') {
-			$('#mb').append('<div id="nopredchoice" class="form-group"><label>Choose here whether to define programming instructions along with allowable values or separate from allowable values.</label>\
-				<div class="col-xs-10"><select id="cstct1"><option disabled selected></option><option value="cstct1a">Define allowable values with programming instructions</option>\
-				<option value="cstct1b">Define allowable values separate from programming instructions</option><option value="cstct1c">Not applicable for this variable - skip to programming instructions</option></select></div></div>') ;
+			$('#mb').append('<div id="nopredchoice" class="form-group"><label>Choose here whether to define programming instructions along with allowable values or separate from allowable values.</label><br/>\
+				<select id="cstct1"><option disabled selected></option><option value="cstct1a">Define allowable values with programming instructions</option>\
+				<option value="cstct1b">Define allowable values separate from programming instructions</option><option value="cstct1c">Not applicable for this variable - skip to programming instructions</option></select></div>') ;
 		}
 
 		else {
-			$('#mb').append('<div class="form-group"><label>Choose how to define a set of allowable values</label>\
-				<div class="col-xs-6"><select class="format-control" id="cstct2"><option disabled selected></option><option value="cstct2a">Based on a global list</option>\
-				<option value="cstct2b">Based on a study list</option><option value="cstct2c">Not applicable</option><option value="cstct2d">Create a list from scratch</option></select></div></div><br>')
+			$('#mb').append('<div class="form-group"><label>Choose how to define a set of allowable values</label><br/>\
+				<select class="format-control" id="cstct2"><option disabled selected></option><option value="cstct2a">Based on a global list</option>\
+				<option value="cstct2b">Based on a study list</option><option value="cstct2c">Not applicable</option><option value="cstct2d">Create a list from scratch</option></select></div><br>')
 		}
 	}
 
@@ -355,12 +367,12 @@ $(document).ready(function(){
 
 		// Choice to start from a global list
 		if (codelistchoice == 'a') {
-			var url="http://localhost:8000/StandardDeveloper1/GetAllGlobalCL" ;
+			var url=$('[name=URLPath]').val()+"GetAllGlobalCL" ;
 		}
 
 		// Choice to start from a study list
 		else if (codelistchoice == 'b') {
-			var url="http://localhost:8000/StandardDeveloper1/GetAllStudyCL" ;
+			var url=$('[name=URLPath]').val()+"GetAllStudyCL" ;
 			//var qp='StudySourceParms' ;
 			var qp={Study:"{{Study}}"} ;
 		}
@@ -420,7 +432,7 @@ $(document).ready(function(){
 		}
 
 		else {
-			ExtCT('false') ;
+			ExtCT(false) ;
 			$('#mb').append('</div><table id="CodeListItemTable" style="display:block;max-height:200px;overflow-y:auto;-ms-overflow-style:-ms-autohiding-scrollbar"></table>') ;
 			$('#CodeListItemTable').bootstrapTable({
 				scrollY:"200px",
@@ -452,7 +464,7 @@ $(document).ready(function(){
 
 		if (DecodeYN == true) {
 			$('#CodeListItemTable').bootstrapTable({
-				url:'http://localhost:8000/StandardDeveloper1/'+url,
+				url:$('[name=URLPath]').val()+url,
 				queryParams:qp,
 				scrollY:"200px",
 				columns:[{
@@ -473,7 +485,7 @@ $(document).ready(function(){
 
 		else {
 			$('#CodeListItemTable').bootstrapTable({
-				url:'http://localhost:8000/StandardDeveloper1/'+url,
+				url:$('[name=URLPath]').val()+url,
 				queryParams:qp,
 				scrollY:"200px",
 				columns:[{
@@ -499,7 +511,7 @@ $(document).ready(function(){
 		}
 
 		else {
-			var functioncall="AddTerm('false');"
+			var functioncall="AddTerm(false);"
 		}
 
 		$('#newtermcontainer').append('<div class="form-group"><button type="button" onclick="'+functioncall+'" class="btn btn-success" id="addtermbutton">Add Term</button></div>') ;
@@ -600,7 +612,7 @@ $(document).ready(function(){
 			<div class="form-group"><select class="form-control" id="doc"><option disabled selected>Choose a document</option></select></div><div class="radio">\
 			<label><input type="radio" name="pagetype" value="NamedDestination">Named Destination</label></div><div class="radio"><label><input type="radio" name="pagetype" value="PhysicalRef">Page Number(s)</label></div><div class="form-group" id="pageinfo"></div></div>') ;
 
-		$.getJSON('http://localhost:8000/StandardDeveloper1/GetDocs',{'Study':$('[name=Study]').val()},function(data) {
+		$.getJSON($('[name=URLPath]').val()+'GetDocs',{'Study':$('[name=Study]').val()},function(data) {
 			$.each(data,function() {
 				$('<option value="'+this['File']+'">'+this['File']+'</option>').appendTo('#doc') ;
 			})
